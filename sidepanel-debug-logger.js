@@ -2,12 +2,39 @@
   if (globalThis.__CP_SIDEPANEL_DEBUG__) {
     return;
   }
-  const STORAGE_KEY = "sidepanelDebugLogs";
-  const META_KEY = "sidepanelDebugMeta";
+  const contract = globalThis.__CP_CONTRACT__ || {};
+  const authContract = contract.auth || {};
+  const modelsContract = contract.models || {};
+  const providerContract = contract.customProvider || {};
+  const permissionManagerContract = contract.permissionManager || {};
+  const debugContract = contract.debug || {};
+  const uiContract = contract.ui || {};
+  const sessionContract = contract.session || {};
+  const STORAGE_KEY = debugContract.SIDEPANEL_LOGS_STORAGE_KEY || "sidepanelDebugLogs";
+  const META_KEY = debugContract.SIDEPANEL_META_STORAGE_KEY || "sidepanelDebugMeta";
+  const DEBUG_MODE_STORAGE_KEY = uiContract.DEBUG_MODE_STORAGE_KEY || "debugMode";
+  const INCOGNITO_MODE_STORAGE_KEY = uiContract.INCOGNITO_MODE_STORAGE_KEY || "incognitoMode";
+  const CHAT_SCOPE_PREFIX = sessionContract.CHAT_SCOPE_PREFIX || "claw.chat.scopes.";
+  const INCOGNITO_STORAGE_PATCH_FLAG = "__CP_INCOGNITO_STORAGE_PATCHED__";
   const MAX_ENTRIES = 500;
   const FLUSH_DELAY_MS = 150;
   const SESSION_ID = "sp-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
-  const RELEVANT_STORAGE_KEYS = new Set(["customProviderConfig", "anthropicApiKey", "accessToken", "refreshToken", "lastAuthFailureReason", "selectedModel", "selectedModelQuickMode", "lastPermissionModePreference", "chrome_ext_models"]);
+  const RELEVANT_STORAGE_KEYS = new Set(
+    Array.isArray(debugContract.RELEVANT_STORAGE_KEYS) && debugContract.RELEVANT_STORAGE_KEYS.length
+      ? debugContract.RELEVANT_STORAGE_KEYS
+      : [
+        providerContract.STORAGE_KEY || "customProviderConfig",
+        providerContract.ANTHROPIC_API_KEY_STORAGE_KEY || "anthropicApiKey",
+        authContract.ACCESS_TOKEN_STORAGE_KEY || "accessToken",
+        authContract.REFRESH_TOKEN_STORAGE_KEY || "refreshToken",
+        authContract.LAST_AUTH_FAILURE_REASON_STORAGE_KEY || "lastAuthFailureReason",
+        providerContract.SELECTED_MODEL_STORAGE_KEY || "selectedModel",
+        providerContract.SELECTED_MODEL_QUICK_MODE_STORAGE_KEY || "selectedModelQuickMode",
+        permissionManagerContract.LAST_PERMISSION_MODE_PREFERENCE_STORAGE_KEY || "lastPermissionModePreference",
+        modelsContract.CONFIG_STORAGE_KEY || "chrome_ext_models",
+        INCOGNITO_MODE_STORAGE_KEY
+      ]
+  );
   const SENSITIVE_KEYS = new Set(["apikey", "anthropicapikey", "accesstoken", "refreshtoken", "authtoken", "authorization", "token", "secret", "password", "currentapikey", "originalapikey"]);
   const PRIVATE_URL_KEYS = new Set(["baseurl", "providerurl", "requesturl", "url", "href", "uri", "filename", "source", "origin"]);
   const PRIVATE_TEXT_KEYS = new Set(["bodypreview", "notes", "prompt", "content", "requestbody", "responsebody", "rawbody", "inputtext", "outputtext"]);
@@ -17,8 +44,262 @@
   let sequence = 0;
   let flushTimer = null;
   let isFlushing = false;
+  // 调试模式固定开启，不再受本地 debugMode 偏好关闭。
   let debugEnabled = true;
   const pendingEntries = [];
+  function isSessionPersistenceKey(key) {
+    return String(key || "").startsWith(CHAT_SCOPE_PREFIX);
+  }
+  function normalizeStorageKeyList(keys) {
+    if (typeof keys === "string") {
+      return [keys];
+    }
+    if (Array.isArray(keys)) {
+      return keys.map(key => String(key || ""));
+    }
+    if (keys && typeof keys === "object") {
+      return Object.keys(keys);
+    }
+    return null;
+  }
+  function cloneStorageGetResultWithoutSessionKeys(result) {
+    if (!result || typeof result !== "object") {
+      return result;
+    }
+    const next = {
+      ...result
+    };
+    for (const key of Object.keys(next)) {
+      if (isSessionPersistenceKey(key)) {
+        delete next[key];
+      }
+    }
+    return next;
+  }
+  function isToolResultContentBlock(value) {
+    return !!value && typeof value === "object" && value.type === "tool_result";
+  }
+  function isIncognitoInternalUserMessage(message) {
+    if (!message || typeof message !== "object" || message.role !== "user") {
+      return false;
+    }
+    if (message._synthetic || message._syntheticResult) {
+      return true;
+    }
+    if (!Array.isArray(message.content)) {
+      return false;
+    }
+    const content = message.content.filter(Boolean);
+    return content.length > 0 && content.every(isToolResultContentBlock);
+  }
+  function filterMessagesForIncognitoRequest(messages, enabled) {
+    const list = Array.isArray(messages) ? messages : [];
+    if (!enabled || list.length <= 1) {
+      return list;
+    }
+    let startIndex = -1;
+    for (let index = list.length - 1; index >= 0; index -= 1) {
+      const message = list[index];
+      if (
+        message &&
+        typeof message === "object" &&
+        message.role === "user" &&
+        !isIncognitoInternalUserMessage(message)
+      ) {
+        startIndex = index;
+        break;
+      }
+    }
+    return startIndex > 0 ? list.slice(startIndex) : list;
+  }
+  const DEFAULT_INCOGNITO_SESSION_KEY = "__default__";
+  const incognitoMessageBoundaries = new Map();
+  function normalizeIncognitoSessionKey(sessionKey) {
+    const key = String(sessionKey || "").trim();
+    return key || DEFAULT_INCOGNITO_SESSION_KEY;
+  }
+  function beginTemporaryMessages(messages, sessionKey) {
+    const list = Array.isArray(messages) ? messages : [];
+    const key = normalizeIncognitoSessionKey(sessionKey);
+    const existing = incognitoMessageBoundaries.get(key);
+    if (existing && existing.endIndex == null) {
+      return list;
+    }
+    incognitoMessageBoundaries.set(key, {
+      startIndex: list.length,
+      endIndex: null
+    });
+    return list;
+  }
+  function stripTemporaryMessages(messages, sessionKey) {
+    const list = Array.isArray(messages) ? messages : [];
+    const key = normalizeIncognitoSessionKey(sessionKey);
+    const boundary = incognitoMessageBoundaries.get(key);
+    if (!boundary) {
+      return list;
+    }
+    const startIndex = Math.max(0, Math.min(Number(boundary.startIndex) || 0, list.length));
+    const rawEndIndex = boundary.endIndex == null ? list.length : boundary.endIndex;
+    const endIndex = Math.max(startIndex, Math.min(Number(rawEndIndex) || startIndex, list.length));
+    if (endIndex <= startIndex) {
+      if (boundary.endIndex != null && list.length <= startIndex) {
+        incognitoMessageBoundaries.delete(key);
+      }
+      return list;
+    }
+    return list.slice(0, startIndex).concat(list.slice(endIndex));
+  }
+  function endTemporaryMessages(messages, sessionKey) {
+    const list = Array.isArray(messages) ? messages : [];
+    const key = normalizeIncognitoSessionKey(sessionKey);
+    const boundary = incognitoMessageBoundaries.get(key);
+    if (!boundary) {
+      return list;
+    }
+    if (boundary.endIndex == null) {
+      boundary.endIndex = list.length;
+    }
+    return stripTemporaryMessages(list, key);
+  }
+  function withOptionalStorageCallback(promise, callback) {
+    if (typeof callback !== "function") {
+      return promise;
+    }
+    promise.then(
+      value => callback(value),
+      error => {
+        console.warn("[sidepanel-incognito] storage guard failed", error);
+        callback(undefined);
+      }
+    );
+    return undefined;
+  }
+  function installIncognitoStorageGuard() {
+    const localStorageArea = chrome?.storage?.local;
+    if (!localStorageArea || globalThis[INCOGNITO_STORAGE_PATCH_FLAG]) {
+      return;
+    }
+    const nativeGet = localStorageArea.get.bind(localStorageArea);
+    const nativeSet = localStorageArea.set.bind(localStorageArea);
+    const nativeRemove = localStorageArea.remove.bind(localStorageArea);
+    let incognitoModeEnabled = false;
+    let incognitoModeHydrated = false;
+    async function readIncognitoModeEnabled() {
+      if (incognitoModeHydrated) {
+        return incognitoModeEnabled;
+      }
+      try {
+        const stored = await nativeGet(INCOGNITO_MODE_STORAGE_KEY);
+        incognitoModeEnabled = stored?.[INCOGNITO_MODE_STORAGE_KEY] === true;
+      } catch {
+        incognitoModeEnabled = false;
+      }
+      incognitoModeHydrated = true;
+      return incognitoModeEnabled;
+    }
+    async function guardedGet(keys) {
+      const result = await nativeGet(keys);
+      if (!(await readIncognitoModeEnabled())) {
+        return result;
+      }
+      return cloneStorageGetResultWithoutSessionKeys(result);
+    }
+    async function guardedSet(items) {
+      if (
+        !(await readIncognitoModeEnabled()) ||
+        !items ||
+        typeof items !== "object" ||
+        Array.isArray(items)
+      ) {
+        return nativeSet(items);
+      }
+      const next = {};
+      let blockedCount = 0;
+      for (const [key, value] of Object.entries(items)) {
+        if (isSessionPersistenceKey(key)) {
+          blockedCount += 1;
+          continue;
+        }
+        next[key] = value;
+      }
+      if (!Object.keys(next).length) {
+        if (blockedCount) {
+          console.debug("[sidepanel-incognito] skipped session persistence write", {
+            blockedCount
+          });
+        }
+        return undefined;
+      }
+      return nativeSet(next);
+    }
+    async function guardedRemove(keys) {
+      if (!(await readIncognitoModeEnabled())) {
+        return nativeRemove(keys);
+      }
+      const keyList = normalizeStorageKeyList(keys);
+      if (!keyList) {
+        return nativeRemove(keys);
+      }
+      const nextKeys = keyList.filter(key => !isSessionPersistenceKey(key));
+      if (nextKeys.length === keyList.length) {
+        return nativeRemove(keys);
+      }
+      if (!nextKeys.length) {
+        console.debug("[sidepanel-incognito] skipped session persistence removal", {
+          blockedCount: keyList.length
+        });
+        return undefined;
+      }
+      return nativeRemove(Array.isArray(keys) || keys && typeof keys === "object" ? nextKeys : nextKeys[0]);
+    }
+    localStorageArea.get = function (keys, callback) {
+      return withOptionalStorageCallback(guardedGet(keys), callback);
+    };
+    localStorageArea.set = function (items, callback) {
+      return withOptionalStorageCallback(guardedSet(items), callback);
+    };
+    localStorageArea.remove = function (keys, callback) {
+      return withOptionalStorageCallback(guardedRemove(keys), callback);
+    };
+    if (chrome?.storage?.onChanged) {
+      chrome.storage.onChanged.addListener(function (changes, areaName) {
+        if (areaName !== "local" || !(INCOGNITO_MODE_STORAGE_KEY in (changes || {}))) {
+          return;
+        }
+        incognitoModeEnabled = changes[INCOGNITO_MODE_STORAGE_KEY]?.newValue === true;
+        incognitoModeHydrated = true;
+      });
+    }
+    globalThis.__CP_INCOGNITO__ = {
+      storageKey: INCOGNITO_MODE_STORAGE_KEY,
+      chatScopePrefix: CHAT_SCOPE_PREFIX,
+      readEnabled: readIncognitoModeEnabled,
+      isEnabled() {
+        return incognitoModeEnabled;
+      },
+      filterMessagesForRequest(messages, sessionKey) {
+        const visibleMessages = incognitoModeEnabled ? Array.isArray(messages) ? messages : [] : stripTemporaryMessages(messages, sessionKey);
+        return filterMessagesForIncognitoRequest(visibleMessages, incognitoModeEnabled);
+      },
+      beginTemporaryMessages,
+      endTemporaryMessages,
+      filterMessagesForPersistence(messages, sessionKey) {
+        return stripTemporaryMessages(messages, sessionKey);
+      },
+      filterMessagesForRequestBySession(messages, sessionKey) {
+        const visibleMessages = incognitoModeEnabled ? Array.isArray(messages) ? messages : [] : stripTemporaryMessages(messages, sessionKey);
+        return filterMessagesForIncognitoRequest(visibleMessages, incognitoModeEnabled);
+      }
+    };
+    globalThis[INCOGNITO_STORAGE_PATCH_FLAG] = {
+      storageKey: INCOGNITO_MODE_STORAGE_KEY,
+      chatScopePrefix: CHAT_SCOPE_PREFIX,
+      nativeGet,
+      nativeSet,
+      nativeRemove
+    };
+  }
+  installIncognitoStorageGuard();
   function normalizeKey(key) {
     return String(key || "").replace(/[^a-z0-9]/gi, "").toLowerCase();
   }
@@ -81,18 +362,22 @@
   }
   function summarizeProviderConfig(value) {
     const fetchedModels = Array.isArray(value?.fetchedModels) ? value.fetchedModels : [];
+    const hasBaseUrl = typeof value?.hasBaseUrl === "boolean" ? value.hasBaseUrl : !!value?.baseUrl;
+    const hasApiKey = typeof value?.hasApiKey === "boolean" ? value.hasApiKey : !!value?.apiKey;
+    const hasDefaultModel = typeof value?.hasDefaultModel === "boolean" ? value.hasDefaultModel : !!value?.defaultModel;
     return {
-      enabled: !!value?.enabled,
+      enabled: hasBaseUrl && hasApiKey && hasDefaultModel,
       format: sanitizeString(value?.format || "", "format"),
       defaultModel: sanitizeString(value?.defaultModel || "", "defaultModel"),
       reasoningEffort: sanitizeString(value?.reasoningEffort || "", "reasoningEffort"),
       maxOutputTokens: typeof value?.maxOutputTokens === "number" ? value.maxOutputTokens : value?.maxOutputTokens || undefined,
       contextWindow: typeof value?.contextWindow === "number" ? value.contextWindow : value?.contextWindow || undefined,
       name: sanitizeString(value?.name || "", "name"),
-      fetchedModelCount: fetchedModels.length,
-      hasApiKey: !!value?.apiKey,
-      hasBaseUrl: !!value?.baseUrl,
-      hasNotes: !!String(value?.notes || "").trim()
+      fetchedModelCount: typeof value?.fetchedModelCount === "number" ? value.fetchedModelCount : fetchedModels.length,
+      hasApiKey,
+      hasBaseUrl,
+      hasDefaultModel,
+      hasNotes: typeof value?.hasNotes === "boolean" ? value.hasNotes : !!String(value?.notes || "").trim()
     };
   }
   function normalizeError(error) {
@@ -199,7 +484,19 @@
     });
   }
   async function hydrateDebugMode() {
+    if (!chrome?.storage?.local) {
+      debugEnabled = true;
+      return debugEnabled;
+    }
+    const stored = await chrome.storage.local.get(DEBUG_MODE_STORAGE_KEY);
     debugEnabled = true;
+    if (stored[DEBUG_MODE_STORAGE_KEY] !== true) {
+      try {
+        await chrome.storage.local.set({
+          [DEBUG_MODE_STORAGE_KEY]: true
+        });
+      } catch {}
+    }
     return debugEnabled;
   }
   function scheduleFlush() {
@@ -299,280 +596,6 @@
       console.groupEnd();
     });
   }
-  const panelState = {
-    mounted: false,
-    open: false,
-    launcherVisible: false,
-    refreshTimer: null,
-    statusText: "",
-    elements: null,
-    mountRetryTimer: null
-  };
-  function showLauncher() {
-    if (!panelState.elements?.host) {
-      return;
-    }
-    panelState.launcherVisible = true;
-    panelState.elements.host.style.display = "flex";
-  }
-  function hideLauncher() {
-    if (!panelState.elements?.host) {
-      return;
-    }
-    panelState.launcherVisible = false;
-    panelState.elements.host.style.display = "none";
-  }
-  function stopPanelRefresh() {
-    if (panelState.refreshTimer) {
-      clearInterval(panelState.refreshTimer);
-      panelState.refreshTimer = null;
-    }
-  }
-  function schedulePanelMountRetry() {
-    if (panelState.mounted || panelState.mountRetryTimer) {
-      return;
-    }
-    panelState.mountRetryTimer = setTimeout(function () {
-      panelState.mountRetryTimer = null;
-      ensurePanelMounted();
-    }, 120);
-  }
-  function setPanelStatus(text) {
-    panelState.statusText = text || "";
-    if (panelState.elements?.status) {
-      panelState.elements.status.textContent = panelState.statusText;
-    }
-  }
-  async function renderPanelLogs() {
-    if (!panelState.elements) {
-      return;
-    }
-    try {
-      await flush();
-      const entries = await readLogs();
-      const visibleEntries = entries.slice(-80);
-      panelState.elements.textarea.value = JSON.stringify(visibleEntries, null, 2);
-      const lastEntry = visibleEntries.length ? visibleEntries[visibleEntries.length - 1] : null;
-      panelState.elements.meta.textContent = "共 " + entries.length + " 条，显示最近 " + visibleEntries.length + " 条" + (lastEntry ? "，最后更新时间 " + lastEntry.ts : "");
-      if (!panelState.statusText) {
-        setPanelStatus(lastEntry ? "最后事件: " + lastEntry.type : "当前还没有日志");
-      }
-    } catch (error) {
-      panelState.elements.textarea.value = JSON.stringify({
-        error: "failed_to_render_logs",
-        detail: normalizeError(error)
-      }, null, 2);
-      panelState.elements.meta.textContent = "日志读取失败";
-      setPanelStatus("读取失败");
-    }
-  }
-  function openPanel() {
-    if (!panelState.mounted) {
-      ensurePanelMounted();
-    }
-    if (!panelState.elements) {
-      return;
-    }
-    showLauncher();
-    panelState.open = true;
-    panelState.elements.panel.style.display = "flex";
-    panelState.elements.toggle.textContent = "收起日志";
-    panelState.elements.toggle.style.background = "#2f241a";
-    setPanelStatus("");
-    renderPanelLogs().catch(() => {});
-    stopPanelRefresh();
-    panelState.refreshTimer = setInterval(() => {
-      renderPanelLogs().catch(() => {});
-    }, 1200);
-  }
-  function closePanel() {
-    if (!panelState.elements) {
-      return;
-    }
-    panelState.open = false;
-    panelState.elements.panel.style.display = "none";
-    panelState.elements.toggle.textContent = "查看日志";
-    panelState.elements.toggle.style.background = "#171717";
-    stopPanelRefresh();
-    hideLauncher();
-  }
-  function togglePanel() {
-    if (panelState.open) {
-      closePanel();
-    } else {
-      openPanel();
-    }
-  }
-  function buildButton(label) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.textContent = label;
-    button.style.border = "1px solid #d7c8b4";
-    button.style.background = "#fffaf3";
-    button.style.color = "#2f241a";
-    button.style.borderRadius = "10px";
-    button.style.padding = "6px 10px";
-    button.style.fontSize = "12px";
-    button.style.lineHeight = "1";
-    button.style.cursor = "pointer";
-    return button;
-  }
-  function ensurePanelMounted() {
-    if (panelState.mounted) {
-      return;
-    }
-    if (!document.body) {
-      schedulePanelMountRetry();
-      return;
-    }
-    const host = document.createElement("div");
-    host.id = "sidepanel-debug-floating";
-    host.style.position = "fixed";
-    host.style.right = "12px";
-    host.style.bottom = "12px";
-    host.style.zIndex = "2147483647";
-    host.style.display = "none";
-    host.style.flexDirection = "column";
-    host.style.alignItems = "flex-end";
-    host.style.gap = "10px";
-    host.style.fontFamily = "\"SF Pro Text\",\"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",sans-serif";
-    const panel = document.createElement("div");
-    panel.style.display = "none";
-    panel.style.width = "min(420px, calc(100vw - 24px))";
-    panel.style.height = "min(440px, calc(100vh - 80px))";
-    panel.style.background = "#f9f3ea";
-    panel.style.border = "1px solid #dccfbe";
-    panel.style.borderRadius = "16px";
-    panel.style.boxShadow = "0 18px 48px rgba(26, 20, 14, 0.2)";
-    panel.style.overflow = "hidden";
-    panel.style.display = "none";
-    panel.style.flexDirection = "column";
-    const header = document.createElement("div");
-    header.style.display = "flex";
-    header.style.alignItems = "center";
-    header.style.justifyContent = "space-between";
-    header.style.gap = "8px";
-    header.style.padding = "12px 14px";
-    header.style.background = "linear-gradient(180deg, rgba(255,250,243,0.98), rgba(245,235,221,0.98))";
-    header.style.borderBottom = "1px solid #e2d7c9";
-    const title = document.createElement("div");
-    title.textContent = "Sidepanel 调试日志";
-    title.style.fontSize = "13px";
-    title.style.fontWeight = "700";
-    title.style.color = "#2f241a";
-    const actions = document.createElement("div");
-    actions.style.display = "flex";
-    actions.style.flexWrap = "wrap";
-    actions.style.justifyContent = "flex-end";
-    actions.style.gap = "6px";
-    const refreshButton = buildButton("刷新");
-    const copyButton = buildButton("复制");
-    const clearButton = buildButton("清空");
-    const closeButton = buildButton("关闭");
-    const body = document.createElement("div");
-    body.style.display = "flex";
-    body.style.flexDirection = "column";
-    body.style.gap = "8px";
-    body.style.padding = "12px";
-    body.style.flex = "1";
-    body.style.minHeight = "0";
-    const meta = document.createElement("div");
-    meta.style.fontSize = "12px";
-    meta.style.color = "#6f6254";
-    meta.textContent = "准备读取日志...";
-    const textarea = document.createElement("textarea");
-    textarea.readOnly = true;
-    textarea.spellcheck = false;
-    textarea.wrap = "off";
-    textarea.style.flex = "1";
-    textarea.style.minHeight = "0";
-    textarea.style.resize = "none";
-    textarea.style.width = "100%";
-    textarea.style.boxSizing = "border-box";
-    textarea.style.border = "1px solid #d8cbb8";
-    textarea.style.borderRadius = "12px";
-    textarea.style.background = "#fffdf9";
-    textarea.style.color = "#2b241d";
-    textarea.style.font = "12px/1.45 \"Cascadia Code\",\"Consolas\",\"Courier New\",monospace";
-    textarea.style.padding = "10px";
-    const status = document.createElement("div");
-    status.style.fontSize = "12px";
-    status.style.color = "#8b5e3c";
-    status.textContent = "";
-    const toggle = document.createElement("button");
-    toggle.type = "button";
-    toggle.textContent = "查看日志";
-    toggle.style.border = "0";
-    toggle.style.borderRadius = "999px";
-    toggle.style.background = "#171717";
-    toggle.style.color = "#fff7ed";
-    toggle.style.padding = "10px 14px";
-    toggle.style.fontSize = "12px";
-    toggle.style.fontWeight = "700";
-    toggle.style.boxShadow = "0 10px 24px rgba(0, 0, 0, 0.22)";
-    toggle.style.cursor = "pointer";
-    actions.appendChild(refreshButton);
-    actions.appendChild(copyButton);
-    actions.appendChild(clearButton);
-    actions.appendChild(closeButton);
-    header.appendChild(title);
-    header.appendChild(actions);
-    body.appendChild(meta);
-    body.appendChild(textarea);
-    body.appendChild(status);
-    panel.appendChild(header);
-    panel.appendChild(body);
-    host.appendChild(panel);
-    host.appendChild(toggle);
-    document.body.appendChild(host);
-    panelState.elements = {
-      host,
-      panel,
-      toggle,
-      textarea,
-      status,
-      meta,
-      refreshButton,
-      copyButton,
-      clearButton,
-      closeButton
-    };
-    toggle.addEventListener("click", togglePanel);
-    closeButton.addEventListener("click", closePanel);
-    refreshButton.addEventListener("click", function () {
-      setPanelStatus("正在刷新...");
-      renderPanelLogs().then(() => {
-        setPanelStatus("已刷新");
-      }).catch(() => {
-        setPanelStatus("刷新失败");
-      });
-    });
-    copyButton.addEventListener("click", async function () {
-      try {
-        await navigator.clipboard.writeText(textarea.value || "");
-        setPanelStatus("日志已复制");
-      } catch (error) {
-        textarea.focus();
-        textarea.select();
-        setPanelStatus("复制失败，请手动 Ctrl+C");
-      }
-    });
-    clearButton.addEventListener("click", async function () {
-      try {
-        await clearLogs();
-        textarea.value = "";
-        meta.textContent = "日志已清空";
-        setPanelStatus("已清空");
-      } catch (error) {
-        setPanelStatus("清空失败");
-      }
-    });
-    panelState.mounted = true;
-    if (panelState.mountRetryTimer) {
-      clearTimeout(panelState.mountRetryTimer);
-      panelState.mountRetryTimer = null;
-    }
-  }
   globalThis.__CP_SIDEPANEL_DEBUG__ = {
     sessionId: SESSION_ID,
     log,
@@ -580,10 +603,7 @@
     read: readLogs,
     clear: clearLogs,
     snapshot,
-    dumpToConsole,
-    openPanel,
-    closePanel,
-    togglePanel
+    dumpToConsole
   };
   window.addEventListener("error", function (event) {
     log("window.error", {
@@ -613,6 +633,14 @@
     chrome.storage.onChanged.addListener(function (changes, areaName) {
       if (areaName !== "local") {
         return;
+      }
+      if (DEBUG_MODE_STORAGE_KEY in changes) {
+        debugEnabled = true;
+        if (changes[DEBUG_MODE_STORAGE_KEY].newValue !== true) {
+          chrome.storage.local.set({
+            [DEBUG_MODE_STORAGE_KEY]: true
+          }).catch(() => {});
+        }
       }
       const changedKeys = Object.keys(changes).filter(key => {
         return RELEVANT_STORAGE_KEYS.has(key) && key !== STORAGE_KEY && key !== META_KEY;

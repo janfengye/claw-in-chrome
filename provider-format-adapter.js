@@ -1,15 +1,38 @@
 (function () {
-  const STORAGE_KEY = "customProviderConfig";
-  const PROFILES_STORAGE_KEY = "customProviderProfiles";
-  const ACTIVE_PROFILE_STORAGE_KEY = "customProviderActiveProfileId";
+  const contract = globalThis.__CP_CONTRACT__?.customProvider || {};
+  const STORAGE_KEY = contract.STORAGE_KEY || "customProviderConfig";
+  const PROFILES_STORAGE_KEY = contract.PROFILES_STORAGE_KEY || "customProviderProfiles";
+  const ACTIVE_PROFILE_STORAGE_KEY = contract.ACTIVE_PROFILE_STORAGE_KEY || "customProviderActiveProfileId";
+  const HTTP_PROVIDER_STORAGE_KEY = contract.HTTP_PROVIDER_STORAGE_KEY || "customProviderAllowHttp";
+  const DEFAULT_HTTP_PROVIDER_ENABLED = true;
+  const HTTP_PROVIDER_DISABLED_MESSAGE = "HTTP 协议未启用。请前往 Options 打开“允许 HTTP 协议”后再使用 http:// 地址。";
   const PATCH_FLAG = "__customProviderFormatAdapterPatched__";
   const NATIVE_FETCH_KEY = "__customProviderNativeFetch__";
   const OPENAI_CHAT_FORMAT = "openai_chat";
   const OPENAI_RESPONSES_FORMAT = "openai_responses";
+  const DEFAULT_CONTEXT_WINDOW = 200000;
+  const DEFAULT_MAX_OUTPUT_TOKENS = 10000;
+  const MIN_CONTEXT_WINDOW = 20000;
+  const REASONING_EFFORT_VALUES = ["none", "low", "medium", "high", "max"];
+  const DEFAULT_CHAT_COMPATIBILITY = Object.freeze({
+    responseReasoningFields: ["reasoning"],
+    streamReasoningFields: ["reasoning"],
+    requestReasoningField: null,
+    requestReasoningPolicy: "always",
+    thinkingFallback: "think_tags"
+  });
+  const DEEPSEEK_CHAT_COMPATIBILITY = Object.freeze({
+    responseReasoningFields: ["reasoning_content", "reasoning"],
+    streamReasoningFields: ["reasoning_content", "reasoning"],
+    requestReasoningField: "reasoning_content",
+    requestReasoningPolicy: "tool_context",
+    thinkingFallback: "omit"
+  });
   const THINK_OPEN_TAG = "<think>";
   const THINK_CLOSE_TAG = "</think>";
   const TOOL_CALL_OPEN_TAG = "<tool_call>";
   const TOOL_CALL_CLOSE_TAG = "</tool_call>";
+  const OPENAI_RESPONSES_ITEM_KEY = "openai_responses_item";
   const ANTHROPIC_FORMAT = "anthropic";
   if (globalThis[PATCH_FLAG]) {
     return;
@@ -37,6 +60,40 @@
   function getProviderStoreHelpers() {
     const helpers = globalThis.CustomProviderModels;
     return helpers && typeof helpers.readProviderStoreState === "function" ? helpers : null;
+  }
+  function isHttpBaseUrl(value) {
+    const helpers = getProviderStoreHelpers();
+    if (helpers && typeof helpers.isHttpBaseUrl === "function") {
+      return helpers.isHttpBaseUrl(value);
+    }
+    const raw = String(value || "").trim();
+    if (!raw) {
+      return false;
+    }
+    try {
+      return String(new URL(raw).protocol || "").toLowerCase() === "http:";
+    } catch {
+      return /^http:\/\//i.test(raw);
+    }
+  }
+  async function assertHttpProviderAllowed(config) {
+    const helpers = getProviderStoreHelpers();
+    if (helpers && typeof helpers.assertHttpProviderAllowed === "function") {
+      await helpers.assertHttpProviderAllowed(config);
+      return;
+    }
+    if (!isHttpBaseUrl(config?.baseUrl)) {
+      return;
+    }
+    const storage = globalThis.chrome?.storage?.local;
+    if (!storage) {
+      return;
+    }
+    const stored = await storage.get(HTTP_PROVIDER_STORAGE_KEY);
+    const enabled = typeof stored[HTTP_PROVIDER_STORAGE_KEY] === "boolean" ? stored[HTTP_PROVIDER_STORAGE_KEY] : DEFAULT_HTTP_PROVIDER_ENABLED;
+    if (!enabled) {
+      throw new Error(HTTP_PROVIDER_DISABLED_MESSAGE);
+    }
   }
   function normalizeFormat(value) {
     const format = String(value || "").trim().toLowerCase();
@@ -70,6 +127,36 @@
     }
     return ANTHROPIC_FORMAT;
   }
+  function normalizeReasoningEffort(value) {
+    const helpers = getProviderStoreHelpers();
+    if (helpers && typeof helpers.normalizeReasoningEffort === "function") {
+      return helpers.normalizeReasoningEffort(value);
+    }
+    const effort = String(value || "").trim().toLowerCase();
+    return REASONING_EFFORT_VALUES.includes(effort) ? effort : "medium";
+  }
+  function normalizeContextWindow(value) {
+    const helpers = getProviderStoreHelpers();
+    if (helpers && typeof helpers.normalizeContextWindow === "function") {
+      return helpers.normalizeContextWindow(value);
+    }
+    const numeric = Number(String(value ?? "").trim());
+    if (!Number.isFinite(numeric) || numeric <= 0) {
+      return DEFAULT_CONTEXT_WINDOW;
+    }
+    return Math.max(MIN_CONTEXT_WINDOW, Math.round(numeric));
+  }
+  function normalizeMaxOutputTokens(value, fallbackValue) {
+    const helpers = getProviderStoreHelpers();
+    if (helpers && typeof helpers.normalizeMaxOutputTokens === "function") {
+      return helpers.normalizeMaxOutputTokens(value, fallbackValue);
+    }
+    const numeric = Number(String(value ?? "").trim());
+    if (!Number.isFinite(numeric) || numeric <= 0) {
+      return fallbackValue || DEFAULT_MAX_OUTPUT_TOKENS;
+    }
+    return Math.max(1, Math.round(numeric));
+  }
   function normalizeConfig(raw) {
     const source = raw && typeof raw === "object" ? raw : {};
     return {
@@ -79,8 +166,98 @@
       defaultModel: String(source.defaultModel || "").trim(),
       fastModel: String(source.fastModel || source.small_fast_model || "").trim(),
       format: inferFormat(source),
+      reasoningEffort: normalizeReasoningEffort(source.reasoningEffort),
+      maxOutputTokens: normalizeMaxOutputTokens(source.maxOutputTokens),
+      contextWindow: normalizeContextWindow(source.contextWindow),
       promptCacheKey: String(source.promptCacheKey || source.prompt_cache_key || source.id || source.profileId || "").trim()
     };
+  }
+  function isDeepSeekChatProvider(config, model) {
+    const baseUrl = String(config?.baseUrl || "").trim().toLowerCase();
+    const modelName = String(model || config?.defaultModel || "").trim().toLowerCase();
+    const name = String(config?.name || "").trim().toLowerCase();
+    return baseUrl.includes("deepseek") || modelName.startsWith("deepseek") || name.includes("deepseek");
+  }
+  function isGeminiOpenAICompatibleProvider(config, model) {
+    const baseUrl = String(config?.baseUrl || "").trim().toLowerCase();
+    const modelName = String(model || config?.defaultModel || "").trim().toLowerCase();
+    const name = String(config?.name || "").trim().toLowerCase();
+    // Gemini 的 OpenAI 兼容层只实现 chat/completions 的字段子集，未知字段会被严格拒绝。
+    return (
+      modelName.startsWith("gemini") ||
+      name.includes("gemini") ||
+      baseUrl.includes("generativelanguage.googleapis.com") ||
+      (baseUrl.includes("googleapis.com") && baseUrl.includes("/openai"))
+    );
+  }
+  function shouldSendPromptCacheKey(config, model) {
+    return !isGeminiOpenAICompatibleProvider(config, model);
+  }
+  function getChatCompatibilityProfile(config, model) {
+    return isDeepSeekChatProvider(config, model) ? DEEPSEEK_CHAT_COMPATIBILITY : DEFAULT_CHAT_COMPATIBILITY;
+  }
+  function cloneOpenAIResponsesContextItem(item) {
+    if (!item || typeof item !== "object") {
+      return null;
+    }
+    const type = String(item.type || "");
+    if (type !== "reasoning" && type !== "function_call") {
+      return null;
+    }
+    try {
+      return JSON.parse(JSON.stringify(item));
+    } catch {
+      return null;
+    }
+  }
+  function readOpenAIResponsesContextItem(block) {
+    return cloneOpenAIResponsesContextItem(block?.[OPENAI_RESPONSES_ITEM_KEY]);
+  }
+  function attachOpenAIResponsesContextItem(block, item) {
+    const cloned = cloneOpenAIResponsesContextItem(item);
+    if (block && cloned) {
+      block[OPENAI_RESPONSES_ITEM_KEY] = cloned;
+    }
+    return block;
+  }
+  function readFirstStringField(source, fieldNames) {
+    if (!source || typeof source !== "object" || !Array.isArray(fieldNames)) {
+      return "";
+    }
+    for (const fieldName of fieldNames) {
+      const value = source[fieldName];
+      if (typeof value === "string" && value) {
+        return value;
+      }
+    }
+    return "";
+  }
+  function shouldApplyConfiguredReasoningEffort(model, effort) {
+    const normalizedEffort = normalizeReasoningEffort(effort);
+    if (!normalizedEffort || normalizedEffort === "none") {
+      return false;
+    }
+    const normalizedModel = normalizeModelName(model);
+    return normalizedModel.startsWith("gpt-5") || isOpenAIOSeries(normalizedModel);
+  }
+  function applyConfiguredAnthropicDefaults(body, config) {
+    if (!body || typeof body !== "object") {
+      return body;
+    }
+    const nextBody = {
+      ...body
+    };
+    const hasExplicitMaxTokens = Number.isFinite(Number(body?.max_tokens)) && Number(body.max_tokens) > 0;
+    if (!hasExplicitMaxTokens && Number.isFinite(Number(config?.maxOutputTokens)) && Number(config.maxOutputTokens) > 0) {
+      nextBody.max_tokens = Number(config.maxOutputTokens);
+    }
+    const hasExplicitReasoningConfig = body?.output_config && typeof body.output_config === "object" && String(body.output_config.effort || "").trim() || body?.thinking && typeof body.thinking === "object";
+    if (!hasExplicitReasoningConfig && shouldApplyConfiguredReasoningEffort(nextBody.model || config?.defaultModel, config?.reasoningEffort)) {
+      nextBody.output_config = {
+        effort: normalizeReasoningEffort(config.reasoningEffort)
+      };
+    }
+    return nextBody;
   }
   async function readStoredProviderConfig() {
     const helpers = getProviderStoreHelpers();
@@ -172,6 +349,24 @@
   function isOpenAIOSeries(model) {
     const name = String(model || "").trim().toLowerCase();
     return name.length > 1 && name.startsWith("o") && /\d/.test(name[1]);
+  }
+  function normalizeModelName(model) {
+    let name = String(model || "").trim().toLowerCase();
+    if (name.includes("/")) {
+      const parts = name.split("/");
+      name = parts[parts.length - 1] || "";
+    }
+    return name.replace(/[_.]/g, "");
+  }
+  function isLikelyChatLikeModel(model) {
+    const name = normalizeModelName(model);
+    return name.startsWith("gpt") || name.startsWith("chatgpt") || isOpenAIOSeries(name);
+  }
+  function shouldDropChatReasoningEffort(model, tools) {
+    if (!Array.isArray(tools) || !tools.length) {
+      return false;
+    }
+    return normalizeModelName(model).startsWith("gpt-54");
   }
   function resolveReasoningEffort(body) {
     const explicit = body?.output_config?.effort;
@@ -282,6 +477,57 @@
       return fallback;
     }
   }
+  function safeJsonParseDeep(value, fallback, maxDepth) {
+    let current = value;
+    const depthLimit = Number.isFinite(maxDepth) && maxDepth > 0 ? Math.floor(maxDepth) : 3;
+    for (let depth = 0; depth < depthLimit && typeof current === "string"; depth++) {
+      const trimmed = current.trim();
+      if (!trimmed) {
+        return fallback;
+      }
+      const parsed = safeJsonParse(trimmed, current);
+      if (parsed === current) {
+        break;
+      }
+      current = parsed;
+    }
+    return current === undefined ? fallback : current;
+  }
+  function unwrapJsonCodeFence(text) {
+    const source = typeof text === "string" ? text.trim() : "";
+    if (!source) {
+      return source;
+    }
+    const match = source.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+    return match ? match[1].trim() : source;
+  }
+  function parseLooseJsonObject(text) {
+    const source = unwrapJsonCodeFence(text);
+    if (!source) {
+      return null;
+    }
+    const direct = safeJsonParseDeep(source, null, 3);
+    if (direct && typeof direct === "object") {
+      return direct;
+    }
+    if (!source.startsWith("{") || !source.endsWith("}")) {
+      return null;
+    }
+    return safeJsonParse(source, null);
+  }
+  function normalizeToolInputValue(value, strict) {
+    const parsed = safeJsonParseDeep(value, null, 3);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed;
+    }
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      return value;
+    }
+    if (strict) {
+      throw new Error("OpenAI tool call arguments are not valid JSON.");
+    }
+    return null;
+  }
   function stringifyContent(value) {
     if (typeof value === "string") {
       return value;
@@ -368,6 +614,36 @@
     return segments.map(function (text, index) {
       return "[System segment " + (index + 1) + "]\n" + text;
     }).join("\n\n");
+  }
+  function extractAnthropicTextForRequestDetection(content) {
+    if (typeof content === "string") {
+      return content;
+    }
+    if (!Array.isArray(content)) {
+      return "";
+    }
+    return content.map(function (part) {
+      if (typeof part === "string") {
+        return part;
+      }
+      if (typeof part?.text === "string") {
+        return part.text;
+      }
+      return "";
+    }).filter(Boolean).join("\n");
+  }
+  function isAnthropicContextCompactionRequest(body) {
+    const systemText = formatAnthropicSystemForSingleMessage(body?.system).toLowerCase();
+    if (systemText.includes("summarizing browser automation conversations")) {
+      return true;
+    }
+    const messages = Array.isArray(body?.messages) ? body.messages : [];
+    const lastMessage = messages.length ? messages[messages.length - 1] : null;
+    if (!lastMessage || lastMessage.role !== "user") {
+      return false;
+    }
+    const lastText = extractAnthropicTextForRequestDetection(lastMessage.content).toLowerCase();
+    return lastText.includes("create a detailed summary of the conversation so far");
   }
   function createOmittedBinarySummary(value) {
     const text = typeof value === "string" ? value : String(value || "");
@@ -488,6 +764,56 @@
       return THINK_OPEN_TAG + thinking + THINK_CLOSE_TAG;
     }
     return null;
+  }
+  function serializeAnthropicBlockForCompactionTranscript(block) {
+    const type = String(block?.type || "");
+    if (type === "text") {
+      return typeof block?.text === "string" ? block.text : "";
+    }
+    if (type === "image") {
+      return "[Image omitted from compaction transcript: " + String(block?.source?.media_type || "image/png") + "]";
+    }
+    if (type === "tool_use") {
+      return [
+        "[Tool use]",
+        "id: " + String(block?.id || ""),
+        "name: " + String(block?.name || ""),
+        "input: " + stringifyContent(block?.input || {})
+      ].join("\n");
+    }
+    if (type === "tool_result") {
+      return [
+        "[Tool result]",
+        "tool_use_id: " + String(block?.tool_use_id || ""),
+        ...(block?.is_error ? ["is_error: true"] : []),
+        "content: " + serializeToolResultForOpenAI(block)
+      ].join("\n");
+    }
+    if (type === "thinking") {
+      // 压缩请求只需要可总结的对话事实；不要把 DeepSeek thinking 作为结构化工具上下文回放。
+      return "";
+    }
+    return stringifyContent(block);
+  }
+  function convertMessageToOpenAICompactionTranscript(role, content) {
+    if (typeof content === "string") {
+      return content.trim() ? [{
+        role,
+        content
+      }] : [];
+    }
+    if (!Array.isArray(content)) {
+      const text = stringifyContent(content);
+      return text.trim() ? [{
+        role,
+        content: text
+      }] : [];
+    }
+    const text = content.map(serializeAnthropicBlockForCompactionTranscript).filter(Boolean).join("\n\n");
+    return text.trim() ? [{
+      role,
+      content: text
+    }] : [];
   }
   function appendToolResultImageDataUrls(value, output, depth) {
     if (!output || value == null || depth > 4) {
@@ -662,9 +988,19 @@
     };
   }
   function parseInlineToolCallPayload(rawPayload, fallbackId) {
-    const parsed = safeJsonParse(typeof rawPayload === "string" ? rawPayload.trim() : "", null);
+    const shouldStrictlyParseArguments = !!rawPayload && typeof rawPayload === "object";
+    let parsed = rawPayload && typeof rawPayload === "object" ? safeJsonParseDeep(rawPayload, rawPayload, 3) : parseLooseJsonObject(rawPayload);
     if (!parsed || typeof parsed !== "object") {
       return null;
+    }
+    if (Array.isArray(parsed?.tool_calls) && parsed.tool_calls[0] && typeof parsed.tool_calls[0] === "object") {
+      parsed = parsed.tool_calls[0];
+    } else if (parsed?.message && typeof parsed.message === "object") {
+      if (Array.isArray(parsed.message.tool_calls) && parsed.message.tool_calls[0] && typeof parsed.message.tool_calls[0] === "object") {
+        parsed = parsed.message.tool_calls[0];
+      } else if (parsed.message.function_call && typeof parsed.message.function_call === "object") {
+        parsed = parsed.message.function_call;
+      }
     }
     const name = typeof parsed.name === "string" && parsed.name ? parsed.name : typeof parsed?.function?.name === "string" && parsed.function.name ? parsed.function.name : "";
     if (!name) {
@@ -675,16 +1011,71 @@
       input = parsed.parameters;
     } else if (parsed.input && typeof parsed.input === "object" && !Array.isArray(parsed.input)) {
       input = parsed.input;
-    } else if (typeof parsed.arguments === "string") {
-      input = safeJsonParse(parsed.arguments, {});
-    } else if (parsed.arguments && typeof parsed.arguments === "object" && !Array.isArray(parsed.arguments)) {
-      input = parsed.arguments;
+    } else if (parsed.arguments !== undefined) {
+      input = normalizeToolInputValue(parsed.arguments, shouldStrictlyParseArguments);
+      if (!input) {
+        return null;
+      }
+    } else if (parsed?.function?.arguments !== undefined) {
+      input = normalizeToolInputValue(parsed.function.arguments, shouldStrictlyParseArguments);
+      if (!input) {
+        return null;
+      }
     }
     return {
-      id: String(parsed.id || parsed.tool_call_id || fallbackId || "tool_call"),
+      id: String(parsed.id || parsed.tool_call_id || parsed.call_id || parsed?.function?.id || fallbackId || "tool_call"),
       name,
       input: input && typeof input === "object" && !Array.isArray(input) ? input : {},
       inputJson: JSON.stringify(input && typeof input === "object" && !Array.isArray(input) ? input : {})
+    };
+  }
+  function createAnthropicToolUseBlock(parsedToolCall) {
+    if (!parsedToolCall) {
+      return null;
+    }
+    return {
+      type: "tool_use",
+      id: parsedToolCall.id,
+      name: parsedToolCall.name,
+      input: parsedToolCall.input
+    };
+  }
+  function normalizeResponsesFunctionCallToolUse(parsedToolCall, item) {
+    if (!parsedToolCall) {
+      return null;
+    }
+    const callId = String(item?.call_id || "").trim();
+    if (!callId) {
+      return parsedToolCall;
+    }
+    return {
+      ...parsedToolCall,
+      id: callId
+    };
+  }
+  function promoteLooseToolCallTextBlocks(content, nextFallbackId) {
+    if (!Array.isArray(content) || !content.length) {
+      return {
+        content: Array.isArray(content) ? content : [],
+        convertedCount: 0
+      };
+    }
+    const normalized = [];
+    let convertedCount = 0;
+    for (const block of content) {
+      if (block?.type === "text" && typeof block.text === "string" && block.text.trim()) {
+        const parsedToolCall = parseInlineToolCallPayload(block.text, typeof nextFallbackId === "function" ? nextFallbackId() : "normalized_tool_call");
+        if (parsedToolCall) {
+          normalized.push(createAnthropicToolUseBlock(parsedToolCall));
+          convertedCount++;
+          continue;
+        }
+      }
+      normalized.push(block);
+    }
+    return {
+      content: normalized,
+      convertedCount
     };
   }
   function consumeThinkTaggedText(state, text, handlers, final) {
@@ -795,10 +1186,38 @@
   }
   function buildProviderRequestCandidates(config, body) {
     const requestedFormat = normalizeFormat(config?.format);
-    return [{
+    if (requestedFormat === OPENAI_RESPONSES_FORMAT && isGeminiOpenAICompatibleProvider(config, body?.model)) {
+      return [{
+        format: OPENAI_CHAT_FORMAT,
+        reason: "gemini_openai_chat_only"
+      }];
+    }
+    const candidates = [{
       format: requestedFormat,
       reason: "configured_format"
     }];
+    const baseUrl = String(config?.baseUrl || "").trim().toLowerCase();
+    const model = String(body?.model || config?.defaultModel || "").trim().toLowerCase();
+    const name = String(config?.name || "").trim().toLowerCase();
+    const looksChatLike = isLikelyChatLikeModel(model) || name.includes("openai") || name.includes("gpt");
+    if (requestedFormat === OPENAI_RESPONSES_FORMAT && looksChatLike && !/\/responses$/i.test(baseUrl)) {
+      candidates.push({
+        format: OPENAI_CHAT_FORMAT,
+        reason: "chat_compatible_fallback"
+      });
+    }
+    return candidates;
+  }
+  function shouldTryNextProviderRequestCandidate(providerError) {
+    const status = Number(providerError?.status || 0);
+    const text = String(providerError?.message || providerError?.text || "").toLowerCase();
+    if (status === 404 || status === 405 || status === 501) {
+      return true;
+    }
+    if (!(status === 400 || status === 422)) {
+      return false;
+    }
+    return /\b(endpoint|route|path|url|format|responses?|chat completions?)\b/.test(text) && /\b(unsupported|not supported|not found|unknown|invalid|unrecognized)\b/.test(text);
   }
   function buildAnthropicUsageFromChat(usage) {
     const inputTokens = Number(usage?.prompt_tokens || 0);
@@ -956,8 +1375,8 @@
         return toolChoice;
     }
   }
-  function flushPendingOpenAIChatMessage(result, role, contentParts, toolCalls) {
-    if (!contentParts.length && !toolCalls.length) {
+  function flushPendingOpenAIChatMessage(result, role, contentParts, toolCalls, reasoningParts, reasoningField) {
+    if (!contentParts.length && !toolCalls.length && !(reasoningField && reasoningParts.length)) {
       return;
     }
     const message = {
@@ -973,11 +1392,67 @@
     if (toolCalls.length) {
       message.tool_calls = toolCalls.slice();
     }
+    if (reasoningField && reasoningParts.length) {
+      message[reasoningField] = reasoningParts.join("");
+    }
     result.push(message);
     contentParts.length = 0;
     toolCalls.length = 0;
+    reasoningParts.length = 0;
   }
-  function convertMessageToOpenAI(role, content) {
+  function hasAnthropicContentBlockType(content, blockType) {
+    if (!Array.isArray(content) || !blockType) {
+      return false;
+    }
+    return content.some(function (block) {
+      return block?.type === blockType;
+    });
+  }
+  function shouldReplayOpenAIChatRequestReasoning(role, content, chatCompatibility, state) {
+    const reasoningField = role === "assistant" ? String(chatCompatibility?.requestReasoningField || "") : "";
+    if (!reasoningField) {
+      return false;
+    }
+    if (chatCompatibility?.requestReasoningPolicy !== "tool_context") {
+      return true;
+    }
+    // DeepSeek thinking mode requires replaying reasoning_content for tool-call turns,
+    // but plain no-tool thinking can be omitted from subsequent request messages.
+    return (
+      hasAnthropicContentBlockType(content, "tool_use") ||
+      state?.hasToolReasoningContext === true ||
+      state?.previousMessageHadToolResult === true
+    );
+  }
+  function updateOpenAIChatRequestReasoningState(state, content) {
+    if (!state || !Array.isArray(content)) {
+      if (state) {
+        state.previousMessageHadToolResult = false;
+      }
+      return;
+    }
+    const hasToolUse = hasAnthropicContentBlockType(content, "tool_use");
+    const hasToolResult = hasAnthropicContentBlockType(content, "tool_result");
+    if (hasToolUse || hasToolResult) {
+      state.hasToolReasoningContext = true;
+    }
+    state.previousMessageHadToolResult = hasToolResult;
+  }
+  function attachReasoningToPreviousOpenAIChatToolCallMessage(result, reasoningField, reasoningParts) {
+    if (!reasoningField || !reasoningParts.length || !Array.isArray(result)) {
+      return false;
+    }
+    for (let index = result.length - 1; index >= 0; index -= 1) {
+      const candidate = result[index];
+      if (candidate?.role === "assistant" && Array.isArray(candidate.tool_calls) && candidate.tool_calls.length) {
+        candidate[reasoningField] = String(candidate[reasoningField] || "") + reasoningParts.join("");
+        reasoningParts.length = 0;
+        return true;
+      }
+    }
+    return false;
+  }
+  function convertMessageToOpenAI(role, content, chatCompatibility, options = {}) {
     const result = [];
     if (content == null) {
       result.push({
@@ -1002,6 +1477,11 @@
     }
     const contentParts = [];
     const toolCalls = [];
+    const reasoningParts = [];
+    const reasoningField =
+      options.allowRequestReasoning === true && role === "assistant"
+        ? String(chatCompatibility?.requestReasoningField || "")
+        : "";
     for (const block of content) {
       const type = block?.type || "";
       if (type === "text") {
@@ -1024,6 +1504,13 @@
         });
         continue;
       }
+      if (type === "thinking" && reasoningField && typeof block?.thinking === "string" && block.thinking) {
+        reasoningParts.push(block.thinking);
+        continue;
+      }
+      if (type === "thinking" && chatCompatibility?.thinkingFallback === "omit") {
+        continue;
+      }
       const semanticText = serializeAnthropicSemanticBlockForOpenAI(block);
       if (semanticText) {
         contentParts.push({
@@ -1044,7 +1531,10 @@
         continue;
       }
       if (type === "tool_result") {
-        flushPendingOpenAIChatMessage(result, role, contentParts, toolCalls);
+        if (!contentParts.length && !toolCalls.length && reasoningParts.length && reasoningField) {
+          attachReasoningToPreviousOpenAIChatToolCallMessage(result, reasoningField, reasoningParts);
+        }
+        flushPendingOpenAIChatMessage(result, role, contentParts, toolCalls, reasoningParts, reasoningField);
         result.push({
           role: "tool",
           tool_call_id: String(block.tool_use_id || ""),
@@ -1053,14 +1543,15 @@
         // 部分 OpenAI 兼容接口要求 tool 结果紧跟 tool_calls，不能在中间插入额外消息。
       }
     }
-    flushPendingOpenAIChatMessage(result, role, contentParts, toolCalls);
+    flushPendingOpenAIChatMessage(result, role, contentParts, toolCalls, reasoningParts, reasoningField);
     return result;
   }
-  function anthropicToOpenAIChat(body, promptCacheKey) {
+  function anthropicToOpenAIChat(body, promptCacheKey, config) {
     const result = {};
     if (body?.model) {
       result.model = body.model;
     }
+    const chatCompatibility = getChatCompatibilityProfile(config, body?.model);
     const messages = [];
     const systemText = formatAnthropicSystemForSingleMessage(body?.system);
     if (systemText) {
@@ -1069,9 +1560,23 @@
         content: systemText
       });
     }
+    const flattenDeepSeekCompactionTranscript =
+      isDeepSeekChatProvider(config, body?.model) && isAnthropicContextCompactionRequest(body);
+    const requestReasoningState = {
+      hasToolReasoningContext: false,
+      previousMessageHadToolResult: false
+    };
     for (const message of Array.isArray(body?.messages) ? body.messages : []) {
       const role = message?.role || "user";
-      messages.push(...convertMessageToOpenAI(role, message?.content));
+      const content = message?.content;
+      if (flattenDeepSeekCompactionTranscript) {
+        messages.push(...convertMessageToOpenAICompactionTranscript(role, content));
+      } else {
+        messages.push(...convertMessageToOpenAI(role, content, chatCompatibility, {
+          allowRequestReasoning: shouldReplayOpenAIChatRequestReasoning(role, content, chatCompatibility, requestReasoningState)
+        }));
+        updateOpenAIChatRequestReasoningState(requestReasoningState, content);
+      }
     }
     result.messages = messages;
     if (body?.max_tokens != null) {
@@ -1115,21 +1620,25 @@
     if (tools.length) {
       result.tools = tools;
     }
+    if (result.reasoning_effort && shouldDropChatReasoningEffort(result.model, tools)) {
+      delete result.reasoning_effort;
+    }
     const toolChoice = mapToolChoiceToChat(body?.tool_choice);
     if (tools.length && toolChoice !== undefined) {
       result.tool_choice = toolChoice;
     }
-    if (promptCacheKey) {
+    if (promptCacheKey && shouldSendPromptCacheKey(config, body?.model)) {
       result.prompt_cache_key = promptCacheKey;
     }
     return result;
   }
-  function openAIChatToAnthropic(body) {
+  function openAIChatToAnthropic(body, config) {
     const choice = Array.isArray(body?.choices) ? body.choices[0] : null;
     if (!choice || !choice.message) {
       throw new Error("OpenAI Chat 响应里缺少 choices[0].message。");
     }
     const message = choice.message;
+    const chatCompatibility = getChatCompatibilityProfile(config, body?.model);
     const content = [];
     const thinkTagState = createThinkTagState();
     let inlineToolCallCount = 0;
@@ -1166,6 +1675,25 @@
     };
     let hasToolUse = false;
     let hasVisibleText = false;
+    const reasoningText = readFirstStringField(message, chatCompatibility.responseReasoningFields);
+    const pushReasoningText = function () {
+      if (!reasoningText) {
+        return;
+      }
+      pushAnthropicContentBlock(content, {
+        type: "thinking",
+        thinking: reasoningText
+      });
+    };
+    const appendLooseToolCall = function (rawPayload, prefix) {
+      const parsedToolCall = parseInlineToolCallPayload(rawPayload, prefix + inlineToolCallCount++);
+      if (!parsedToolCall) {
+        return false;
+      }
+      content.push(createAnthropicToolUseBlock(parsedToolCall));
+      hasToolUse = true;
+      return true;
+    };
     const consumeVisibleText = function (text) {
       if (typeof text !== "string" || !text.trim()) {
         return;
@@ -1174,9 +1702,24 @@
       consumeThinkTaggedText(thinkTagState, text, thinkTagHandlers, false);
     };
     if (typeof message.content === "string") {
-      consumeVisibleText(message.content);
+      if (!appendLooseToolCall(message.content, "content_tool_call_")) {
+        consumeVisibleText(message.content);
+      }
+    } else if (message.content && typeof message.content === "object" && !Array.isArray(message.content)) {
+      if (!appendLooseToolCall(message.content, "content_tool_call_")) {
+        const visibleText = extractOpenAIChatTextFromPart(message.content);
+        if (visibleText) {
+          consumeVisibleText(visibleText);
+        }
+      }
     } else if (Array.isArray(message.content)) {
       for (const part of message.content) {
+        const parsedToolCall = parseInlineToolCallPayload(part, "content_tool_call_" + inlineToolCallCount++);
+        if (parsedToolCall) {
+          content.push(createAnthropicToolUseBlock(parsedToolCall));
+          hasToolUse = true;
+          continue;
+        }
         const type = String(part?.type || "").trim().toLowerCase();
         if (type === "refusal" && typeof part.refusal === "string" && part.refusal) {
           consumeThinkTaggedText(thinkTagState, part.refusal, thinkTagHandlers, false);
@@ -1184,14 +1727,18 @@
         }
         const visibleText = extractOpenAIChatTextFromPart(part);
         if (visibleText) {
-          consumeVisibleText(visibleText);
+          if (!appendLooseToolCall(visibleText, "content_text_tool_call_")) {
+            consumeVisibleText(visibleText);
+          }
         }
       }
     }
     if (!hasVisibleText) {
       for (const candidate of [message.output_text, message.content_text, message.response_text]) {
         if (typeof candidate === "string" && candidate.trim()) {
-          consumeVisibleText(candidate);
+          if (!appendLooseToolCall(candidate, "message_text_tool_call_")) {
+            consumeVisibleText(candidate);
+          }
           break;
         }
       }
@@ -1201,33 +1748,30 @@
     }
     consumeThinkTaggedText(thinkTagState, "", thinkTagHandlers, true);
     for (const toolCall of Array.isArray(message.tool_calls) ? message.tool_calls : []) {
-      const args = safeJsonParse(toolCall?.function?.arguments || "{}", {});
-      content.push({
-        type: "tool_use",
-        id: String(toolCall?.id || ""),
-        name: String(toolCall?.function?.name || ""),
-        input: args
-      });
+      const normalizedToolCall = parseInlineToolCallPayload(toolCall, "tool_call_" + inlineToolCallCount++);
+      if (!normalizedToolCall) {
+        continue;
+      }
+      content.push(createAnthropicToolUseBlock(normalizedToolCall));
       hasToolUse = true;
     }
     if (!hasToolUse && message.function_call) {
-      const args = message.function_call.arguments;
-      const input = typeof args === "string" ? safeJsonParse(args, {}) : args && typeof args === "object" ? args : {};
-      if (message.function_call.name || args != null) {
-        content.push({
-          type: "tool_use",
-          id: String(message.function_call.id || ""),
-          name: String(message.function_call.name || ""),
-          input
-        });
+      const normalizedToolCall = parseInlineToolCallPayload(message.function_call, "function_call_" + inlineToolCallCount++);
+      if (normalizedToolCall) {
+        content.push(createAnthropicToolUseBlock(normalizedToolCall));
         hasToolUse = true;
       }
     }
+    pushReasoningText();
+    const promotedContent = promoteLooseToolCallTextBlocks(content, function () {
+      return "text_block_tool_call_" + inlineToolCallCount++;
+    });
+    hasToolUse = hasToolUse || promotedContent.convertedCount > 0;
     return {
       id: String(body?.id || ""),
       type: "message",
       role: "assistant",
-      content,
+      content: promotedContent.content,
       model: String(body?.model || ""),
       stop_reason: mapChatStopReason(choice.finish_reason, hasToolUse),
       stop_sequence: null,
@@ -1265,7 +1809,7 @@
     }
     return dataParts.join("\n").trim();
   }
-  function openAIChatSseToAnthropic(text) {
+  function openAIChatSseToAnthropic(text, config) {
     const content = [];
     const thinkTagState = createThinkTagState();
     let inlineToolCallCount = 0;
@@ -1326,10 +1870,12 @@
       }
       const choice = chunk.choices[0] || {};
       const delta = choice.delta || {};
-      if (typeof delta.reasoning === "string" && delta.reasoning) {
+      const chatCompatibility = getChatCompatibilityProfile(config, currentModel || config?.defaultModel);
+      const reasoningDelta = readFirstStringField(delta, chatCompatibility.streamReasoningFields);
+      if (reasoningDelta) {
         pushAnthropicContentBlock(content, {
           type: "thinking",
-          thinking: delta.reasoning
+          thinking: reasoningDelta
         });
       }
       const contentDelta = normalizeChatContentDelta(delta.content);
@@ -1379,11 +1925,15 @@
         input: safeJsonParse(state.arguments || "{}", {})
       });
     }
+    const promotedContent = promoteLooseToolCallTextBlocks(content, function () {
+      return "stream_text_tool_call_" + inlineToolCallCount++;
+    });
+    hasToolUse = hasToolUse || promotedContent.convertedCount > 0;
     return {
       id: messageId,
       type: "message",
       role: "assistant",
-      content,
+      content: promotedContent.content,
       model: currentModel,
       stop_reason: mapChatStopReason(lastFinishReason, hasToolUse),
       stop_sequence: null,
@@ -1440,7 +1990,7 @@
     }
     const upstreamText = await upstream.text();
     try {
-      const fallbackJson = contentType.includes("text/event-stream") ? openAIChatSseToAnthropic(upstreamText) : openAIChatToAnthropic(safeJsonParse(upstreamText, null));
+      const fallbackJson = contentType.includes("text/event-stream") ? openAIChatSseToAnthropic(upstreamText, candidateConfig) : openAIChatToAnthropic(safeJsonParse(upstreamText, null), candidateConfig);
       debugLog("provider.response_transform_stream_fallback", {
         ...attemptInfo,
         providerUrl,
@@ -1497,6 +2047,17 @@
       const messageContent = [];
       for (const block of content) {
         const type = block?.type || "";
+        const preservedItem = readOpenAIResponsesContextItem(block);
+        if (preservedItem) {
+          if (messageContent.length) {
+            input.push({
+              role,
+              content: messageContent.splice(0)
+            });
+          }
+          input.push(preservedItem);
+          continue;
+        }
         if (type === "text" && typeof block.text === "string") {
           messageContent.push({
             type: role === "assistant" ? "output_text" : "input_text",
@@ -1563,7 +2124,7 @@
     }
     return input;
   }
-  function anthropicToOpenAIResponses(body, promptCacheKey) {
+  function anthropicToOpenAIResponses(body, promptCacheKey, config) {
     const result = {};
     if (body?.model) {
       result.model = body.model;
@@ -1612,7 +2173,7 @@
     if (toolChoice !== undefined) {
       result.tool_choice = toolChoice;
     }
-    if (promptCacheKey) {
+    if (promptCacheKey && shouldSendPromptCacheKey(config, body?.model)) {
       result.prompt_cache_key = promptCacheKey;
     }
     return result;
@@ -1624,6 +2185,7 @@
     }
     const content = [];
     let hasToolUse = false;
+    let inlineToolCallCount = 0;
     for (const item of output) {
       const type = item?.type || "";
       if (type === "message") {
@@ -1663,7 +2225,13 @@
         for (const block of Array.isArray(item.content) ? item.content : []) {
           const blockType = block?.type || "";
           if (blockType === "output_text" && typeof block.text === "string" && block.text) {
-            consumeThinkTaggedText(thinkTagState, block.text, thinkTagHandlers, false);
+            const parsedToolCall = parseInlineToolCallPayload(block.text, "responses_text_tool_call_" + inlineToolCallCount++);
+            if (parsedToolCall) {
+              content.push(createAnthropicToolUseBlock(parsedToolCall));
+              hasToolUse = true;
+            } else {
+              consumeThinkTaggedText(thinkTagState, block.text, thinkTagHandlers, false);
+            }
           } else if (blockType === "refusal" && typeof block.refusal === "string" && block.refusal) {
             consumeThinkTaggedText(thinkTagState, block.refusal, thinkTagHandlers, false);
           }
@@ -1672,13 +2240,11 @@
         continue;
       }
       if (type === "function_call") {
-        content.push({
-          type: "tool_use",
-          id: String(item.call_id || ""),
-          name: String(item.name || ""),
-          input: safeJsonParse(item.arguments || "{}", {})
-        });
-        hasToolUse = true;
+        const normalizedToolCall = normalizeResponsesFunctionCallToolUse(parseInlineToolCallPayload(item, "responses_function_call_" + inlineToolCallCount++), item);
+        if (normalizedToolCall) {
+          content.push(attachOpenAIResponsesContextItem(createAnthropicToolUseBlock(normalizedToolCall), item));
+          hasToolUse = true;
+        }
         continue;
       }
       if (type === "reasoning") {
@@ -1688,19 +2254,24 @@
         }).map(function (part) {
           return part.text;
         }).join("");
-        if (thinking) {
-          content.push({
+        const reasoningBlock = attachOpenAIResponsesContextItem({
             type: "thinking",
             thinking
-          });
+          }, item);
+        if (thinking || reasoningBlock?.[OPENAI_RESPONSES_ITEM_KEY]) {
+          content.push(reasoningBlock);
         }
       }
     }
+    const promotedContent = promoteLooseToolCallTextBlocks(content, function () {
+      return "responses_block_tool_call_" + inlineToolCallCount++;
+    });
+    hasToolUse = hasToolUse || promotedContent.convertedCount > 0;
     return {
       id: String(body?.id || ""),
       type: "message",
       role: "assistant",
-      content,
+      content: promotedContent.content,
       model: String(body?.model || ""),
       stop_reason: mapResponsesStopReason(body?.status, hasToolUse, body?.incomplete_details?.reason),
       stop_sequence: null,
@@ -1727,7 +2298,7 @@
       return "";
     }).join("");
   }
-  function createAnthropicStreamFromOpenAIChat(stream) {
+  function createAnthropicStreamFromOpenAIChat(stream, config) {
     const reader = stream.getReader();
     const decoder = new TextDecoder();
     const encoder = new TextEncoder();
@@ -1939,16 +2510,18 @@
       }
       const choice = chunk.choices[0] || {};
       const delta = choice.delta || {};
+      const chatCompatibility = getChatCompatibilityProfile(config, currentModel || config?.defaultModel);
       lastUsage = chunk.usage || lastUsage;
       ensureMessageStart(output, chunk);
-      if (typeof delta.reasoning === "string" && delta.reasoning) {
+      const reasoningDelta = readFirstStringField(delta, chatCompatibility.streamReasoningFields);
+      if (reasoningDelta) {
         const index = ensureNonToolBlock(output, "thinking");
         output.push(sseChunk("content_block_delta", {
           type: "content_block_delta",
           index,
           delta: {
             type: "thinking_delta",
-            thinking: delta.reasoning
+            thinking: reasoningDelta
           }
         }));
       }
@@ -2285,18 +2858,19 @@
       }
       return index;
     }
-    function ensureThinkingBlock(output, data) {
+    function ensureThinkingBlock(output, data, item) {
       closeCurrentText(output);
       const index = currentThinkingIndex != null ? currentThinkingIndex : resolveContentIndex(data, currentThinkingIndex);
       currentThinkingIndex = index;
       if (!openIndices.has(index)) {
+        const contentBlock = attachOpenAIResponsesContextItem({
+          type: "thinking",
+          thinking: ""
+        }, item);
         output.push(sseChunk("content_block_start", {
           type: "content_block_start",
           index,
-          content_block: {
-            type: "thinking",
-            thinking: ""
-          }
+          content_block: contentBlock
         }));
         openIndices.add(index);
       }
@@ -2340,14 +2914,15 @@
       const index = resolveToolIndex(data, item);
       lastToolIndex = index;
       if (!openIndices.has(index)) {
+        const contentBlock = attachOpenAIResponsesContextItem({
+          type: "tool_use",
+          id: String(item ? item?.call_id || "" : data?.call_id || data?.item_id || ""),
+          name: String(item ? item?.name || "" : data?.name || "")
+        }, item);
         output.push(sseChunk("content_block_start", {
           type: "content_block_start",
           index,
-          content_block: {
-            type: "tool_use",
-            id: String(item ? item?.call_id || "" : data?.call_id || data?.item_id || ""),
-            name: String(item ? item?.name || "" : data?.name || "")
-          }
+          content_block: contentBlock
         }));
         openIndices.add(index);
       }
@@ -2407,7 +2982,7 @@
         ensureMessageStart(output, responseObject);
         const delta = typeof data.delta === "string" ? data.delta : typeof data.text === "string" ? data.text : "";
         if (delta) {
-          const index = ensureThinkingBlock(output, data);
+          const index = ensureThinkingBlock(output, data, data.item);
           output.push(sseChunk("content_block_delta", {
             type: "content_block_delta",
             index,
@@ -2429,6 +3004,9 @@
           hasToolUse = true;
           ensureMessageStart(output, responseObject);
           ensureToolBlock(output, data, data.item);
+        } else if (itemType === "reasoning") {
+          ensureMessageStart(output, responseObject);
+          ensureThinkingBlock(output, data, data.item);
         } else if (itemType === "message") {
           ensureMessageStart(output, responseObject);
         }
@@ -2557,20 +3135,24 @@
     }
     return requestUrl.startsWith(config.baseUrl) && isAnthropicMessagesPath(new URL(requestUrl));
   }
+  function stripOpenAIEndpointSuffix(baseUrl) {
+    return String(baseUrl || "").replace(/\/+$/, "").replace(/\/(?:chat\/completions|responses)$/i, "");
+  }
   function buildProviderUrl(config) {
     const baseUrl = config.baseUrl.replace(/\/+$/, "");
+    const openAIBaseUrl = stripOpenAIEndpointSuffix(baseUrl);
     if (config.format === OPENAI_CHAT_FORMAT) {
       if (/\/chat\/completions$/i.test(baseUrl)) {
         return baseUrl;
       } else {
-        return baseUrl + "/chat/completions";
+        return openAIBaseUrl + "/chat/completions";
       }
     }
     if (config.format === OPENAI_RESPONSES_FORMAT) {
       if (/\/responses$/i.test(baseUrl)) {
         return baseUrl;
       } else {
-        return baseUrl + "/responses";
+        return openAIBaseUrl + "/responses";
       }
     }
     return baseUrl;
@@ -2644,8 +3226,10 @@
     return createAnthropicErrorResponse(parsed.status, parsed.message);
   }
   async function forwardProviderRequest(request, config) {
+    await assertHttpProviderAllowed(config);
     const bodyText = await request.clone().text();
-    const body = safeJsonParse(bodyText, null);
+    const parsedBody = safeJsonParse(bodyText, null);
+    const body = applyConfiguredAnthropicDefaults(parsedBody, config);
     if (!body || typeof body !== "object") {
       return createAnthropicErrorResponse(400, "自定义供应商只支持 JSON 请求体。");
     }
@@ -2666,7 +3250,7 @@
         ...config,
         format: candidate.format
       };
-      const providerBody = candidate.format === OPENAI_CHAT_FORMAT ? anthropicToOpenAIChat(body, candidateConfig.promptCacheKey) : anthropicToOpenAIResponses(body, candidateConfig.promptCacheKey);
+      const providerBody = candidate.format === OPENAI_CHAT_FORMAT ? anthropicToOpenAIChat(body, candidateConfig.promptCacheKey, candidateConfig) : anthropicToOpenAIResponses(body, candidateConfig.promptCacheKey, candidateConfig);
       const providerUrl = buildProviderUrl(candidateConfig);
       const isStreamRequest = !!providerBody.stream;
       debugLog("provider.request_attempt", {
@@ -2719,7 +3303,7 @@
             message: providerError.message,
             bodyPreview: truncateText(providerError.text, 500)
           }, "warn");
-          if (index < candidates.length - 1) {
+          if (index < candidates.length - 1 && shouldTryNextProviderRequestCandidate(providerError)) {
             shouldTryNextCandidate = true;
             break;
           }
@@ -2741,7 +3325,7 @@
             format: candidate.format,
             providerUrl
           });
-          const transformedStream = candidate.format === OPENAI_CHAT_FORMAT ? createAnthropicStreamFromOpenAIChat(upstream.body) : createAnthropicStreamFromResponses(upstream.body);
+          const transformedStream = candidate.format === OPENAI_CHAT_FORMAT ? createAnthropicStreamFromOpenAIChat(upstream.body, candidateConfig) : createAnthropicStreamFromResponses(upstream.body);
           return createSseResponse(upstream, transformedStream);
         }
         const upstreamText = await upstream.text();
@@ -2769,7 +3353,7 @@
           contentType
         });
         try {
-          const anthropicResponse = candidate.format === OPENAI_CHAT_FORMAT ? openAIChatToAnthropic(upstreamJson) : openAIResponsesToAnthropic(upstreamJson);
+          const anthropicResponse = candidate.format === OPENAI_CHAT_FORMAT ? openAIChatToAnthropic(upstreamJson, candidateConfig) : openAIResponsesToAnthropic(upstreamJson);
           if (candidate.format === OPENAI_CHAT_FORMAT && shouldRetryOpenAIChatViaStreamFallback(upstreamJson, anthropicResponse, contentType, isStreamRequest)) {
             const fallbackResponse = await retryOpenAIChatAsStreamAndTransform(providerUrl, request, candidateConfig, providerBody, {
               attempt: index + 1,

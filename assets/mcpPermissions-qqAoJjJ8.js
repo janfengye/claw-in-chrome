@@ -1,33 +1,279 @@
-import { G as e, H as t, S as r, I as o, J as a, K as n, L as s, W as i, T as c, R as l, M as d, N as u, O as h, j as p, x as m, z as f, g, s as b, c as w, m as y, w as _, e as v, P as I } from "./PermissionManager-9s959502.js";
+import {
+  G as e,
+  H as t,
+  S as r,
+  I as o,
+  J as a,
+  K as n,
+  L as s,
+  W as i,
+  T as c,
+  R as l,
+  M as d,
+  N as u,
+  O as h,
+  j as p,
+  x as m,
+  z as f,
+  g,
+  s as b,
+  c as w,
+  m as y,
+  w as _,
+  e as v,
+  P as I,
+} from "./PermissionManager-9s959502.js";
 import { R as k } from "./index-BVS4T5_D.js";
-const __cpBackgroundDebugStorageKey = "sidepanelDebugLogs";
-const __cpBackgroundDebugMetaKey = "sidepanelDebugMeta";
+const __cpDebugContract = globalThis.__CP_CONTRACT__?.debug || {};
+const __cpBackgroundDebugStorageKey =
+  __cpDebugContract.SIDEPANEL_LOGS_STORAGE_KEY || "sidepanelDebugLogs";
+const __cpBackgroundDebugMetaKey =
+  __cpDebugContract.SIDEPANEL_META_STORAGE_KEY || "sidepanelDebugMeta";
 const __cpBackgroundDebugLimit = 500;
 let __cpBackgroundDebugSequence = 0;
+const __cpBackgroundDebugSensitiveKeys = new Set([
+  "apikey",
+  "anthropicapikey",
+  "accesstoken",
+  "refreshtoken",
+  "authtoken",
+  "authorization",
+  "token",
+  "secret",
+  "password",
+  "currentapikey",
+  "originalapikey",
+]);
+const __cpBackgroundDebugPrivateUrlKeys = new Set([
+  "baseurl",
+  "providerurl",
+  "requesturl",
+  "url",
+  "href",
+  "uri",
+  "filename",
+  "source",
+  "origin",
+]);
+const __cpBackgroundDebugPrivateTextKeys = new Set([
+  "bodypreview",
+  "notes",
+  "prompt",
+  "content",
+  "requestbody",
+  "responsebody",
+  "rawbody",
+  "inputtext",
+  "outputtext",
+]);
+const __cpBackgroundDebugRedactedSecret = "[redacted-secret]";
+const __cpBackgroundDebugRedactedText = "[redacted-text]";
+const __cpBackgroundDebugRedactedUrl = "[redacted-url]";
+function __cpBackgroundDebugNormalizeKey(e) {
+  return String(e || "")
+    .replace(/[^a-z0-9]/gi, "")
+    .toLowerCase();
+}
+function __cpBackgroundDebugIsSensitiveKey(e) {
+  const t = __cpBackgroundDebugNormalizeKey(e);
+  return !!t && __cpBackgroundDebugSensitiveKeys.has(t);
+}
+function __cpBackgroundDebugIsPrivateUrlKey(e) {
+  const t = __cpBackgroundDebugNormalizeKey(e);
+  return !!t && __cpBackgroundDebugPrivateUrlKeys.has(t);
+}
+function __cpBackgroundDebugIsPrivateTextKey(e) {
+  const t = __cpBackgroundDebugNormalizeKey(e);
+  return !!t && __cpBackgroundDebugPrivateTextKeys.has(t);
+}
+function __cpBackgroundDebugSanitizeInlineSecrets(e) {
+  return String(e || "")
+    .replace(
+      /\b(?:https?|wss?|chrome-extension):\/\/[^\s"'<>]+/gi,
+      __cpBackgroundDebugRedactedUrl,
+    )
+    .replace(/\bBearer\s+[A-Za-z0-9._-]+\b/gi, "Bearer [redacted]")
+    .replace(
+      /\b(?:sk|rk|pk)-[A-Za-z0-9*._-]{5,}\b/gi,
+      (t) => t.split("-")[0] + "-[redacted]",
+    )
+    .replace(
+      /\b(?:api[_-]?key|access[_-]?token|refresh[_-]?token|auth(?:orization|[_-]?token)?|secret|password)\b\s*[:=]\s*[^\s,;]+/gi,
+      (e) => e.replace(/[:=]\s*[^\s,;]+$/, ": [redacted]"),
+    );
+}
+function __cpBackgroundDebugSanitizeString(e, t) {
+  const r = __cpBackgroundDebugNormalizeKey(t);
+  let o = String(e || "");
+  if (!o) {
+    return o;
+  }
+  if (__cpBackgroundDebugIsSensitiveKey(r)) {
+    return __cpBackgroundDebugRedactedSecret;
+  }
+  if (r === "useragent") {
+    return "[redacted-user-agent]";
+  }
+  if (__cpBackgroundDebugIsPrivateTextKey(r)) {
+    return `${__cpBackgroundDebugRedactedText}:${o.length}`;
+  }
+  if (__cpBackgroundDebugIsPrivateUrlKey(r)) {
+    if (r === "href" && o.startsWith("/")) {
+      return o.split(/[?#]/)[0] || __cpBackgroundDebugRedactedUrl;
+    }
+    return __cpBackgroundDebugRedactedUrl;
+  }
+  o = __cpBackgroundDebugSanitizeInlineSecrets(o);
+  return o.length > 600 ? o.slice(0, 600) + "...[truncated]" : o;
+}
+function __cpBackgroundDebugSummarizeProviderConfig(e) {
+  const t = Array.isArray(e?.fetchedModels) ? e.fetchedModels : [];
+  const r = typeof e?.hasBaseUrl == "boolean" ? e.hasBaseUrl : !!e?.baseUrl;
+  const o = typeof e?.hasApiKey == "boolean" ? e.hasApiKey : !!e?.apiKey;
+  const a =
+    typeof e?.hasDefaultModel == "boolean"
+      ? e.hasDefaultModel
+      : !!e?.defaultModel;
+  return {
+    enabled: r && o && a,
+    format: __cpBackgroundDebugSanitizeString(e?.format || "", "format"),
+    defaultModel: __cpBackgroundDebugSanitizeString(
+      e?.defaultModel || "",
+      "defaultModel",
+    ),
+    reasoningEffort: __cpBackgroundDebugSanitizeString(
+      e?.reasoningEffort || "",
+      "reasoningEffort",
+    ),
+    maxOutputTokens:
+      typeof e?.maxOutputTokens == "number"
+        ? e.maxOutputTokens
+        : e?.maxOutputTokens || undefined,
+    contextWindow:
+      typeof e?.contextWindow == "number"
+        ? e.contextWindow
+        : e?.contextWindow || undefined,
+    name: __cpBackgroundDebugSanitizeString(e?.name || "", "name"),
+    fetchedModelCount:
+      typeof e?.fetchedModelCount == "number" ? e.fetchedModelCount : t.length,
+    hasApiKey: o,
+    hasBaseUrl: r,
+    hasDefaultModel: a,
+    hasNotes:
+      typeof e?.hasNotes == "boolean"
+        ? e.hasNotes
+        : !!String(e?.notes || "").trim(),
+  };
+}
+function __cpBackgroundDebugSafeClone(e, t, r, o) {
+  if (e == null) {
+    return e;
+  }
+  if (t > 4) {
+    return "[max-depth]";
+  }
+  if (typeof e == "string") {
+    return __cpBackgroundDebugSanitizeString(e, o);
+  }
+  if (typeof e == "number" || typeof e == "boolean") {
+    return e;
+  }
+  if (typeof e == "bigint") {
+    return e.toString();
+  }
+  if (typeof e == "function") {
+    return "[function]";
+  }
+  if (e instanceof Error) {
+    return {
+      name: e.name,
+      message: __cpBackgroundDebugSanitizeString(e.message, "message"),
+      stack: __cpBackgroundDebugSanitizeString(e.stack || "", "stack"),
+    };
+  }
+  if (typeof URL != "undefined" && e instanceof URL) {
+    return __cpBackgroundDebugSanitizeString(e.toString(), o);
+  }
+  if (Array.isArray(e)) {
+    return e.slice(0, 20).map((e) => __cpBackgroundDebugSafeClone(e, t + 1, r));
+  }
+  if (typeof e != "object") {
+    return String(e);
+  }
+  if (r.has(e)) {
+    return "[circular]";
+  }
+  r.add(e);
+  if (__cpBackgroundDebugIsSensitiveKey(o)) {
+    return __cpBackgroundDebugRedactedSecret;
+  }
+  const a = __cpBackgroundDebugNormalizeKey(o);
+  if (a === "customproviderconfig" || a === "customprovider") {
+    return __cpBackgroundDebugSummarizeProviderConfig(e);
+  }
+  const n = {};
+  for (const s of Object.keys(e).slice(0, 30)) {
+    n[s] = __cpBackgroundDebugIsSensitiveKey(s)
+      ? __cpBackgroundDebugRedactedSecret
+      : __cpBackgroundDebugSafeClone(e[s], t + 1, r, s);
+  }
+  return n;
+}
+function __cpBackgroundDebugSanitizeEntry(e) {
+  const t = e && typeof e == "object" ? e : {};
+  return {
+    id: String(t.id || ""),
+    sessionId: String(t.sessionId || "service-worker"),
+    ts: String(t.ts || new Date().toISOString()),
+    level: String(t.level || "info"),
+    type: String(t.type || "service-worker.unknown"),
+    href: __cpBackgroundDebugSanitizeString(
+      String(t.href || "/service-worker"),
+      "href",
+    ),
+    payload: __cpBackgroundDebugSafeClone(
+      t.payload,
+      0,
+      new WeakSet(),
+      "payload",
+    ),
+  };
+}
 async function __cpBackgroundDebugLog(e, t = {}, r = "info") {
   try {
     __cpBackgroundDebugSequence += 1;
     const o = new Date().toISOString();
-    const a = {
+    const a = __cpBackgroundDebugSanitizeEntry({
       id: `bg-${Date.now().toString(36)}-${__cpBackgroundDebugSequence}`,
       sessionId: "service-worker",
       ts: o,
       level: r,
       type: e,
       href: "/service-worker",
-      payload: t
-    };
-    const n = await chrome.storage.local.get([__cpBackgroundDebugStorageKey, __cpBackgroundDebugMetaKey]);
-    const s = Array.isArray(n[__cpBackgroundDebugStorageKey]) ? n[__cpBackgroundDebugStorageKey] : [];
-    const i = n[__cpBackgroundDebugMetaKey] && typeof n[__cpBackgroundDebugMetaKey] == "object" ? n[__cpBackgroundDebugMetaKey] : {};
+      payload: t,
+    });
+    const n = await chrome.storage.local.get([
+      __cpBackgroundDebugStorageKey,
+      __cpBackgroundDebugMetaKey,
+    ]);
+    const s = Array.isArray(n[__cpBackgroundDebugStorageKey])
+      ? n[__cpBackgroundDebugStorageKey].map(__cpBackgroundDebugSanitizeEntry)
+      : [];
+    const i =
+      n[__cpBackgroundDebugMetaKey] &&
+      typeof n[__cpBackgroundDebugMetaKey] == "object"
+        ? n[__cpBackgroundDebugMetaKey]
+        : {};
     await chrome.storage.local.set({
-      [__cpBackgroundDebugStorageKey]: s.concat(a).slice(-__cpBackgroundDebugLimit),
+      [__cpBackgroundDebugStorageKey]: s
+        .concat(a)
+        .slice(-__cpBackgroundDebugLimit),
       [__cpBackgroundDebugMetaKey]: {
         ...i,
         sessionId: "service-worker",
         lastFlushAt: o,
-        href: "/service-worker"
-      }
+        href: "/service-worker",
+      },
     });
     if (r === "error") {
       console.error("[service-worker-debug]", e, t);
@@ -38,18 +284,32 @@ async function __cpBackgroundDebugLog(e, t = {}, r = "info") {
     console.debug("[service-worker-debug] log_failed", e, t, o);
   }
 }
+function __cpBackgroundDebugTrack(e, t = {}, r = "info") {
+  __cpBackgroundDebugLog(e, t, r).catch((o) => {
+    console.debug(
+      "[service-worker-debug] track_failed",
+      e,
+      o instanceof Error ? o.message : String(o || ""),
+    );
+  });
+}
 class T extends Error {
   constructor(e) {
-    super(`Page still loading (executeScript waited ${e}ms for document_idle). The previous action may have triggered navigation — try again in a moment.`);
+    super(
+      `Page still loading (executeScript waited ${e}ms for document_idle). The previous action may have triggered navigation — try again in a moment.`,
+    );
     this.name = "PageLoadingError";
   }
 }
 async function x(t, r = e) {
   let o;
   try {
-    return await Promise.race([chrome.scripting.executeScript(t), new Promise((e, t) => {
-      o = setTimeout(() => t(new T(r)), r);
-    })]);
+    return await Promise.race([
+      chrome.scripting.executeScript(t),
+      new Promise((e, t) => {
+        o = setTimeout(() => t(new T(r)), r);
+      }),
+    ]);
   } finally {
     if (o !== undefined) {
       clearTimeout(o);
@@ -63,11 +323,7 @@ function E(e, t, r) {
   return S(e, r) * S(t, r);
 }
 function C(e, t, r) {
-  const {
-    pxPerToken: o,
-    maxTargetPx: a,
-    maxTargetTokens: n
-  } = r;
+  const { pxPerToken: o, maxTargetPx: a, maxTargetTokens: n } = r;
   if (e <= a && t <= a && E(e, t, o) <= n) {
     return [e, t];
   }
@@ -91,15 +347,18 @@ function C(e, t, r) {
     }
   }
 }
-const M = new class {
+// 语义锚点：M 是 screenshot viewport context 账本。
+// 它只保存 viewport/screenshot 尺寸，不保存图片字节；供后续 coordinate 路径做截图坐标 -> viewport 坐标换算。
+const M = new (class {
   contexts = new Map();
   setContext(e, t) {
     if (t.viewportWidth && t.viewportHeight) {
+      // 语义锚点：setContext 只登记缩放所需的 4 个尺寸字段。
       const r = {
         viewportWidth: t.viewportWidth,
         viewportHeight: t.viewportHeight,
         screenshotWidth: t.width,
-        screenshotHeight: t.height
+        screenshotHeight: t.height,
       };
       this.contexts.set(e, r);
     }
@@ -107,15 +366,20 @@ const M = new class {
   getContext(e) {
     return this.contexts.get(e);
   }
+  // 语义锚点：clearContext / clearAllContexts 是预留的 screenshot context 清理接口。
+  // 当前文件内未见显式 clear 调用；账本实际主要靠后续 screenshot 的 setContext 覆盖刷新。
   clearContext(e) {
     this.contexts.delete(e);
   }
   clearAllContexts() {
     this.contexts.clear();
   }
-}();
+})();
+const __cpMcpScreenshotViewportContextLedger = M;
+const __cpMcpClearScreenshotViewportContextForTab = (e) => M.clearContext(e);
+const __cpMcpClearAllScreenshotViewportContexts = () => M.clearAllContexts();
 function D(e) {
-  if (!e.startsWith("http")) {
+  if (!/^[a-z][a-z\d+.-]*:/i.test(e)) {
     e = `https://${e}`;
   }
   try {
@@ -125,8 +389,14 @@ function D(e) {
   }
 }
 function R(e) {
-  return e.toLowerCase().replace(/^(https?:\/\/)?(www\.)?/, "").replace(/\/.*$/, "");
+  return e
+    .toLowerCase()
+    .replace(/^(https?:\/\/)?(www\.)?/, "")
+    .replace(/\/.*$/, "");
 }
+// 语义锚点：A(...) 是域权限放行后的同域重校验闸门。
+// 它只比较调用前记录的目标 URL 与执行瞬间 tab 当前 URL 的 hostname；
+// 如果中途跳到别的域，就在 click/type/key/drag/scroll_to/hover/javascript/upload 等真实页面动作前阻断执行。
 async function A(e, t, r) {
   if (!t) {
     return null;
@@ -134,73 +404,58 @@ async function A(e, t, r) {
   const o = await chrome.tabs.get(e);
   if (!o.url) {
     return {
-      error: "Unable to verify current URL for security check"
+      error: "Unable to verify current URL for security check",
     };
   }
   const a = D(t);
   const n = D(o.url);
   if (a !== n) {
     return {
-      error: `Security check failed: Domain changed from ${a} to ${n} during ${r}`
+      error: `Security check failed: Domain changed from ${a} to ${n} during ${r}`,
     };
   } else {
     return null;
   }
 }
+const __cpMcpPreExecuteSameDomainGuard = A;
 const P = "blockedUrlPatterns";
+function __cpNormalizeDomainCategory(e) {
+  return e === "category1" || e === "category2" || e === "category_org_blocked"
+    ? "category0"
+    : e;
+}
 function U(e, t) {
   let r;
   try {
-    r = new URL(/^https?:\/\//.test(e) ? e : `https://${e}`);
+    r = new URL(/^[a-z][a-z\d+.-]*:/i.test(e) ? e : `https://${e}`);
   } catch {
     return false;
   }
-  const o = r.hostname.toLowerCase().replace(/^www\./, "") + r.pathname.toLowerCase();
-  let a = t.toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/$/, "/*");
+  const o =
+    r.hostname.toLowerCase().replace(/^www\./, "") + r.pathname.toLowerCase();
+  let a = t
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/\/$/, "/*");
   if (!a.includes("/")) {
     a += "/*";
   }
-  const n = a.split("*").map(e => e.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join(".*");
+  const n = a
+    .split("*")
+    .map((e) => e.replace(/[.+?^${}()|[\]\\]/g, "\\$&"))
+    .join(".*");
   return new RegExp(`^${n}$`).test(o);
 }
 class $ {
   static blockedUrlPatterns = null;
   static listenerRegistered = false;
   static async isUrlBlockedByManagedPolicy(e) {
-    if (this.blockedUrlPatterns === null) {
-      this.blockedUrlPatterns = await this.loadBlockedUrlPatterns();
-      this.registerChangeListener();
-    }
-    for (const t of this.blockedUrlPatterns) {
-      if (U(e, t)) {
-        return true;
-      }
-    }
     return false;
   }
-  static registerChangeListener() {
-    if (!this.listenerRegistered) {
-      this.listenerRegistered = true;
-      chrome.storage.onChanged.addListener((e, t) => {
-        if (t === "managed" && e[P]) {
-          this.loadBlockedUrlPatterns().then(e => {
-            this.blockedUrlPatterns = e;
-          });
-        }
-      });
-    }
-  }
+  static registerChangeListener() {}
   static async loadBlockedUrlPatterns() {
-    try {
-      const e = (await chrome.storage.managed.get(P))[P];
-      if (Array.isArray(e)) {
-        return e.filter(e => typeof e == "string" && e.length > 0);
-      } else {
-        return [];
-      }
-    } catch (e) {
-      return [];
-    }
+    return [];
   }
   static _resetForTests() {
     this.blockedUrlPatterns = null;
@@ -219,7 +474,14 @@ class O {
     const r = this.cache.get(t);
     if (r) {
       if (!(Date.now() - r.timestamp > this.CACHE_TTL_MS)) {
-        return r.category;
+        const e = __cpNormalizeDomainCategory(r.category);
+        if (e !== r.category) {
+          this.cache.set(t, {
+            category: e,
+            timestamp: r.timestamp,
+          });
+        }
+        return e;
       }
       this.cache.delete(t);
     }
@@ -239,14 +501,17 @@ class O {
     const r = await t();
     if (r) {
       try {
-        const t = new URL("/api/web/domain_info/browser_extension", "https://api.anthropic.com");
+        const t = new URL(
+          "/api/web/domain_info/browser_extension",
+          "https://api.anthropic.com",
+        );
         t.searchParams.append("domain", e);
         const o = await fetch(t.toString(), {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${r}`
-          }
+            Authorization: `Bearer ${r}`,
+          },
         });
         if (!o.ok) {
           return;
@@ -255,7 +520,7 @@ class O {
         const n = this.getEffectiveCategory(a);
         this.cache.set(e, {
           category: n,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
         return n;
       } catch (o) {
@@ -264,11 +529,8 @@ class O {
     }
   }
   static getEffectiveCategory(e) {
-    if (e.org_policy === "block") {
-      return "category_org_blocked";
-    } else {
-      return e.category;
-    }
+    const t = e.org_policy === "block" ? "category_org_blocked" : e.category;
+    return __cpNormalizeDomainCategory(t);
   }
   static clearCache() {
     this.cache.clear();
@@ -299,7 +561,7 @@ class G {
     this.subscriptions.set(o, {
       tabId: e,
       eventTypes: t,
-      callback: r
+      callback: r,
     });
     if (e !== "all") {
       this.relevantTabIds.add(e);
@@ -382,7 +644,7 @@ class G {
         }
       }
     };
-    this.chromeActivatedListener = e => {
+    this.chromeActivatedListener = (e) => {
       const t = e.tabId;
       if (this.relevantTabIds.size > 0 && !this.relevantTabIds.has(t)) {
         let e = false;
@@ -397,10 +659,13 @@ class G {
         }
       }
       const r = {
-        active: true
+        active: true,
       };
       for (const [, a] of this.subscriptions) {
-        if ((a.tabId === "all" || a.tabId === t) && a.eventTypes.includes("active")) {
+        if (
+          (a.tabId === "all" || a.tabId === t) &&
+          a.eventTypes.includes("active")
+        ) {
           try {
             a.callback(t, r);
           } catch (o) {}
@@ -409,7 +674,7 @@ class G {
     };
     chrome.tabs.onUpdated.addListener(this.chromeUpdateListener);
     chrome.tabs.onActivated.addListener(this.chromeActivatedListener);
-    this.chromeRemovedListener = e => {
+    this.chromeRemovedListener = (e) => {
       if (this.relevantTabIds.size > 0 && !this.relevantTabIds.has(e)) {
         let e = false;
         for (const [, t] of this.subscriptions) {
@@ -423,10 +688,13 @@ class G {
         }
       }
       const t = {
-        removed: true
+        removed: true,
       };
       for (const [, o] of this.subscriptions) {
-        if ((o.tabId === "all" || o.tabId === e) && o.eventTypes.includes("removed")) {
+        if (
+          (o.tabId === "all" || o.tabId === e) &&
+          o.eventTypes.includes("removed")
+        ) {
           try {
             o.callback(e, t);
           } catch (r) {}
@@ -454,7 +722,11 @@ class G {
     return this.subscriptions.size;
   }
   hasActiveListeners() {
-    return this.chromeUpdateListener !== null || this.chromeActivatedListener !== null || this.chromeRemovedListener !== null;
+    return (
+      this.chromeUpdateListener !== null ||
+      this.chromeActivatedListener !== null ||
+      this.chromeRemovedListener !== null
+    );
   }
 }
 const N = () => G.getInstance();
@@ -462,12 +734,20 @@ const L = "Claw";
 const q = "Claw (MCP)";
 const LEGACY_DEFAULT_GROUP_TITLE = "Claude";
 const GROUP_TITLE_PREFIX_REGEX = /^(⌛|🔔|✅)\s*/;
-const stripGroupTitlePrefix = e => String(e || "").replace(GROUP_TITLE_PREFIX_REGEX, "").trim();
-const sanitizeGeneratedGroupTitle = e => {
-  const t = String(e || "").replace(/<\/?title>/gi, " ").replace(/<[^>]*>/g, " ").replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
+const stripGroupTitlePrefix = (e) =>
+  String(e || "")
+    .replace(GROUP_TITLE_PREFIX_REGEX, "")
+    .trim();
+const sanitizeGeneratedGroupTitle = (e) => {
+  const t = String(e || "")
+    .replace(/<\/?title>/gi, " ")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   return t && t.toLowerCase() !== "title" ? t : "";
 };
-const canReplaceGeneratedGroupTitle = e => {
+const canReplaceGeneratedGroupTitle = (e) => {
   const t = stripGroupTitlePrefix(e);
   if (!t || t === L || t === LEGACY_DEFAULT_GROUP_TITLE) {
     return true;
@@ -494,7 +774,7 @@ class B {
     this.startTabRemovalListener();
   }
   startTabRemovalListener() {
-    chrome.tabs.onRemoved.addListener(async e => {
+    chrome.tabs.onRemoved.addListener(async (e) => {
       for (const [t, r] of this.groupBlocklistStatuses.entries()) {
         if (r.categoriesByTab.has(e)) {
           await this.removeTabFromBlocklistTracking(t, e);
@@ -507,22 +787,25 @@ class B {
     return B.instance;
   }
   async dismissStaticIndicatorsForGroup(e) {
-    const t = (await chrome.storage.local.get(this.DISMISSED_GROUPS_KEY))[this.DISMISSED_GROUPS_KEY] || [];
+    const t =
+      (await chrome.storage.local.get(this.DISMISSED_GROUPS_KEY))[
+        this.DISMISSED_GROUPS_KEY
+      ] || [];
     if (!t.includes(e)) {
       t.push(e);
     }
     await chrome.storage.local.set({
-      [this.DISMISSED_GROUPS_KEY]: t
+      [this.DISMISSED_GROUPS_KEY]: t,
     });
     try {
       const t = await chrome.tabs.query({
-        groupId: e
+        groupId: e,
       });
       for (const e of t) {
         if (e.id) {
           try {
             await chrome.tabs.sendMessage(e.id, {
-              type: "HIDE_STATIC_INDICATOR"
+              type: __cpAgentIndicatorRuntimeMessageTypeHideStaticIndicator,
             });
           } catch (r) {}
         }
@@ -531,7 +814,9 @@ class B {
   }
   async isGroupDismissed(e) {
     try {
-      const t = (await chrome.storage.local.get(this.DISMISSED_GROUPS_KEY))[this.DISMISSED_GROUPS_KEY];
+      const t = (await chrome.storage.local.get(this.DISMISSED_GROUPS_KEY))[
+        this.DISMISSED_GROUPS_KEY
+      ];
       return !!Array.isArray(t) && t.includes(e);
     } catch (t) {
       return false;
@@ -549,15 +834,22 @@ class B {
       return;
     }
     const e = N();
-    this.tabGroupListenerSubscriptionId = e.subscribe("all", ["groupId"], async (e, t) => {
-      if ("groupId" in t) {
-        await this.handleTabGroupChange(e, t.groupId);
-      }
-    });
+    this.tabGroupListenerSubscriptionId = e.subscribe(
+      "all",
+      ["groupId"],
+      async (e, t) => {
+        if ("groupId" in t) {
+          await this.handleTabGroupChange(e, t.groupId);
+        }
+      },
+    );
     this.isTabGroupListenerStarted = true;
   }
   stopTabGroupChangeListener() {
-    if (!this.isTabGroupListenerStarted || !this.tabGroupListenerSubscriptionId) {
+    if (
+      !this.isTabGroupListenerStarted ||
+      !this.tabGroupListenerSubscriptionId
+    ) {
       return;
     }
     N().unsubscribe(this.tabGroupListenerSubscriptionId);
@@ -571,9 +863,9 @@ class B {
           const t = n.memberStates.get(e);
           const s = t?.indicatorState || "none";
           try {
-            let t = "HIDE_AGENT_INDICATORS";
+            let t = __cpAgentIndicatorRuntimeMessageTypeHideAgentIndicators;
             if (s === "static") {
-              t = "HIDE_STATIC_INDICATOR";
+              t = __cpAgentIndicatorRuntimeMessageTypeHideStaticIndicator;
             }
             await this.sendIndicatorMessage(e, t);
           } catch (r) {}
@@ -590,24 +882,27 @@ class B {
             const t = n.chromeGroupId;
             try {
               const r = await chrome.tabs.group({
-                tabIds: [a]
+                tabIds: [a],
               });
               await chrome.tabGroups.update(r, {
                 title: L,
                 color: chrome.tabGroups.Color.ORANGE,
-                collapsed: false
+                collapsed: false,
               });
               n.chromeGroupId = r;
               n.memberStates.clear();
               n.memberStates.set(a, {
-                indicatorState: e
+                indicatorState: e,
               });
               if (t !== r) {
                 this.groupBlocklistStatuses.delete(t);
               }
               if (e === "pulsing") {
                 try {
-                  await this.sendIndicatorMessage(a, "SHOW_AGENT_INDICATORS");
+                  await this.sendIndicatorMessage(
+                    a,
+                    __cpAgentIndicatorRuntimeMessageTypeShowAgentIndicators,
+                  );
                 } catch (o) {}
               }
               this.groupMetadata.set(a, n);
@@ -616,13 +911,17 @@ class B {
               this.processingMainTabRemoval.delete(a);
               return;
             } catch (r) {
-              if (r instanceof Error && r.message && r.message.includes("dragging")) {
+              if (
+                r instanceof Error &&
+                r.message &&
+                r.message.includes("dragging")
+              ) {
                 this.pendingRegroups.set(a, {
                   tabId: a,
                   originalGroupId: t,
                   indicatorState: e,
                   metadata: n,
-                  attemptCount: 0
+                  attemptCount: 0,
                 });
                 this.scheduleRegroupRetry(a);
                 return;
@@ -646,7 +945,7 @@ class B {
           if (!n.memberStates.has(e)) {
             const t = e !== a;
             n.memberStates.set(e, {
-              indicatorState: t ? "static" : "none"
+              indicatorState: t ? "static" : "none",
             });
             try {
               const t = await chrome.tabs.get(e);
@@ -661,7 +960,10 @@ class B {
               const a = 500;
               const n = async () => {
                 try {
-                  await this.sendIndicatorMessage(e, "SHOW_STATIC_INDICATOR");
+                  await this.sendIndicatorMessage(
+                    e,
+                    __cpAgentIndicatorRuntimeMessageTypeShowStaticIndicator,
+                  );
                   return true;
                 } catch (r) {
                   t++;
@@ -683,16 +985,19 @@ class B {
   async cleanupOldGroup(e, t) {
     try {
       const r = await chrome.tabs.query({
-        groupId: e
+        groupId: e,
       });
       for (const e of r) {
         if (e.id && e.id !== t) {
           try {
-            await this.sendIndicatorMessage(e.id, "HIDE_STATIC_INDICATOR");
+            await this.sendIndicatorMessage(
+              e.id,
+              __cpAgentIndicatorRuntimeMessageTypeHideStaticIndicator,
+            );
           } catch {}
         }
       }
-      const o = r.filter(e => e.id && e.id !== t).map(e => e.id);
+      const o = r.filter((e) => e.id && e.id !== t).map((e) => e.id);
       if (o.length > 0) {
         await chrome.tabs.ungroup(o);
       }
@@ -714,29 +1019,35 @@ class B {
     if (t) {
       t.attemptCount++;
       try {
-        if ((await chrome.tabs.get(e)).groupId !== chrome.tabGroups.TAB_GROUP_ID_NONE) {
+        if (
+          (await chrome.tabs.get(e)).groupId !==
+          chrome.tabGroups.TAB_GROUP_ID_NONE
+        ) {
           this.pendingRegroups.delete(e);
           return;
         }
         const o = await chrome.tabs.group({
-          tabIds: [e]
+          tabIds: [e],
         });
         await chrome.tabGroups.update(o, {
           title: L,
           color: chrome.tabGroups.Color.ORANGE,
-          collapsed: false
+          collapsed: false,
         });
         t.metadata.chromeGroupId = o;
         t.metadata.memberStates.clear();
         t.metadata.memberStates.set(e, {
-          indicatorState: t.indicatorState
+          indicatorState: t.indicatorState,
         });
         if (t.originalGroupId !== o) {
           this.groupBlocklistStatuses.delete(t.originalGroupId);
         }
         if (t.indicatorState === "pulsing") {
           try {
-            await this.sendIndicatorMessage(e, "SHOW_AGENT_INDICATORS");
+            await this.sendIndicatorMessage(
+              e,
+              __cpAgentIndicatorRuntimeMessageTypeShowAgentIndicators,
+            );
           } catch (r) {}
         }
         this.groupMetadata.set(e, t.metadata);
@@ -750,24 +1061,27 @@ class B {
         } else {
           try {
             const o = await chrome.tabs.group({
-              tabIds: [e]
+              tabIds: [e],
             });
             await chrome.tabGroups.update(o, {
               title: L,
               color: chrome.tabGroups.Color.ORANGE,
-              collapsed: false
+              collapsed: false,
             });
             t.metadata.chromeGroupId = o;
             t.metadata.memberStates.clear();
             t.metadata.memberStates.set(e, {
-              indicatorState: t.indicatorState
+              indicatorState: t.indicatorState,
             });
             if (t.originalGroupId !== o) {
               this.groupBlocklistStatuses.delete(t.originalGroupId);
             }
             if (t.indicatorState === "pulsing") {
               try {
-                await this.sendIndicatorMessage(e, "SHOW_AGENT_INDICATORS");
+                await this.sendIndicatorMessage(
+                  e,
+                  __cpAgentIndicatorRuntimeMessageTypeShowAgentIndicators,
+                );
               } catch (r) {}
             }
             this.groupMetadata.set(e, t.metadata);
@@ -786,28 +1100,42 @@ class B {
   }
   async loadFromStorage() {
     try {
-      const e = (await chrome.storage.local.get(this.STORAGE_KEY))[this.STORAGE_KEY];
+      const e = (await chrome.storage.local.get(this.STORAGE_KEY))[
+        this.STORAGE_KEY
+      ];
       if (e && typeof e == "object") {
-        this.groupMetadata = new Map(Object.entries(e).map(([e, t]) => {
-          const r = t;
-          if (r.memberStates && typeof r.memberStates == "object") {
-            r.memberStates = new Map(Object.entries(r.memberStates).map(([e, t]) => [parseInt(e), t]));
-          } else {
-            r.memberStates = new Map();
-          }
-          return [parseInt(e), r];
-        }));
+        this.groupMetadata = new Map(
+          Object.entries(e).map(([e, t]) => {
+            const r = t;
+            if (r.memberStates && typeof r.memberStates == "object") {
+              r.memberStates = new Map(
+                Object.entries(r.memberStates).map(([e, t]) => [
+                  parseInt(e),
+                  t,
+                ]),
+              );
+            } else {
+              r.memberStates = new Map();
+            }
+            return [parseInt(e), r];
+          }),
+        );
       }
     } catch (e) {}
   }
   async saveToStorage() {
     try {
-      const e = Object.fromEntries(Array.from(this.groupMetadata.entries()).map(([e, t]) => [e, {
-        ...t,
-        memberStates: Object.fromEntries(t.memberStates || new Map())
-      }]));
+      const e = Object.fromEntries(
+        Array.from(this.groupMetadata.entries()).map(([e, t]) => [
+          e,
+          {
+            ...t,
+            memberStates: Object.fromEntries(t.memberStates || new Map()),
+          },
+        ]),
+      );
       await chrome.storage.local.set({
-        [this.STORAGE_KEY]: e
+        [this.STORAGE_KEY]: e,
       });
     } catch (e) {}
   }
@@ -843,7 +1171,7 @@ class B {
     while (n > 0) {
       try {
         o = await chrome.tabs.group({
-          tabIds: [e]
+          tabIds: [e],
         });
         break;
       } catch (c) {
@@ -851,7 +1179,7 @@ class B {
         if (n === 0) {
           throw c;
         }
-        await new Promise(e => setTimeout(e, 100));
+        await new Promise((e) => setTimeout(e, 100));
       }
     }
     if (!o) {
@@ -860,24 +1188,24 @@ class B {
     await chrome.tabGroups.update(o, {
       title: L,
       color: chrome.tabGroups.Color.ORANGE,
-      collapsed: false
+      collapsed: false,
     });
     const s = {
       mainTabId: e,
       createdAt: Date.now(),
       domain: a,
       chromeGroupId: o,
-      memberStates: new Map()
+      memberStates: new Map(),
     };
     s.memberStates.set(e, {
-      indicatorState: "none"
+      indicatorState: "none",
     });
     this.groupMetadata.set(e, s);
     await this.saveToStorage();
     const i = await this.getGroupMembers(o);
     return {
       ...s,
-      memberTabs: i
+      memberTabs: i,
     };
   }
   async adoptOrphanedGroup(e, t) {
@@ -898,18 +1226,18 @@ class B {
       createdAt: Date.now(),
       domain: a,
       chromeGroupId: t,
-      memberStates: new Map()
+      memberStates: new Map(),
     };
     n.memberStates.set(e, {
-      indicatorState: "none"
+      indicatorState: "none",
     });
     const s = await chrome.tabs.query({
-      groupId: t
+      groupId: t,
     });
     for (const c of s) {
       if (c.id && c.id !== e) {
         n.memberStates.set(c.id, {
-          indicatorState: "static"
+          indicatorState: "static",
         });
       }
     }
@@ -918,7 +1246,7 @@ class B {
     const i = await this.getGroupMembers(t);
     return {
       ...n,
-      memberTabs: i
+      memberTabs: i,
     };
   }
   async addTabToGroup(e, t) {
@@ -927,11 +1255,11 @@ class B {
       try {
         await chrome.tabs.group({
           tabIds: [t],
-          groupId: r.chromeGroupId
+          groupId: r.chromeGroupId,
         });
         if (!r.memberStates.has(t)) {
           r.memberStates.set(t, {
-            indicatorState: t === e ? "none" : "static"
+            indicatorState: t === e ? "none" : "static",
           });
         }
         try {
@@ -944,7 +1272,7 @@ class B {
         if (t !== e && !a) {
           try {
             await chrome.tabs.sendMessage(t, {
-              type: "SHOW_STATIC_INDICATOR"
+              type: __cpAgentIndicatorRuntimeMessageTypeShowStaticIndicator,
             });
           } catch {}
         }
@@ -954,7 +1282,7 @@ class B {
   }
   async getGroupMembers(e) {
     const t = await chrome.tabs.query({
-      groupId: e
+      groupId: e,
     });
     let r;
     for (const [, o] of this.groupMetadata.entries()) {
@@ -963,17 +1291,19 @@ class B {
         break;
       }
     }
-    return t.filter(e => e.id !== undefined).map(e => {
-      const t = e.id;
-      const o = r?.memberStates.get(t);
-      return {
-        tabId: t,
-        url: e.url || "",
-        title: e.title || "",
-        joinedAt: Date.now(),
-        indicatorState: o?.indicatorState || "none"
-      };
-    });
+    return t
+      .filter((e) => e.id !== undefined)
+      .map((e) => {
+        const t = e.id;
+        const o = r?.memberStates.get(t);
+        return {
+          tabId: t,
+          url: e.url || "",
+          title: e.title || "",
+          joinedAt: Date.now(),
+          indicatorState: o?.indicatorState || "none",
+        };
+      });
   }
   async getGroupDetails(e) {
     const t = this.groupMetadata.get(e);
@@ -983,21 +1313,21 @@ class B {
     const r = await this.getGroupMembers(t.chromeGroupId);
     return {
       ...t,
-      memberTabs: r
+      memberTabs: r,
     };
   }
   async findOrphanedTabs() {
     const e = [];
     const t = new Set();
     const r = await chrome.tabs.query({
-      groupId: chrome.tabGroups.TAB_GROUP_ID_NONE
+      groupId: chrome.tabGroups.TAB_GROUP_ID_NONE,
     });
     const o = new Set();
     for (const [a] of this.groupMetadata.entries()) {
       o.add(a);
       const e = await this.findGroupByMainTab(a);
       if (e) {
-        e.memberTabs.forEach(e => o.add(e.tabId));
+        e.memberTabs.forEach((e) => o.add(e.tabId));
       }
     }
     for (const a of r) {
@@ -1005,13 +1335,20 @@ class B {
         continue;
       }
       t.add(a.id);
-      if (a.openerTabId && o.has(a.openerTabId) && a.url && !a.url.startsWith("chrome://") && !a.url.startsWith("chrome-extension://") && a.url !== "about:blank") {
+      if (
+        a.openerTabId &&
+        o.has(a.openerTabId) &&
+        a.url &&
+        !a.url.startsWith("chrome://") &&
+        !a.url.startsWith("chrome-extension://") &&
+        a.url !== "about:blank"
+      ) {
         e.push({
           tabId: a.id,
           url: a.url || "",
           title: a.title || "",
           openerTabId: a.openerTabId,
-          detectedAt: Date.now()
+          detectedAt: Date.now(),
         });
       }
     }
@@ -1035,9 +1372,11 @@ class B {
             r.push(a);
           } else {
             const e = await chrome.tabs.query({
-              groupId: n.chromeGroupId
+              groupId: n.chromeGroupId,
             });
-            const t = new Set(e.map(e => e.id).filter(e => e !== undefined));
+            const t = new Set(
+              e.map((e) => e.id).filter((e) => e !== undefined),
+            );
             const r = [];
             for (const [o] of n.memberStates) {
               if (!t.has(o)) {
@@ -1048,7 +1387,10 @@ class B {
               for (const e of r) {
                 n.memberStates.delete(e);
                 try {
-                  await this.sendIndicatorMessage(e, "HIDE_AGENT_INDICATORS");
+                  await this.sendIndicatorMessage(
+                    e,
+                    __cpAgentIndicatorRuntimeMessageTypeHideAgentIndicators,
+                  );
                 } catch {}
               }
               o = true;
@@ -1076,7 +1418,7 @@ class B {
         const t = await this.getGroupMembers(o.chromeGroupId);
         e.push({
           ...o,
-          memberTabs: t
+          memberTabs: t,
         });
       } catch (t) {}
     }
@@ -1089,7 +1431,7 @@ class B {
       const e = await this.getGroupMembers(t.chromeGroupId);
       return {
         ...t,
-        memberTabs: e
+        memberTabs: e,
       };
     }
     const r = await chrome.tabs.get(e);
@@ -1101,12 +1443,12 @@ class B {
         const e = await this.getGroupMembers(n.chromeGroupId);
         return {
           ...n,
-          memberTabs: e
+          memberTabs: e,
         };
       }
     }
     const o = await chrome.tabs.query({
-      groupId: r.groupId
+      groupId: r.groupId,
     });
     if (o.length === 0) {
       return null;
@@ -1122,13 +1464,15 @@ class B {
       domain: new URL(a.url).hostname,
       chromeGroupId: r.groupId,
       memberStates: new Map(),
-      memberTabs: o.filter(e => e.id !== undefined).map(e => ({
-        tabId: e.id,
-        url: e.url || "",
-        title: e.title || "",
-        joinedAt: Date.now()
-      })),
-      isUnmanaged: true
+      memberTabs: o
+        .filter((e) => e.id !== undefined)
+        .map((e) => ({
+          tabId: e.id,
+          url: e.url || "",
+          title: e.title || "",
+          joinedAt: Date.now(),
+        })),
+      isUnmanaged: true,
     };
   }
   async findGroupByMainTab(e) {
@@ -1141,7 +1485,7 @@ class B {
       const e = await this.getGroupMembers(t.chromeGroupId);
       return {
         ...t,
-        memberTabs: e
+        memberTabs: e,
       };
     } catch (r) {
       return null;
@@ -1166,28 +1510,37 @@ class B {
       throw new Error(`Tab ${t} is not in the same group as ${e}`);
     }
     const o = r.memberStates.get(e) || {
-      indicatorState: "none"
+      indicatorState: "none",
     };
     try {
       await chrome.tabs.get(e);
       if (o.indicatorState === "pulsing") {
-        await this.sendIndicatorMessage(e, "HIDE_AGENT_INDICATORS");
+        await this.sendIndicatorMessage(
+          e,
+          __cpAgentIndicatorRuntimeMessageTypeHideAgentIndicators,
+        );
       }
     } catch {}
     r.memberStates.get(t);
     r.mainTabId = t;
     try {
-      await this.sendIndicatorMessage(t, "HIDE_STATIC_INDICATOR");
+      await this.sendIndicatorMessage(
+        t,
+        __cpAgentIndicatorRuntimeMessageTypeHideStaticIndicator,
+      );
       r.memberStates.delete(t);
     } catch (a) {}
     if (o.indicatorState === "pulsing") {
       r.memberStates.set(t, {
-        indicatorState: "pulsing"
+        indicatorState: "pulsing",
       });
-      await this.sendIndicatorMessage(t, "SHOW_AGENT_INDICATORS");
+      await this.sendIndicatorMessage(
+        t,
+        __cpAgentIndicatorRuntimeMessageTypeShowAgentIndicators,
+      );
     } else {
       r.memberStates.set(t, {
-        indicatorState: "none"
+        indicatorState: "none",
       });
     }
     this.groupMetadata.delete(e);
@@ -1199,26 +1552,26 @@ class B {
     if (t) {
       try {
         const e = await chrome.tabs.query({
-          groupId: t.chromeGroupId
+          groupId: t.chromeGroupId,
         });
-        const o = e.map(e => e.id).filter(e => e !== undefined);
+        const o = e.map((e) => e.id).filter((e) => e !== undefined);
         if (o.length > 0) {
           try {
             for (const t of e) {
               if (t.id) {
                 try {
                   await chrome.tabs.sendMessage(t.id, {
-                    type: "HIDE_AGENT_INDICATORS"
+                    type: __cpAgentIndicatorRuntimeMessageTypeHideAgentIndicators,
                   });
                   await chrome.tabs.sendMessage(t.id, {
-                    type: "HIDE_STATIC_INDICATOR"
+                    type: __cpAgentIndicatorRuntimeMessageTypeHideStaticIndicator,
                   });
                 } catch {}
               }
             }
           } catch (r) {}
         }
-        await new Promise(e => setTimeout(e, 100));
+        await new Promise((e) => setTimeout(e, 100));
         if (o.length > 0) {
           await chrome.tabs.ungroup(o);
         }
@@ -1252,9 +1605,8 @@ class B {
     if (!r) {
       return;
     }
-    const o = t.includes("blocked.html");
-    const a = o ? "category1" : await O.getCategory(t);
-    await this.updateGroupBlocklistStatus(r.chromeGroupId, e, a, o);
+    const a = t.includes("blocked.html") ? "category0" : await O.getCategory(t);
+    await this.updateGroupBlocklistStatus(r.chromeGroupId, e, a, false);
   }
   async removeTabFromBlocklistTracking(e, t) {
     const r = this.groupBlocklistStatuses.get(e);
@@ -1272,7 +1624,7 @@ class B {
         mostRestrictiveCategory: undefined,
         categoriesByTab: new Map(),
         blockedHtmlTabs: new Set(),
-        lastChecked: Date.now()
+        lastChecked: Date.now(),
       };
       this.groupBlocklistStatuses.set(e, a);
     }
@@ -1303,14 +1655,15 @@ class B {
       category2: 3,
       category_org_blocked: 3,
       category1: 4,
-      category0: 1
+      category0: 1,
     };
     let r;
     let o = 0;
     for (const a of e) {
-      if (a && t[a] > o) {
-        o = t[a];
-        r = a;
+      const n = __cpNormalizeDomainCategory(a);
+      if (n && t[n] > o) {
+        o = t[n];
+        r = n;
       }
     }
     return r;
@@ -1326,7 +1679,8 @@ class B {
     if (!r || Date.now() - r.lastChecked > 5000) {
       await this.checkAllTabsInGroupForBlocklist(t.chromeGroupId);
     }
-    return this.groupBlocklistStatuses.get(t.chromeGroupId)?.mostRestrictiveCategory;
+    return this.groupBlocklistStatuses.get(t.chromeGroupId)
+      ?.mostRestrictiveCategory;
   }
   async getBlockedTabsInfo(e) {
     await this.initialize();
@@ -1335,29 +1689,21 @@ class B {
     let o = false;
     if (!t) {
       const t = await chrome.tabs.get(e);
-      if (t.url?.includes("blocked.html")) {
+      const a = t.url?.includes("blocked.html")
+        ? "category0"
+        : await O.getCategory(t.url || "");
+      if (Ja(a)) {
         o = true;
         r.push({
           tabId: e,
           title: t.title || "Untitled",
           url: t.url || "",
-          category: "category1"
+          category: a,
         });
-      } else {
-        const a = await O.getCategory(t.url || "");
-        if (a && a !== "category0") {
-          o = true;
-          r.push({
-            tabId: e,
-            title: t.title || "Untitled",
-            url: t.url || "",
-            category: a
-          });
-        }
       }
       return {
         isMainTabBlocked: o,
-        blockedTabs: r
+        blockedTabs: r,
       };
     }
     const a = this.groupBlocklistStatuses.get(t.chromeGroupId);
@@ -1368,7 +1714,7 @@ class B {
     if (!n) {
       return {
         isMainTabBlocked: o,
-        blockedTabs: r
+        blockedTabs: r,
       };
     }
     for (const s of n.blockedHtmlTabs) {
@@ -1378,7 +1724,7 @@ class B {
           tabId: s,
           title: t.title || "Untitled",
           url: t.url || "",
-          category: "category1"
+          category: "category1",
         });
         if (s === e) {
           o = true;
@@ -1386,14 +1732,20 @@ class B {
       } catch {}
     }
     for (const [s, i] of n.categoriesByTab.entries()) {
-      if (i && (i === "category1" || i === "category2" || i === "category_org_blocked") && !n.blockedHtmlTabs.has(s)) {
+      if (
+        i &&
+        (i === "category1" ||
+          i === "category2" ||
+          i === "category_org_blocked") &&
+        !n.blockedHtmlTabs.has(s)
+      ) {
         try {
           const t = await chrome.tabs.get(s);
           r.push({
             tabId: s,
             title: t.title || "Untitled",
             url: t.url || "",
-            category: i
+            category: i,
           });
           if (s === e) {
             o = true;
@@ -1403,32 +1755,33 @@ class B {
     }
     return {
       isMainTabBlocked: o,
-      blockedTabs: r
+      blockedTabs: r,
     };
   }
   async checkAllTabsInGroupForBlocklist(e) {
     const t = await chrome.tabs.query({
-      groupId: e
+      groupId: e,
     });
     const r = {
       groupId: e,
       mostRestrictiveCategory: undefined,
       categoriesByTab: new Map(),
       blockedHtmlTabs: new Set(),
-      lastChecked: Date.now()
+      lastChecked: Date.now(),
     };
     for (const o of t) {
       if (o.id && o.url) {
         if (o.url.includes("blocked.html")) {
-          r.blockedHtmlTabs.add(o.id);
-          r.categoriesByTab.set(o.id, "category1");
+          r.categoriesByTab.set(o.id, "category0");
         } else {
           const e = await O.getCategory(o.url);
           r.categoriesByTab.set(o.id, e);
         }
       }
     }
-    r.mostRestrictiveCategory = this.getMostRestrictiveCategory(Array.from(r.categoriesByTab.values()));
+    r.mostRestrictiveCategory = this.getMostRestrictiveCategory(
+      Array.from(r.categoriesByTab.values()),
+    );
     this.groupBlocklistStatuses.set(e, r);
     this.notifyBlocklistListeners(e, r.mostRestrictiveCategory);
   }
@@ -1460,6 +1813,8 @@ class B {
       return false;
     }
   }
+  // 语义锚点：tab 工具簇的可操作 tab 候选集入口。
+  // tabs_context_mcp 返回的 availableTabs/tabIds，本质上就是这里会认可的同组 tab 边界。
   async getValidTabIds(e) {
     try {
       await this.initialize();
@@ -1467,54 +1822,66 @@ class B {
       if (!t) {
         return [e];
       }
-      return (await this.getGroupDetails(t)).memberTabs.map(e => e.tabId);
+      return (await this.getGroupDetails(t)).memberTabs.map((e) => e.tabId);
     } catch (t) {
       return [e];
     }
   }
+  // 语义锚点：把 tab 候选集扩展成 tool_result 里的 Tab Context 文本素材。
+  // tabs_context_mcp / tabs_create_mcp / tabs_close_mcp 以及其他浏览器工具最终都会复用这份 metadata 给模型刷新上下文。
   async getValidTabsWithMetadata(e) {
     try {
       const t = await this.getValidTabIds(e);
-      return await Promise.all(t.map(async e => {
-        try {
-          const t = await chrome.tabs.get(e);
-          return {
-            id: e,
-            title: t.title || "Untitled",
-            url: t.url || ""
-          };
-        } catch (t) {
-          return {
-            id: e,
-            title: "Error loading tab",
-            url: ""
-          };
-        }
-      }));
+      return await Promise.all(
+        t.map(async (e) => {
+          try {
+            const t = await chrome.tabs.get(e);
+            return {
+              id: e,
+              title: t.title || "Untitled",
+              url: t.url || "",
+            };
+          } catch (t) {
+            return {
+              id: e,
+              title: "Error loading tab",
+              url: "",
+            };
+          }
+        }),
+      );
     } catch (t) {
       try {
         const t = await chrome.tabs.get(e);
-        return [{
-          id: e,
-          title: t.title || "Untitled",
-          url: t.url || ""
-        }];
+        return [
+          {
+            id: e,
+            title: t.title || "Untitled",
+            url: t.url || "",
+          },
+        ];
       } catch {
-        return [{
-          id: e,
-          title: "Error loading tab",
-          url: ""
-        }];
+        return [
+          {
+            id: e,
+            title: "Error loading tab",
+            url: "",
+          },
+        ];
       }
     }
   }
+  // 语义锚点：浏览器工具显式指定 tabId 时的最终选中入口。
+  // 若没有显式 tabId，就回退到当前执行 tab；若指定了 tabId，必须先经过 tabs_context_mcp 暴露出的同组候选集校验。
   async getEffectiveTabId(e, t) {
     if (e === undefined) {
       return t;
     }
     if (!(await this.isTabInSameGroup(t, e))) {
       const r = await this.getValidTabIds(t);
-      throw new Error(`Tab ${e} is not in the same group as the current tab. Valid tab IDs are: ${r.join(", ")}`);
+      throw new Error(
+        `Tab ${e} is not in the same group as the current tab. Valid tab IDs are: ${r.join(", ")}`,
+      );
     }
     return e;
   }
@@ -1522,7 +1889,9 @@ class B {
     let o;
     let a = false;
     for (const [, n] of this.groupMetadata.entries()) {
-      if ((await this.getGroupMembers(n.chromeGroupId)).some(t => t.tabId === e)) {
+      if (
+        (await this.getGroupMembers(n.chromeGroupId)).some((t) => t.tabId === e)
+      ) {
         o = n.chromeGroupId;
         if (t === "static" && (await this.isGroupDismissed(o))) {
           return;
@@ -1531,7 +1900,7 @@ class B {
         n.memberStates.set(e, {
           indicatorState: t,
           previousIndicatorState: s?.indicatorState,
-          isMcp: r ?? s?.isMcp
+          isMcp: r ?? s?.isMcp,
         });
         a = true;
         break;
@@ -1578,7 +1947,7 @@ class B {
       return;
     }
     const t = await chrome.tabs.query({
-      groupId: e
+      groupId: e,
     });
     if (t.length === 0) {
       return;
@@ -1598,7 +1967,7 @@ class B {
       if (a.id && a.id !== r) {
         try {
           await chrome.tabs.sendMessage(a.id, {
-            type: "SHOW_STATIC_INDICATOR"
+            type: __cpAgentIndicatorRuntimeMessageTypeShowStaticIndicator,
           });
         } catch (o) {}
       }
@@ -1626,7 +1995,10 @@ class B {
           break;
         }
       }
-      await this.sendIndicatorMessage(e, "HIDE_FOR_TOOL_USE");
+      await this.sendIndicatorMessage(
+        e,
+        __cpAgentIndicatorRuntimeMessageTypeHideForToolUse,
+      );
     } catch (t) {}
   }
   async restoreIndicatorAfterToolUse(e) {
@@ -1645,15 +2017,15 @@ class B {
           let a;
           switch (o) {
             case "pulsing":
-              a = "SHOW_AGENT_INDICATORS";
+              a = __cpAgentIndicatorRuntimeMessageTypeShowAgentIndicators;
               break;
             case "static":
-              a = "SHOW_STATIC_INDICATOR";
+              a = __cpAgentIndicatorRuntimeMessageTypeShowStaticIndicator;
               break;
             case "none":
               return;
             default:
-              a = "SHOW_AFTER_TOOL_USE";
+              a = __cpAgentIndicatorRuntimeMessageTypeShowAfterToolUse;
           }
           await this.sendIndicatorMessage(e, a);
           break;
@@ -1684,16 +2056,28 @@ class B {
         if (!canReplaceGeneratedGroupTitle(e)) {
           return false;
         }
-        const t = (await chrome.tabGroups.query({})).filter(e => e.id !== a.chromeGroupId).map(e => e.color);
-        const n = [chrome.tabGroups.Color.GREY, chrome.tabGroups.Color.BLUE, chrome.tabGroups.Color.RED, chrome.tabGroups.Color.YELLOW, chrome.tabGroups.Color.GREEN, chrome.tabGroups.Color.PINK, chrome.tabGroups.Color.PURPLE, chrome.tabGroups.Color.CYAN, chrome.tabGroups.Color.ORANGE];
-        const s = n.filter(e => !t.includes(e));
+        const t = (await chrome.tabGroups.query({}))
+          .filter((e) => e.id !== a.chromeGroupId)
+          .map((e) => e.color);
+        const n = [
+          chrome.tabGroups.Color.GREY,
+          chrome.tabGroups.Color.BLUE,
+          chrome.tabGroups.Color.RED,
+          chrome.tabGroups.Color.YELLOW,
+          chrome.tabGroups.Color.GREEN,
+          chrome.tabGroups.Color.PINK,
+          chrome.tabGroups.Color.PURPLE,
+          chrome.tabGroups.Color.CYAN,
+          chrome.tabGroups.Color.ORANGE,
+        ];
+        const s = n.filter((e) => !t.includes(e));
         let i;
         if (s.length > 0) {
           i = s[0];
         } else {
           const e = new Map();
-          n.forEach(t => e.set(t, 0));
-          t.forEach(t => {
+          n.forEach((t) => e.set(t, 0));
+          t.forEach((t) => {
             e.set(t, (e.get(t) || 0) + 1);
           });
           let r = Infinity;
@@ -1708,7 +2092,7 @@ class B {
         const l = r ? "⌛" + o : o;
         await chrome.tabGroups.update(a.chromeGroupId, {
           title: l,
-          color: i
+          color: i,
         });
         return true;
       } catch (t) {}
@@ -1723,7 +2107,12 @@ class B {
     }
     try {
       const t = await this.findGroupByTab(e);
-      if (t?.isUnmanaged && Number.isFinite(Number(t.mainTabId)) && Number.isFinite(Number(t.chromeGroupId)) && t.chromeGroupId !== chrome.tabGroups.TAB_GROUP_ID_NONE) {
+      if (
+        t?.isUnmanaged &&
+        Number.isFinite(Number(t.mainTabId)) &&
+        Number.isFinite(Number(t.chromeGroupId)) &&
+        t.chromeGroupId !== chrome.tabGroups.TAB_GROUP_ID_NONE
+      ) {
         await this.adoptOrphanedGroup(t.mainTabId, t.chromeGroupId);
         const r = this.groupMetadata.get(t.mainTabId);
         if (r) {
@@ -1777,12 +2166,12 @@ class B {
         const a = e.replace(n, "").trim();
         const s = t ? `${t}${a}` : a;
         await chrome.tabGroups.update(o.chromeGroupId, {
-          title: s
+          title: s,
         });
       } catch (e) {
         a++;
         if (a <= 3) {
-          await new Promise(e => setTimeout(e, 500));
+          await new Promise((e) => setTimeout(e, 500));
           return s();
         }
       }
@@ -1805,15 +2194,13 @@ class B {
     await this.updateTabGroupPrefix(e, null);
   }
   async addTabToIndicatorGroup(e) {
-    const {
-      tabId: t,
-      isRunning: r,
-      isMcp: o
-    } = e;
+    const { tabId: t, isRunning: r, isMcp: o } = e;
     let a;
     a = this.isMainTab(t) && r ? "pulsing" : "static";
     await this.setTabIndicatorState(t, a, o);
   }
+  // 语义锚点：后台浏览器工具的 tab 编排总入口。
+  // 优先尊重显式 tabId；其次按 tabGroupId 找当前上下文主 tab；失败时再交给上层报 “No tab available / tab group missing”。
   async getTabForMcp(e, t, r = false) {
     await this.initialize();
     await this.loadMcpTabGroupId();
@@ -1837,7 +2224,7 @@ class B {
           return {
             tabId: e,
             domain: a,
-            url: n
+            url: n,
           };
         }
       } catch {
@@ -1850,11 +2237,12 @@ class B {
           try {
             const t = await chrome.tabs.get(e);
             if (t) {
-              const o = t.url && !t.url.startsWith("chrome://") ? t.url : undefined;
+              const o =
+                t.url && !t.url.startsWith("chrome://") ? t.url : undefined;
               return {
                 tabId: e,
                 domain: r.domain,
-                url: o
+                url: o,
               };
             }
           } catch {
@@ -1864,7 +2252,7 @@ class B {
       }
       try {
         const e = await chrome.tabs.query({
-          groupId: t
+          groupId: t,
         });
         if (e.length > 0 && e[0].id) {
           let t;
@@ -1878,18 +2266,21 @@ class B {
           return {
             tabId: e[0].id,
             domain: t,
-            url: o
+            url: o,
           };
         }
       } catch (o) {}
       throw new Error(`Could not find tab group ${t}`);
     }
     return {
-      tabId: undefined
+      tabId: undefined,
     };
   }
   async isTabMcp(e) {
-    if ((await chrome.storage.local.get(r.MCP_CONNECTED))[r.MCP_CONNECTED] !== true) {
+    if (
+      (await chrome.storage.local.get(r.MCP_CONNECTED))[r.MCP_CONNECTED] !==
+      true
+    ) {
       return false;
     }
     await this.loadMcpTabGroupId();
@@ -1909,7 +2300,7 @@ class B {
       if (t.title !== q || t.color !== chrome.tabGroups.Color.YELLOW) {
         await chrome.tabGroups.update(e, {
           title: q,
-          color: chrome.tabGroups.Color.YELLOW
+          color: chrome.tabGroups.Color.YELLOW,
         });
       }
     } catch (t) {}
@@ -1918,28 +2309,32 @@ class B {
     this.mcpTabGroupId = null;
     await chrome.storage.local.remove(this.MCP_TAB_GROUP_KEY);
   }
+  // 语义锚点：共享 MCP tab group 的发现/新建入口。
+  // tabs_context_mcp 会先用它把“当前可用 tabs + groupId”序列化成上下文；tabs_create_mcp / tabs_close_mcp 再在这份上下文上增删 tab。
   async getOrCreateMcpTabContext(e) {
-    const {
-      createIfEmpty: t = false
-    } = e || {};
+    const { createIfEmpty: t = false } = e || {};
     await this.loadMcpTabGroupId();
     if (this.mcpTabGroupId !== null) {
       try {
         await chrome.tabGroups.get(this.mcpTabGroupId);
         await this.ensureMcpGroupCharacteristics(this.mcpTabGroupId);
-        const e = (await chrome.tabs.query({
-          groupId: this.mcpTabGroupId
-        })).filter(e => e.id !== undefined).map(e => ({
-          id: e.id,
-          title: e.title || "",
-          url: e.url || ""
-        }));
+        const e = (
+          await chrome.tabs.query({
+            groupId: this.mcpTabGroupId,
+          })
+        )
+          .filter((e) => e.id !== undefined)
+          .map((e) => ({
+            id: e.id,
+            title: e.title || "",
+            url: e.url || "",
+          }));
         if (e.length > 0) {
           return {
             currentTabId: e[0].id,
             availableTabs: e,
             tabCount: e.length,
-            tabGroupId: this.mcpTabGroupId
+            tabGroupId: this.mcpTabGroupId,
           };
         }
       } catch {
@@ -1951,7 +2346,7 @@ class B {
       const e = await chrome.windows.create({
         url: "chrome://newtab",
         focused: true,
-        type: "normal"
+        type: "normal",
       });
       const t = e?.tabs?.[0]?.id;
       if (!t) {
@@ -1960,45 +2355,62 @@ class B {
       const r = await this.createGroup(t);
       await chrome.tabGroups.update(r.chromeGroupId, {
         title: q,
-        color: chrome.tabGroups.Color.YELLOW
+        color: chrome.tabGroups.Color.YELLOW,
       });
       this.mcpTabGroupId = r.chromeGroupId;
       await this.saveMcpTabGroupId();
       return {
         currentTabId: t,
-        availableTabs: [{
-          id: t,
-          title: "New Tab",
-          url: "chrome://newtab"
-        }],
+        availableTabs: [
+          {
+            id: t,
+            title: "New Tab",
+            url: "chrome://newtab",
+          },
+        ],
         tabCount: 1,
-        tabGroupId: r.chromeGroupId
+        tabGroupId: r.chromeGroupId,
       };
     }
   }
-  static SESSION_GROUP_COLORS = [chrome.tabGroups.Color.BLUE, chrome.tabGroups.Color.CYAN, chrome.tabGroups.Color.GREEN, chrome.tabGroups.Color.ORANGE, chrome.tabGroups.Color.RED, chrome.tabGroups.Color.PINK, chrome.tabGroups.Color.PURPLE, chrome.tabGroups.Color.GREY];
+  static SESSION_GROUP_COLORS = [
+    chrome.tabGroups.Color.BLUE,
+    chrome.tabGroups.Color.CYAN,
+    chrome.tabGroups.Color.GREEN,
+    chrome.tabGroups.Color.ORANGE,
+    chrome.tabGroups.Color.RED,
+    chrome.tabGroups.Color.PINK,
+    chrome.tabGroups.Color.PURPLE,
+    chrome.tabGroups.Color.GREY,
+  ];
+  // 语义锚点：bridge/session client 专属 tab group 的发现/新建入口。
+  // createIfEmpty 为 true 时，这里会种出“新窗口/新标签页 + 新 group”的初始工作上下文，供后续所有浏览器工具复用。
   async getOrCreateSessionTabContext(e, t) {
     if (e !== undefined) {
       try {
         await chrome.tabGroups.get(e);
-        const r = (await chrome.tabs.query({
-          groupId: e
-        })).filter(e => e.id !== undefined).map(e => ({
-          id: e.id,
-          title: e.title || "",
-          url: e.url || ""
-        }));
+        const r = (
+          await chrome.tabs.query({
+            groupId: e,
+          })
+        )
+          .filter((e) => e.id !== undefined)
+          .map((e) => ({
+            id: e.id,
+            title: e.title || "",
+            url: e.url || "",
+          }));
         if (r.length > 0) {
           if (t.displayName) {
             await chrome.tabGroups.update(e, {
-              title: t.displayName
+              title: t.displayName,
             });
           }
           return {
             currentTabId: r[0].id,
             availableTabs: r,
             tabCount: r.length,
-            tabGroupId: e
+            tabGroupId: e,
           };
         }
       } catch {}
@@ -2009,7 +2421,7 @@ class B {
     let r;
     try {
       const e = await chrome.windows.getLastFocused({
-        windowTypes: ["normal"]
+        windowTypes: ["normal"],
       });
       if (e.id === undefined) {
         throw new Error("no normal window");
@@ -2019,62 +2431,70 @@ class B {
       const e = await chrome.windows.create({
         url: "chrome://newtab/",
         focused: false,
-        type: "normal"
+        type: "normal",
       });
       if (!e?.id || !e.tabs?.[0]?.id) {
         throw new Error("Failed to create fallback window for session group");
       }
       const r = e.tabs[0].id;
       const o = await this.createGroup(r);
-      const a = B.SESSION_GROUP_COLORS[t.colorIndex % B.SESSION_GROUP_COLORS.length];
+      const a =
+        B.SESSION_GROUP_COLORS[t.colorIndex % B.SESSION_GROUP_COLORS.length];
       await chrome.tabGroups.update(o.chromeGroupId, {
         title: t.displayName ?? L,
-        color: a
+        color: a,
       });
       return {
         currentTabId: r,
-        availableTabs: [{
-          id: r,
-          title: "New Tab",
-          url: "chrome://newtab/"
-        }],
+        availableTabs: [
+          {
+            id: r,
+            title: "New Tab",
+            url: "chrome://newtab/",
+          },
+        ],
         tabCount: 1,
-        tabGroupId: o.chromeGroupId
+        tabGroupId: o.chromeGroupId,
       };
     }
     const o = await chrome.tabs.create({
       windowId: r,
       url: "chrome://newtab/",
-      active: false
+      active: false,
     });
     if (o.id === undefined) {
       throw new Error("Failed to create tab for session group");
     }
     const a = await this.createGroup(o.id);
-    const n = B.SESSION_GROUP_COLORS[t.colorIndex % B.SESSION_GROUP_COLORS.length];
+    const n =
+      B.SESSION_GROUP_COLORS[t.colorIndex % B.SESSION_GROUP_COLORS.length];
     await chrome.tabGroups.update(a.chromeGroupId, {
       title: t.displayName ?? L,
-      color: n
+      color: n,
     });
     return {
       currentTabId: o.id,
-      availableTabs: [{
-        id: o.id,
-        title: "New Tab",
-        url: "chrome://newtab/"
-      }],
+      availableTabs: [
+        {
+          id: o.id,
+          title: "New Tab",
+          url: "chrome://newtab/",
+        },
+      ],
       tabCount: 1,
-      tabGroupId: a.chromeGroupId
+      tabGroupId: a.chromeGroupId,
     };
   }
   async saveMcpTabGroupId() {
     await chrome.storage.local.set({
-      [this.MCP_TAB_GROUP_KEY]: this.mcpTabGroupId
+      [this.MCP_TAB_GROUP_KEY]: this.mcpTabGroupId,
     });
   }
   async loadMcpTabGroupId() {
     try {
-      const e = (await chrome.storage.local.get(this.MCP_TAB_GROUP_KEY))[this.MCP_TAB_GROUP_KEY];
+      const e = (await chrome.storage.local.get(this.MCP_TAB_GROUP_KEY))[
+        this.MCP_TAB_GROUP_KEY
+      ];
       if (typeof e == "number") {
         try {
           await chrome.tabGroups.get(e);
@@ -2098,9 +2518,13 @@ class B {
       const e = await chrome.tabGroups.query({});
       for (const t of e) {
         if (t.color === chrome.tabGroups.Color.YELLOW && t.title?.includes(q)) {
-          if ((await chrome.tabs.query({
-            groupId: t.id
-          })).length > 0) {
+          if (
+            (
+              await chrome.tabs.query({
+                groupId: t.id,
+              })
+            ).length > 0
+          ) {
             return t.id;
           }
         }
@@ -2132,13 +2556,13 @@ class B {
           let e;
           switch (r.pendingUpdate) {
             case "pulsing":
-              e = "SHOW_AGENT_INDICATORS";
+              e = __cpAgentIndicatorRuntimeMessageTypeShowAgentIndicators;
               break;
             case "static":
-              e = "SHOW_STATIC_INDICATOR";
+              e = __cpAgentIndicatorRuntimeMessageTypeShowStaticIndicator;
               break;
             case "none":
-              e = "HIDE_AGENT_INDICATORS";
+              e = __cpAgentIndicatorRuntimeMessageTypeHideAgentIndicators;
               break;
             default:
               continue;
@@ -2153,11 +2577,20 @@ class B {
     try {
       await chrome.tabs.sendMessage(e, {
         type: t,
-        isMcp: r
+        isMcp: r,
       });
     } catch (o) {
-      const a = o && typeof o.message == "string" ? o.message : typeof o == "string" ? o : "";
-      if (a.includes("Receiving end does not exist") || a.includes("message channel closed") || a.includes("The tab was closed")) {
+      const a =
+        o && typeof o.message == "string"
+          ? o.message
+          : typeof o == "string"
+            ? o
+            : "";
+      if (
+        a.includes("Receiving end does not exist") ||
+        a.includes("message channel closed") ||
+        a.includes("The tab was closed")
+      ) {
         return;
       }
       throw o;
@@ -2248,7 +2681,7 @@ const W = {
   "shift+ctrl+tab": "selectPreviousKeyView",
   "shift+ctrl+quote": "insertDoubleQuoteIgnoringSubstitution",
   "shift+ctrl+'": "insertDoubleQuoteIgnoringSubstitution",
-  "ctrl+\"": "insertDoubleQuoteIgnoringSubstitution",
+  'ctrl+"': "insertDoubleQuoteIgnoringSubstitution",
   "shift+ctrl+a": "moveToBeginningOfParagraphAndModifySelection",
   "shift+ctrl+b": "moveBackwardAndModifySelection",
   "shift+ctrl+e": "moveToEndOfParagraphAndModifySelection",
@@ -2325,497 +2758,497 @@ const W = {
   "cmd+x": "cut",
   "cmd+v": "paste",
   "cmd+z": "undo",
-  "shift+cmd+z": "redo"
+  "shift+cmd+z": "redo",
 };
 const j = {
   enter: {
     key: "Enter",
     code: "Enter",
     keyCode: 13,
-    text: "\r"
+    text: "\r",
   },
   return: {
     key: "Enter",
     code: "Enter",
     keyCode: 13,
-    text: "\r"
+    text: "\r",
   },
   kp_enter: {
     key: "Enter",
     code: "Enter",
     keyCode: 13,
     text: "\r",
-    isKeypad: true
+    isKeypad: true,
   },
   tab: {
     key: "Tab",
     code: "Tab",
-    keyCode: 9
+    keyCode: 9,
   },
   delete: {
     key: "Delete",
     code: "Delete",
-    keyCode: 46
+    keyCode: 46,
   },
   backspace: {
     key: "Backspace",
     code: "Backspace",
-    keyCode: 8
+    keyCode: 8,
   },
   escape: {
     key: "Escape",
     code: "Escape",
-    keyCode: 27
+    keyCode: 27,
   },
   esc: {
     key: "Escape",
     code: "Escape",
-    keyCode: 27
+    keyCode: 27,
   },
   space: {
     key: " ",
     code: "Space",
     keyCode: 32,
-    text: " "
+    text: " ",
   },
   " ": {
     key: " ",
     code: "Space",
     keyCode: 32,
-    text: " "
+    text: " ",
   },
   arrowup: {
     key: "ArrowUp",
     code: "ArrowUp",
-    keyCode: 38
+    keyCode: 38,
   },
   arrowdown: {
     key: "ArrowDown",
     code: "ArrowDown",
-    keyCode: 40
+    keyCode: 40,
   },
   arrowleft: {
     key: "ArrowLeft",
     code: "ArrowLeft",
-    keyCode: 37
+    keyCode: 37,
   },
   arrowright: {
     key: "ArrowRight",
     code: "ArrowRight",
-    keyCode: 39
+    keyCode: 39,
   },
   up: {
     key: "ArrowUp",
     code: "ArrowUp",
-    keyCode: 38
+    keyCode: 38,
   },
   down: {
     key: "ArrowDown",
     code: "ArrowDown",
-    keyCode: 40
+    keyCode: 40,
   },
   left: {
     key: "ArrowLeft",
     code: "ArrowLeft",
-    keyCode: 37
+    keyCode: 37,
   },
   right: {
     key: "ArrowRight",
     code: "ArrowRight",
-    keyCode: 39
+    keyCode: 39,
   },
   home: {
     key: "Home",
     code: "Home",
-    keyCode: 36
+    keyCode: 36,
   },
   end: {
     key: "End",
     code: "End",
-    keyCode: 35
+    keyCode: 35,
   },
   pageup: {
     key: "PageUp",
     code: "PageUp",
-    keyCode: 33
+    keyCode: 33,
   },
   pagedown: {
     key: "PageDown",
     code: "PageDown",
-    keyCode: 34
+    keyCode: 34,
   },
   f1: {
     key: "F1",
     code: "F1",
-    keyCode: 112
+    keyCode: 112,
   },
   f2: {
     key: "F2",
     code: "F2",
-    keyCode: 113
+    keyCode: 113,
   },
   f3: {
     key: "F3",
     code: "F3",
-    keyCode: 114
+    keyCode: 114,
   },
   f4: {
     key: "F4",
     code: "F4",
-    keyCode: 115
+    keyCode: 115,
   },
   f5: {
     key: "F5",
     code: "F5",
-    keyCode: 116
+    keyCode: 116,
   },
   f6: {
     key: "F6",
     code: "F6",
-    keyCode: 117
+    keyCode: 117,
   },
   f7: {
     key: "F7",
     code: "F7",
-    keyCode: 118
+    keyCode: 118,
   },
   f8: {
     key: "F8",
     code: "F8",
-    keyCode: 119
+    keyCode: 119,
   },
   f9: {
     key: "F9",
     code: "F9",
-    keyCode: 120
+    keyCode: 120,
   },
   f10: {
     key: "F10",
     code: "F10",
-    keyCode: 121
+    keyCode: 121,
   },
   f11: {
     key: "F11",
     code: "F11",
-    keyCode: 122
+    keyCode: 122,
   },
   f12: {
     key: "F12",
     code: "F12",
-    keyCode: 123
+    keyCode: 123,
   },
   ";": {
     key: ";",
     code: "Semicolon",
     keyCode: 186,
-    text: ";"
+    text: ";",
   },
   "=": {
     key: "=",
     code: "Equal",
     keyCode: 187,
-    text: "="
+    text: "=",
   },
   ",": {
     key: ",",
     code: "Comma",
     keyCode: 188,
-    text: ","
+    text: ",",
   },
   "-": {
     key: "-",
     code: "Minus",
     keyCode: 189,
-    text: "-"
+    text: "-",
   },
   ".": {
     key: ".",
     code: "Period",
     keyCode: 190,
-    text: "."
+    text: ".",
   },
   "/": {
     key: "/",
     code: "Slash",
     keyCode: 191,
-    text: "/"
+    text: "/",
   },
   "`": {
     key: "`",
     code: "Backquote",
     keyCode: 192,
-    text: "`"
+    text: "`",
   },
   "[": {
     key: "[",
     code: "BracketLeft",
     keyCode: 219,
-    text: "["
+    text: "[",
   },
   "\\": {
     key: "\\",
     code: "Backslash",
     keyCode: 220,
-    text: "\\"
+    text: "\\",
   },
   "]": {
     key: "]",
     code: "BracketRight",
     keyCode: 221,
-    text: "]"
+    text: "]",
   },
   "'": {
     key: "'",
     code: "Quote",
     keyCode: 222,
-    text: "'"
+    text: "'",
   },
   "!": {
     key: "!",
     code: "Digit1",
     keyCode: 49,
-    text: "!"
+    text: "!",
   },
   "@": {
     key: "@",
     code: "Digit2",
     keyCode: 50,
-    text: "@"
+    text: "@",
   },
   "#": {
     key: "#",
     code: "Digit3",
     keyCode: 51,
-    text: "#"
+    text: "#",
   },
   $: {
     key: "$",
     code: "Digit4",
     keyCode: 52,
-    text: "$"
+    text: "$",
   },
   "%": {
     key: "%",
     code: "Digit5",
     keyCode: 53,
-    text: "%"
+    text: "%",
   },
   "^": {
     key: "^",
     code: "Digit6",
     keyCode: 54,
-    text: "^"
+    text: "^",
   },
   "&": {
     key: "&",
     code: "Digit7",
     keyCode: 55,
-    text: "&"
+    text: "&",
   },
   "*": {
     key: "*",
     code: "Digit8",
     keyCode: 56,
-    text: "*"
+    text: "*",
   },
   "(": {
     key: "(",
     code: "Digit9",
     keyCode: 57,
-    text: "("
+    text: "(",
   },
   ")": {
     key: ")",
     code: "Digit0",
     keyCode: 48,
-    text: ")"
+    text: ")",
   },
   _: {
     key: "_",
     code: "Minus",
     keyCode: 189,
-    text: "_"
+    text: "_",
   },
   "+": {
     key: "+",
     code: "Equal",
     keyCode: 187,
-    text: "+"
+    text: "+",
   },
   "{": {
     key: "{",
     code: "BracketLeft",
     keyCode: 219,
-    text: "{"
+    text: "{",
   },
   "}": {
     key: "}",
     code: "BracketRight",
     keyCode: 221,
-    text: "}"
+    text: "}",
   },
   "|": {
     key: "|",
     code: "Backslash",
     keyCode: 220,
-    text: "|"
+    text: "|",
   },
   ":": {
     key: ":",
     code: "Semicolon",
     keyCode: 186,
-    text: ":"
+    text: ":",
   },
-  "\"": {
-    key: "\"",
+  '"': {
+    key: '"',
     code: "Quote",
     keyCode: 222,
-    text: "\""
+    text: '"',
   },
   "<": {
     key: "<",
     code: "Comma",
     keyCode: 188,
-    text: "<"
+    text: "<",
   },
   ">": {
     key: ">",
     code: "Period",
     keyCode: 190,
-    text: ">"
+    text: ">",
   },
   "?": {
     key: "?",
     code: "Slash",
     keyCode: 191,
-    text: "?"
+    text: "?",
   },
   "~": {
     key: "~",
     code: "Backquote",
     keyCode: 192,
-    text: "~"
+    text: "~",
   },
   capslock: {
     key: "CapsLock",
     code: "CapsLock",
-    keyCode: 20
+    keyCode: 20,
   },
   numlock: {
     key: "NumLock",
     code: "NumLock",
-    keyCode: 144
+    keyCode: 144,
   },
   scrolllock: {
     key: "ScrollLock",
     code: "ScrollLock",
-    keyCode: 145
+    keyCode: 145,
   },
   pause: {
     key: "Pause",
     code: "Pause",
-    keyCode: 19
+    keyCode: 19,
   },
   insert: {
     key: "Insert",
     code: "Insert",
-    keyCode: 45
+    keyCode: 45,
   },
   printscreen: {
     key: "PrintScreen",
     code: "PrintScreen",
-    keyCode: 44
+    keyCode: 44,
   },
   numpad0: {
     key: "0",
     code: "Numpad0",
     keyCode: 96,
-    isKeypad: true
+    isKeypad: true,
   },
   numpad1: {
     key: "1",
     code: "Numpad1",
     keyCode: 97,
-    isKeypad: true
+    isKeypad: true,
   },
   numpad2: {
     key: "2",
     code: "Numpad2",
     keyCode: 98,
-    isKeypad: true
+    isKeypad: true,
   },
   numpad3: {
     key: "3",
     code: "Numpad3",
     keyCode: 99,
-    isKeypad: true
+    isKeypad: true,
   },
   numpad4: {
     key: "4",
     code: "Numpad4",
     keyCode: 100,
-    isKeypad: true
+    isKeypad: true,
   },
   numpad5: {
     key: "5",
     code: "Numpad5",
     keyCode: 101,
-    isKeypad: true
+    isKeypad: true,
   },
   numpad6: {
     key: "6",
     code: "Numpad6",
     keyCode: 102,
-    isKeypad: true
+    isKeypad: true,
   },
   numpad7: {
     key: "7",
     code: "Numpad7",
     keyCode: 103,
-    isKeypad: true
+    isKeypad: true,
   },
   numpad8: {
     key: "8",
     code: "Numpad8",
     keyCode: 104,
-    isKeypad: true
+    isKeypad: true,
   },
   numpad9: {
     key: "9",
     code: "Numpad9",
     keyCode: 105,
-    isKeypad: true
+    isKeypad: true,
   },
   numpadmultiply: {
     key: "*",
     code: "NumpadMultiply",
     keyCode: 106,
-    isKeypad: true
+    isKeypad: true,
   },
   numpadadd: {
     key: "+",
     code: "NumpadAdd",
     keyCode: 107,
-    isKeypad: true
+    isKeypad: true,
   },
   numpadsubtract: {
     key: "-",
     code: "NumpadSubtract",
     keyCode: 109,
-    isKeypad: true
+    isKeypad: true,
   },
   numpaddecimal: {
     key: ".",
     code: "NumpadDecimal",
     keyCode: 110,
-    isKeypad: true
+    isKeypad: true,
   },
   numpaddivide: {
     key: "/",
     code: "NumpadDivide",
     keyCode: 111,
-    isKeypad: true
-  }
+    isKeypad: true,
+  },
 };
 class H {
   static MAX_LOGS_PER_TAB = 10000;
@@ -2855,7 +3288,9 @@ class H {
   }
   isMac = false;
   constructor() {
-    this.isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0 || navigator.userAgent.toUpperCase().indexOf("MAC") >= 0;
+    this.isMac =
+      navigator.platform.toUpperCase().indexOf("MAC") >= 0 ||
+      navigator.userAgent.toUpperCase().indexOf("MAC") >= 0;
     this.initializeDebuggerEventListener();
   }
   registerDebuggerEventHandlers() {
@@ -2865,24 +3300,33 @@ class H {
         if (o) {
           if (t === "Page.screencastFrame") {
             H.screencastActiveTabs.add(o);
-            chrome.debugger.sendCommand({
-              tabId: o
-            }, "Page.screencastFrameAck", {
-              sessionId: r.sessionId
-            }, () => {
-              chrome.runtime.lastError;
-            });
+            chrome.debugger.sendCommand(
+              {
+                tabId: o,
+              },
+              "Page.screencastFrameAck",
+              {
+                sessionId: r.sessionId,
+              },
+              () => {
+                chrome.runtime.lastError;
+              },
+            );
             return;
           }
           if (t === "Runtime.consoleAPICalled") {
             const e = {
               type: r.type || "log",
-              text: r.args?.map(e => e.value !== undefined ? String(e.value) : e.description || "").join(" "),
+              text: r.args
+                ?.map((e) =>
+                  e.value !== undefined ? String(e.value) : e.description || "",
+                )
+                .join(" "),
               timestamp: r.timestamp || Date.now(),
               url: r.stackTrace?.callFrames?.[0]?.url,
               lineNumber: r.stackTrace?.callFrames?.[0]?.lineNumber,
               columnNumber: r.stackTrace?.callFrames?.[0]?.columnNumber,
-              args: r.args
+              args: r.args,
             };
             const t = this.extractDomain(e.url);
             this.addConsoleMessage(o, t, e);
@@ -2896,7 +3340,12 @@ class H {
               url: e?.url,
               lineNumber: e?.lineNumber,
               columnNumber: e?.columnNumber,
-              stackTrace: e?.stackTrace?.callFrames?.map(e => `    at ${e.functionName || "<anonymous>"} (${e.url}:${e.lineNumber}:${e.columnNumber})`).join("\n")
+              stackTrace: e?.stackTrace?.callFrames
+                ?.map(
+                  (e) =>
+                    `    at ${e.functionName || "<anonymous>"} (${e.url}:${e.lineNumber}:${e.columnNumber})`,
+                )
+                .join("\n"),
             };
             const a = this.extractDomain(t.url);
             this.addConsoleMessage(o, a, t);
@@ -2908,7 +3357,7 @@ class H {
             const n = {
               requestId: e,
               url: t.url,
-              method: t.method
+              method: t.method,
             };
             const s = a || t.url;
             const i = this.extractDomain(s);
@@ -2919,7 +3368,7 @@ class H {
             const t = r.response;
             const a = H.networkRequestsByTab.get(o);
             if (a) {
-              const r = a.requests.find(t => t.requestId === e);
+              const r = a.requests.find((t) => t.requestId === e);
               if (r) {
                 r.status = t.status;
               }
@@ -2929,7 +3378,7 @@ class H {
             const e = r.requestId;
             const t = H.networkRequestsByTab.get(o);
             if (t) {
-              const r = t.requests.find(t => t.requestId === e);
+              const r = t.requests.find((t) => t.requestId === e);
               if (r) {
                 r.status = 503;
               }
@@ -2938,12 +3387,13 @@ class H {
           if (t === "Page.javascriptDialogOpening") {
             const e = r?.type;
             if (e === "beforeunload") {
-              const e = (H.beforeunloadPolicyByTab.get(o) ?? "dismiss") === "accept";
+              const e =
+                (H.beforeunloadPolicyByTab.get(o) ?? "dismiss") === "accept";
               H.beforeunloadPolicyByTab.delete(o);
               H.beforeunloadOutcomeByTab.set(o, {
                 action: e ? "accepted" : "dismissed",
                 url: r?.url || "",
-                timestamp: Date.now()
+                timestamp: Date.now(),
               });
               if (!e) {
                 const e = H.beforeunloadWaitersByTab.get(o);
@@ -2952,13 +3402,18 @@ class H {
                   e();
                 }
               }
-              chrome.debugger.sendCommand({
-                tabId: o
-              }, "Page.handleJavaScriptDialog", {
-                accept: e
-              }, () => {
-                chrome.runtime.lastError;
-              });
+              chrome.debugger.sendCommand(
+                {
+                  tabId: o,
+                },
+                "Page.handleJavaScriptDialog",
+                {
+                  accept: e,
+                },
+                () => {
+                  chrome.runtime.lastError;
+                },
+              );
             }
           }
           if (t === "Page.frameNavigated" && !r?.frame?.parentId) {
@@ -2982,7 +3437,7 @@ class H {
   defaultResizeParams = {
     pxPerToken: 28,
     maxTargetPx: 1568,
-    maxTargetTokens: 1568
+    maxTargetTokens: 1568,
   };
   static MAX_BASE64_CHARS = 1398100;
   static INITIAL_JPEG_QUALITY = 0.75;
@@ -2990,7 +3445,7 @@ class H {
   static MIN_JPEG_QUALITY = 0.1;
   async attachDebugger(e) {
     const t = {
-      tabId: e
+      tabId: e,
     };
     const r = await chrome.tabs.get(e);
     if (r.url) {
@@ -2999,7 +3454,9 @@ class H {
         e = new URL(r.url).protocol;
       } catch {}
       if (e === "chrome:" || e === "chrome-extension:") {
-        throw new Error(`Cannot attach debugger to ${e}// pages. Navigate to a regular web page (http:// or https://) first, then retry.`);
+        throw new Error(
+          `Cannot attach debugger to ${e}// pages. Navigate to a regular web page (http:// or https://) first, then retry.`,
+        );
       }
     }
     const n = H.networkTrackingEnabled.has(e);
@@ -3010,17 +3467,28 @@ class H {
     const i = o();
     let c;
     try {
-      await Promise.race([new Promise((e, r) => {
-        chrome.debugger.attach(t, "1.3", () => {
-          if (chrome.runtime.lastError) {
-            r(new Error(chrome.runtime.lastError.message));
-          } else {
-            e();
-          }
-        });
-      }), new Promise((t, r) => {
-        c = setTimeout(() => r(new Error(`debugger_attach_error: chrome.debugger.attach timed out after ${i}ms on tab ${e}. DevTools may be open on this tab, or the renderer may have crashed.`)), i);
-      })]);
+      await Promise.race([
+        new Promise((e, r) => {
+          chrome.debugger.attach(t, "1.3", () => {
+            if (chrome.runtime.lastError) {
+              r(new Error(chrome.runtime.lastError.message));
+            } else {
+              e();
+            }
+          });
+        }),
+        new Promise((t, r) => {
+          c = setTimeout(
+            () =>
+              r(
+                new Error(
+                  `debugger_attach_error: chrome.debugger.attach timed out after ${i}ms on tab ${e}. DevTools may be open on this tab, or the renderer may have crashed.`,
+                ),
+              ),
+            i,
+          );
+        }),
+      ]);
     } finally {
       if (c !== undefined) {
         clearTimeout(c);
@@ -3035,7 +3503,7 @@ class H {
     if (n) {
       try {
         await this.sendCommand(e, "Network.enable", {
-          maxPostDataSize: 65536
+          maxPostDataSize: 65536,
         });
       } catch (l) {}
     }
@@ -3049,7 +3517,7 @@ class H {
           quality: 10,
           maxWidth: 100,
           maxHeight: 100,
-          everyNthFrame: 30
+          everyNthFrame: 30,
         });
         H.screencastActiveTabs.add(e);
       } catch (l) {}
@@ -3057,29 +3525,37 @@ class H {
   }
   async detachDebugger(e) {
     if (H.screencastActiveTabs.has(e)) {
-      chrome.debugger.sendCommand({
-        tabId: e
-      }, "Page.stopScreencast", {}, () => {
-        chrome.runtime.lastError;
-      });
+      chrome.debugger.sendCommand(
+        {
+          tabId: e,
+        },
+        "Page.stopScreencast",
+        {},
+        () => {
+          chrome.runtime.lastError;
+        },
+      );
       H.screencastActiveTabs.delete(e);
     }
-    return new Promise(t => {
-      chrome.debugger.detach({
-        tabId: e
-      }, () => {
-        chrome.runtime.lastError;
-        t();
-      });
+    return new Promise((t) => {
+      chrome.debugger.detach(
+        {
+          tabId: e,
+        },
+        () => {
+          chrome.runtime.lastError;
+          t();
+        },
+      );
     });
   }
   isScreencastActive(e) {
     return H.screencastActiveTabs.has(e);
   }
   async isDebuggerAttached(e) {
-    return new Promise(t => {
-      chrome.debugger.getTargets(r => {
-        const o = r.find(t => t.tabId === e);
+    return new Promise((t) => {
+      chrome.debugger.getTargets((r) => {
+        const o = r.find((t) => t.tabId === e);
         t(o?.attached ?? false);
       });
     });
@@ -3087,19 +3563,35 @@ class H {
   async sendCommandOnce(e, t, r, o = n()) {
     let a;
     try {
-      return await Promise.race([new Promise((o, a) => {
-        chrome.debugger.sendCommand({
-          tabId: e
-        }, t, r, e => {
-          if (chrome.runtime.lastError) {
-            a(new Error(chrome.runtime.lastError.message));
-          } else {
-            o(e);
-          }
-        });
-      }), new Promise((r, n) => {
-        a = setTimeout(() => n(new Error(`CDP sendCommand "${t}" timed out after ${o}ms on tab ${e}. The renderer may be frozen or unresponsive.`)), o);
-      })]);
+      return await Promise.race([
+        new Promise((o, a) => {
+          chrome.debugger.sendCommand(
+            {
+              tabId: e,
+            },
+            t,
+            r,
+            (e) => {
+              if (chrome.runtime.lastError) {
+                a(new Error(chrome.runtime.lastError.message));
+              } else {
+                o(e);
+              }
+            },
+          );
+        }),
+        new Promise((r, n) => {
+          a = setTimeout(
+            () =>
+              n(
+                new Error(
+                  `CDP sendCommand "${t}" timed out after ${o}ms on tab ${e}. The renderer may be frozen or unresponsive.`,
+                ),
+              ),
+            o,
+          );
+        }),
+      ]);
     } finally {
       if (a !== undefined) {
         clearTimeout(a);
@@ -3110,7 +3602,11 @@ class H {
     try {
       return await this.sendCommandOnce(e, t, r, o);
     } catch (a) {
-      if ((a instanceof Error ? a.message : String(a)).toLowerCase().includes("debugger is not attached")) {
+      if (
+        (a instanceof Error ? a.message : String(a))
+          .toLowerCase()
+          .includes("debugger is not attached")
+      ) {
         await this.attachDebugger(e);
         return this.sendCommandOnce(e, t, r, o);
       }
@@ -3130,7 +3626,7 @@ class H {
     if (H.beforeunloadOutcomeByTab.get(e)?.action === "dismissed") {
       return Promise.resolve();
     } else {
-      return new Promise(r => {
+      return new Promise((r) => {
         let o = false;
         const a = () => {
           if (!o) {
@@ -3158,9 +3654,13 @@ class H {
       type: t.type,
       x: Math.round(t.x),
       y: Math.round(t.y),
-      modifiers: t.modifiers || 0
+      modifiers: t.modifiers || 0,
     };
-    if (t.type === "mousePressed" || t.type === "mouseReleased" || t.type === "mouseMoved") {
+    if (
+      t.type === "mousePressed" ||
+      t.type === "mouseReleased" ||
+      t.type === "mouseMoved"
+    ) {
       r.button = t.button || "none";
       if (t.type === "mousePressed" || t.type === "mouseReleased") {
         r.clickCount = t.clickCount || 1;
@@ -3169,10 +3669,13 @@ class H {
     if (t.type !== "mouseWheel") {
       r.buttons = t.buttons !== undefined ? t.buttons : 0;
     }
-    if (t.type === "mouseWheel" && (t.deltaX !== undefined || t.deltaY !== undefined)) {
+    if (
+      t.type === "mouseWheel" &&
+      (t.deltaX !== undefined || t.deltaY !== undefined)
+    ) {
       Object.assign(r, {
         deltaX: t.deltaX || 0,
-        deltaY: t.deltaY || 0
+        deltaY: t.deltaY || 0,
       });
     }
     await this.sendCommand(e, "Input.dispatchMouseEvent", r);
@@ -3180,19 +3683,21 @@ class H {
   async dispatchKeyEvent(e, t) {
     const r = {
       modifiers: 0,
-      ...t
+      ...t,
     };
     await this.sendCommand(e, "Input.dispatchKeyEvent", r);
   }
   async insertText(e, t) {
     await this.sendCommand(e, "Input.insertText", {
-      text: t
+      text: t,
     });
   }
   async click(e, t, r, o = "left", a = 1, n = 0, s) {
+    // 语义锚点：click helper 会先临时隐藏 indicator，再走 mouseMoved -> mousePressed -> mouseReleased。
+    // multi-click 只是重复同一坐标的 press/release 序列，不会重新解析目标元素。
     if (!s?.skipIndicator) {
       await F.hideIndicatorForToolUse(e);
-      await new Promise(e => setTimeout(e, 50));
+      await new Promise((e) => setTimeout(e, 50));
     }
     try {
       let i = 0;
@@ -3209,10 +3714,10 @@ class H {
         y: r,
         button: "none",
         buttons: 0,
-        modifiers: n
+        modifiers: n,
       });
       if (!s?.skipIndicator) {
-        await new Promise(e => setTimeout(e, 100));
+        await new Promise((e) => setTimeout(e, 100));
       }
       for (let c = 1; c <= a; c++) {
         await this.dispatchMouseEvent(e, {
@@ -3222,10 +3727,10 @@ class H {
           button: o,
           buttons: i,
           clickCount: c,
-          modifiers: n
+          modifiers: n,
         });
         if (!s?.skipIndicator) {
-          await new Promise(e => setTimeout(e, 12));
+          await new Promise((e) => setTimeout(e, 12));
         }
         await this.dispatchMouseEvent(e, {
           type: "mouseReleased",
@@ -3234,10 +3739,10 @@ class H {
           button: o,
           buttons: 0,
           modifiers: n,
-          clickCount: c
+          clickCount: c,
         });
         if (c < a && !s?.skipIndicator) {
-          await new Promise(e => setTimeout(e, 100));
+          await new Promise((e) => setTimeout(e, 100));
         }
       }
     } finally {
@@ -3272,7 +3777,7 @@ class H {
       unmodifiedText: t.text ?? "",
       location: t.location ?? 0,
       commands: o ?? [],
-      isKeypad: t.isKeypad ?? false
+      isKeypad: t.isKeypad ?? false,
     });
   }
   async keyUp(e, t, r = 0) {
@@ -3282,7 +3787,7 @@ class H {
       modifiers: r,
       windowsVirtualKeyCode: t.windowsVirtualKeyCode || t.keyCode,
       code: t.code,
-      location: t.location ?? 0
+      location: t.location ?? 0,
     });
   }
   async pressKey(e, t, r = 0, o) {
@@ -3294,7 +3799,19 @@ class H {
     const o = [];
     let a = "";
     for (const c of r) {
-      if (["ctrl", "control", "alt", "shift", "cmd", "meta", "command", "win", "windows"].includes(c)) {
+      if (
+        [
+          "ctrl",
+          "control",
+          "alt",
+          "shift",
+          "cmd",
+          "meta",
+          "command",
+          "win",
+          "windows",
+        ].includes(c)
+      ) {
         o.push(c);
       } else {
         a = c;
@@ -3310,7 +3827,7 @@ class H {
       command: 4,
       win: 4,
       windows: 4,
-      shift: 8
+      shift: 8,
     };
     for (const c of o) {
       n |= s[c] || 0;
@@ -3338,7 +3855,7 @@ class H {
       x: t,
       y: r,
       deltaX: o,
-      deltaY: a
+      deltaY: a,
     });
   }
   getKeyCode(e) {
@@ -3362,12 +3879,12 @@ class H {
         key: e,
         code: r,
         keyCode: t.charCodeAt(0),
-        text: e
+        text: e,
       };
     }
   }
   requiresShift(e) {
-    return "~!@#$%^&*()_+{}|:\"<>?".includes(e) || e >= "A" && e <= "Z";
+    return '~!@#$%^&*()_+{}|:"<>?'.includes(e) || (e >= "A" && e <= "Z");
   }
   extractDomain(e) {
     if (!e) {
@@ -3384,13 +3901,13 @@ class H {
     if (o && o.domain !== t) {
       o = {
         domain: t,
-        messages: []
+        messages: [],
       };
       H.consoleMessagesByTab.set(e, o);
     } else if (!o) {
       o = {
         domain: t,
-        messages: []
+        messages: [],
       };
       H.consoleMessagesByTab.set(e, o);
     }
@@ -3421,14 +3938,14 @@ class H {
     }
     let a = o.messages;
     if (t) {
-      a = a.filter(e => e.type === "error" || e.type === "exception");
+      a = a.filter((e) => e.type === "error" || e.type === "exception");
     }
     if (r) {
       try {
         const e = new RegExp(r, "i");
-        a = a.filter(t => e.test(t.text));
+        a = a.filter((t) => e.test(t.text));
       } catch {
-        a = a.filter(e => e.text.toLowerCase().includes(r.toLowerCase()));
+        a = a.filter((e) => e.text.toLowerCase().includes(r.toLowerCase()));
       }
     }
     return a;
@@ -3446,7 +3963,7 @@ class H {
     } else {
       o = {
         domain: t,
-        requests: []
+        requests: [],
       };
       H.networkRequestsByTab.set(e, o);
     }
@@ -3463,10 +3980,10 @@ class H {
       }
       try {
         await this.sendCommand(e, "Network.disable");
-        await new Promise(e => setTimeout(e, 50));
+        await new Promise((e) => setTimeout(e, 50));
       } catch {}
       await this.sendCommand(e, "Network.enable", {
-        maxPostDataSize: 65536
+        maxPostDataSize: 65536,
       });
       H.networkTrackingEnabled.add(e);
     } catch (t) {
@@ -3480,7 +3997,7 @@ class H {
     }
     let o = r.requests;
     if (t) {
-      o = o.filter(e => e.url.includes(t));
+      o = o.filter((e) => e.url.includes(t));
     }
     return o;
   }
@@ -3491,18 +4008,19 @@ class H {
     return H.networkTrackingEnabled.has(e);
   }
   async screenshot(e, t, r) {
+    // 语义锚点：screenshot 先探测 viewport，再走 CDP captureScreenshot；超限时回退内容脚本压缩链。
     const o = t || this.defaultResizeParams;
     const n = r?.span;
     const s = r?.format ?? "jpeg";
     const i = r?.quality ?? H.INITIAL_JPEG_QUALITY * 100;
     if (!r?.skipIndicator) {
       await F.hideIndicatorForToolUse(e);
-      await new Promise(e => setTimeout(e, 50));
+      await new Promise((e) => setTimeout(e, 50));
     }
     if (n) {
       const t = Date.now();
       const r = H.recentCaptureAttempts;
-      const o = (r.get(e) ?? []).filter(e => t - e < 60000);
+      const o = (r.get(e) ?? []).filter((e) => t - e < 60000);
       o.push(t);
       r.set(e, o);
       n.setAttribute("screenshot_attempts_last_60s", o.length);
@@ -3516,14 +4034,16 @@ class H {
       const t = performance.now();
       const r = await x({
         target: {
-          tabId: e
+          tabId: e,
         },
         injectImmediately: true,
-        func: e => {
+        func: (e) => {
           const t = {
             width: window.innerWidth,
             height: window.innerHeight,
-            devicePixelRatio: window.devicePixelRatio
+            devicePixelRatio: window.devicePixelRatio,
+            scrollX: window.scrollX,
+            scrollY: window.scrollY,
           };
           if (e) {
             return {
@@ -3532,7 +4052,7 @@ class H {
               ready_state: document.readyState,
               visibility_state: document.visibilityState,
               iframe_count: document.querySelectorAll("iframe").length,
-              js_heap_mb: (performance.memory?.usedJSHeapSize ?? 0) / 1048576
+              js_heap_mb: (performance.memory?.usedJSHeapSize ?? 0) / 1048576,
             };
           } else {
             return {
@@ -3541,34 +4061,51 @@ class H {
               ready_state: "",
               visibility_state: "",
               iframe_count: 0,
-              js_heap_mb: 0
+              js_heap_mb: 0,
             };
           }
         },
-        args: [!!n]
+        args: [!!n],
       });
       n?.setAttribute("viewport_probe_ms", performance.now() - t);
       if (!r || !r[0]?.result) {
         throw new Error("Failed to get viewport information");
       }
       const {
-        width: l,
-        height: d,
-        dom_nodes: u,
-        ready_state: h,
-        visibility_state: p,
-        iframe_count: m,
-        js_heap_mb: f
+        width: viewportWidth,
+        height: viewportHeight,
+        devicePixelRatio: devicePixelRatio,
+        scrollX: scrollX,
+        scrollY: scrollY,
+        dom_nodes: domNodeCount,
+        ready_state: readyState,
+        visibility_state: visibilityState,
+        iframe_count: iframeCount,
+        js_heap_mb: jsHeapMb,
       } = r[0].result;
       n?.setAttributes({
-        target_dom_nodes: u,
-        target_ready_state: h,
-        target_visibility_state: p,
-        target_iframe_count: m,
-        target_js_heap_mb: Math.round(f)
+        target_dom_nodes: domNodeCount,
+        target_ready_state: readyState,
+        target_visibility_state: visibilityState,
+        target_iframe_count: iframeCount,
+        target_js_heap_mb: Math.round(jsHeapMb),
       });
-      const [g, b] = C(l, d, o);
-      const w = g < l ? g / l : 1;
+      const captureDeviceScaleFactor = devicePixelRatio || 1;
+      const captureSourceWidth = Math.round(
+        viewportWidth * captureDeviceScaleFactor,
+      );
+      const captureSourceHeight = Math.round(
+        viewportHeight * captureDeviceScaleFactor,
+      );
+      const [targetWidth, targetHeight] = C(
+        captureSourceWidth,
+        captureSourceHeight,
+        o,
+      );
+      const captureScale =
+        captureSourceWidth > 0
+          ? Math.min(1, targetWidth / captureSourceWidth)
+          : 1;
       if (a()) {
         try {
           await this.sendCommand(e, "Page.bringToFront", {});
@@ -3580,17 +4117,17 @@ class H {
         _ = await this.sendCommand(e, "Page.captureScreenshot", {
           format: s,
           ...((s === "jpeg" || s === "webp") && {
-            quality: i
+            quality: i,
           }),
           captureBeyondViewport: false,
           fromSurface: true,
           clip: {
-            x: 0,
-            y: 0,
-            width: l,
-            height: d,
-            scale: w
-          }
+            x: scrollX,
+            y: scrollY,
+            width: viewportWidth,
+            height: viewportHeight,
+            scale: captureScale,
+          },
         });
       } finally {
         n?.setAttribute("screenshot_cdp_ms", performance.now() - y);
@@ -3602,21 +4139,32 @@ class H {
       n?.setAttributes({
         screenshot_b64_len: v.length,
         screenshot_format: s,
-        screenshot_capture_px: g * b
+        screenshot_capture_px: targetWidth * targetHeight,
       });
       if (v.length <= H.MAX_BASE64_CHARS) {
         const t = {
           base64: v,
-          width: g,
-          height: b,
+          width: targetWidth,
+          height: targetHeight,
           format: s,
-          viewportWidth: l,
-          viewportHeight: d
+          viewportWidth,
+          viewportHeight,
         };
+        // 语义锚点：screenshot 会把 viewport/screenshot 尺寸写进上下文，供后续坐标动作做缩放换算。
+        // 原始截图直返与 content-script 压缩回退，最终都会写入同一份 M 尺寸账本。
         M.setContext(e, t);
         return t;
       }
-      return await this.processScreenshotInContentScript(e, v, s, l, d, 1, o, i);
+      return await this.processScreenshotInContentScript(
+        e,
+        v,
+        s,
+        viewportWidth,
+        viewportHeight,
+        1,
+        o,
+        i,
+      );
     } finally {
       if (!r?.skipIndicator) {
         await F.restoreIndicatorAfterToolUse(e);
@@ -3626,7 +4174,7 @@ class H {
   async processScreenshotInContentScript(e, t, r, o, a, n, s, i) {
     const c = await x({
       target: {
-        tabId: e
+        tabId: e,
       },
       injectImmediately: true,
       func: (e, t, r, o, a, n, s, i, c, l) => {
@@ -3643,7 +4191,7 @@ class H {
             const f = d / m;
             const g = n.pxPerToken || 28;
             const b = n.maxTargetTokens || 1568;
-            const w = Math.ceil(d / g * (m / g));
+            const w = Math.ceil((d / g) * (m / g));
             let y = d;
             let _ = m;
             if (w > b) {
@@ -3658,7 +4206,7 @@ class H {
                 height: m,
                 format: "jpeg",
                 viewportWidth: r,
-                viewportHeight: o
+                viewportHeight: o,
               });
               return;
             }
@@ -3675,7 +4223,7 @@ class H {
             } else {
               I.drawImage(p, 0, 0);
             }
-            const k = e => {
+            const k = (e) => {
               let t = i;
               let r = e.toDataURL("image/jpeg", t).split(",")[1];
               while (r.length > s && t > l) {
@@ -3692,7 +4240,7 @@ class H {
                 height: m,
                 format: "jpeg",
                 viewportWidth: r,
-                viewportHeight: o
+                viewportHeight: o,
               });
               return;
             }
@@ -3712,7 +4260,7 @@ class H {
               height: _,
               format: "jpeg",
               viewportWidth: r,
-              viewportHeight: o
+              viewportHeight: o,
             });
           };
           p.onerror = () => {
@@ -3721,26 +4269,41 @@ class H {
           p.src = d;
         });
       },
-      args: [t, r, o, a, n, s, H.MAX_BASE64_CHARS, i / 100, H.JPEG_QUALITY_STEP, H.MIN_JPEG_QUALITY]
+      args: [
+        t,
+        r,
+        o,
+        a,
+        n,
+        s,
+        H.MAX_BASE64_CHARS,
+        i / 100,
+        H.JPEG_QUALITY_STEP,
+        H.MIN_JPEG_QUALITY,
+      ],
     });
     if (!c || !c[0]?.result) {
       throw new Error("Failed to process screenshot in content script");
     }
     const l = c[0].result;
+    // 语义锚点：content-script 压缩回退链也会回填同一份 screenshot viewport context 账本。
     M.setContext(e, l);
     return l;
   }
 }
 const K = new H();
-const z = e => {
+const z = (e) => {
   let t;
   const r = new Set();
   const o = (e, o) => {
     const a = typeof e == "function" ? e(t) : e;
     if (!Object.is(a, t)) {
       const e = t;
-      t = o ?? (typeof a != "object" || a === null) ? a : Object.assign({}, t, a);
-      r.forEach(r => r(t, e));
+      t =
+        (o ?? (typeof a != "object" || a === null))
+          ? a
+          : Object.assign({}, t, a);
+      r.forEach((r) => r(t, e));
     }
   };
   const a = () => t;
@@ -3748,36 +4311,41 @@ const z = e => {
     setState: o,
     getState: a,
     getInitialState: () => s,
-    subscribe: e => {
+    subscribe: (e) => {
       r.add(e);
       return () => r.delete(e);
-    }
+    },
   };
-  const s = t = e(o, a, n);
+  const s = (t = e(o, a, n));
   return n;
 };
-const X = e => e;
-const V = e => {
-  const t = (e => e ? z(e) : z)(e);
-  const r = e => function (e, t = X) {
-    const r = k.useSyncExternalStore(e.subscribe, k.useCallback(() => t(e.getState()), [e, t]), k.useCallback(() => t(e.getInitialState()), [e, t]));
-    k.useDebugValue(r);
-    return r;
-  }(t, e);
+const X = (e) => e;
+const V = (e) => {
+  const t = ((e) => (e ? z(e) : z))(e);
+  const r = (e) =>
+    (function (e, t = X) {
+      const r = k.useSyncExternalStore(
+        e.subscribe,
+        k.useCallback(() => t(e.getState()), [e, t]),
+        k.useCallback(() => t(e.getInitialState()), [e, t]),
+      );
+      k.useDebugValue(r);
+      return r;
+    })(t, e);
   Object.assign(r, t);
   return r;
 };
-const Y = e => e ? V(e) : V;
+const Y = (e) => (e ? V(e) : V);
 function J(e, t, r, o) {
   const a = {
-    availableTabs: e.map(e => ({
+    availableTabs: e.map((e) => ({
       tabId: e.id,
       title: e.title,
       url: e.url,
       ...(e.storageDecision !== undefined && {
-        storageDecision: e.storageDecision
-      })
-    }))
+        storageDecision: e.storageDecision,
+      }),
+    })),
   };
   if (r !== undefined) {
     a.selectedTabId = r;
@@ -3793,10 +4361,10 @@ function J(e, t, r, o) {
 function Q(e) {
   const t = {};
   if (e.availableTabs) {
-    t.availableTabs = e.availableTabs.map(e => ({
+    t.availableTabs = e.availableTabs.map((e) => ({
       tabId: e.id,
       title: e.title,
-      url: e.url
+      url: e.url,
     }));
   }
   if (e.domainSkills && e.domainSkills.length > 0) {
@@ -3810,14 +4378,15 @@ function Q(e) {
 function Z(e) {
   return e.replace(/<system-reminder>[\s\S]*?<\/system-reminder>/gi, "").trim();
 }
-const ee = async (e, t) => await Promise.all(e.map(e => e.toAnthropicSchema(t)));
+const ee = async (e, t) =>
+  await Promise.all(e.map((e) => e.toAnthropicSchema(t)));
 const te = (e, t, r) => {
-  const o = r.find(t => t.name === e);
+  const o = r.find((t) => t.name === e);
   if (!o || !o.parameters || typeof t != "object" || !t) {
     return t;
   }
   const a = {
-    ...t
+    ...t,
   };
   for (const [n, s] of Object.entries(o.parameters)) {
     if (n in a && s && typeof s == "object") {
@@ -3853,6 +4422,36 @@ const re = (e, t) => {
   }
   return [];
 };
+const __cpMcpLocalImageRegistry = new Map();
+const __cpMcpLocalImageRegistryLimit = 32;
+function __cpMcpRememberImage(e, t) {
+  if (!e || !t?.base64) {
+    return;
+  }
+  if (__cpMcpLocalImageRegistry.has(e)) {
+    __cpMcpLocalImageRegistry.delete(e);
+  }
+  __cpMcpLocalImageRegistry.set(e, t);
+  while (__cpMcpLocalImageRegistry.size > __cpMcpLocalImageRegistryLimit) {
+    const r = __cpMcpLocalImageRegistry.keys().next().value;
+    if (r === undefined) {
+      break;
+    }
+    __cpMcpLocalImageRegistry.delete(r);
+  }
+}
+function __cpMcpResolveImageFromLocalRegistry(e) {
+  if (!e) {
+    return;
+  }
+  const t = __cpMcpLocalImageRegistry.get(e);
+  if (t) {
+    __cpMcpLocalImageRegistry.delete(e);
+    __cpMcpLocalImageRegistry.set(e, t);
+    console.info(`[imageUtils] ✅ Found cached image data for ID ${e}`);
+  }
+  return t;
+}
 function oe(e, t) {
   console.info(`[imageUtils] Looking for image with ID: ${t}`);
   console.info(`[imageUtils] Total messages to search: ${e.length}`);
@@ -3863,17 +4462,23 @@ function oe(e, t) {
         if (r.type === "tool_result") {
           const e = r;
           if (e.content) {
-            const r = Array.isArray(e.content) ? e.content : [{
-              type: "text",
-              text: e.content
-            }];
+            const r = Array.isArray(e.content)
+              ? e.content
+              : [
+                  {
+                    type: "text",
+                    text: e.content,
+                  },
+                ];
             let o = false;
             let a = "";
             for (const e of r) {
               if (e.type === "text" && e.text && e.text.includes(t)) {
                 o = true;
                 a = e.text;
-                console.info("[imageUtils] ✅ Found image ID in tool_result text");
+                console.info(
+                  "[imageUtils] ✅ Found image ID in tool_result text",
+                );
                 break;
               }
             }
@@ -3882,12 +4487,14 @@ function oe(e, t) {
                 if (e.type === "image") {
                   const r = e;
                   if (r.source && "data" in r.source && r.source.data) {
-                    console.info(`[imageUtils] ✅ Found image data for ID ${t}`);
+                    console.info(
+                      `[imageUtils] ✅ Found image data for ID ${t}`,
+                    );
                     return {
                       base64: r.source.data,
                       mediaType: r.source.media_type,
                       width: ae(a, "width"),
-                      height: ae(a, "height")
+                      height: ae(a, "height"),
                     };
                   }
                 }
@@ -3896,23 +4503,31 @@ function oe(e, t) {
           }
         }
       }
-      const e = o.content.findIndex(e => e.type === "text" && e.text?.includes(t));
+      const e = o.content.findIndex(
+        (e) => e.type === "text" && e.text?.includes(t),
+      );
       if (e !== -1) {
-        console.info(`[imageUtils] Found image ID in user text at index ${e}, looking for next adjacent image`);
+        console.info(
+          `[imageUtils] Found image ID in user text at index ${e}, looking for next adjacent image`,
+        );
         for (let r = e + 1; r < o.content.length; r++) {
           const e = o.content[r];
           if (e.type === "image") {
             const o = e;
             if (o.source && "data" in o.source && o.source.data) {
-              console.info(`[imageUtils] ✅ Found user-uploaded image for ID ${t} at index ${r}`);
+              console.info(
+                `[imageUtils] ✅ Found user-uploaded image for ID ${t} at index ${r}`,
+              );
               return {
                 base64: o.source.data,
-                mediaType: o.source.media_type
+                mediaType: o.source.media_type,
               };
             }
           }
           if (e.type === "text") {
-            console.info("[imageUtils] Hit another text block, stopping search");
+            console.info(
+              "[imageUtils] Hit another text block, stopping search",
+            );
             break;
           }
         }
@@ -3941,6 +4556,9 @@ function ne(e, t, r) {
   const a = r.viewportHeight / r.screenshotHeight;
   return [Math.round(e * o), Math.round(t * a)];
 }
+// 语义锚点：ne(...) 是截图坐标 -> 当前 viewport 坐标的缩放器。
+// 纯 coordinate 路径会先吃这层缩放，再进入 A(...) 同域 guard。
+const __cpMcpScaleScreenshotCoordinatesToViewport = ne;
 function se(e) {
   const [t, r] = e.split(",");
   const o = t.match(/:(.*?);/)?.[1] || "image/png";
@@ -3950,7 +4568,7 @@ function se(e) {
     n[s] = a.charCodeAt(s);
   }
   return new Blob([n], {
-    type: o
+    type: o,
   });
 }
 function ie(e) {
@@ -3962,7 +4580,7 @@ function ie(e) {
   });
 }
 function ce(e) {
-  return e && e.includes(",") && e.split(",")[1] || "";
+  return (e && e.includes(",") && e.split(",")[1]) || "";
 }
 function le(e, t = "image/png") {
   const r = atob(e);
@@ -3971,125 +4589,160 @@ function le(e, t = "image/png") {
     o[a] = r.charCodeAt(a);
   }
   return new Blob([o], {
-    type: t
+    type: t,
   });
 }
 const de = 5000;
 const ue = Math.max(s - 5000 - 400, 1000);
 async function he(e, t, r, o, a, n = s) {
-  await x({
-    target: {
-      tabId: e
-    },
-    func: (e, t, r, o) => {
-      const a = document.elementFromPoint(r, o);
-      if (a && a !== document.body && a !== document.documentElement) {
-        const r = e => {
-          const t = window.getComputedStyle(e);
-          const r = t.overflowY;
-          const o = t.overflowX;
-          return (r === "auto" || r === "scroll" || o === "auto" || o === "scroll") && (e.scrollHeight > e.clientHeight || e.scrollWidth > e.clientWidth);
-        };
-        let o = a;
-        while (o && !r(o)) {
-          o = o.parentElement;
+  await x(
+    {
+      target: {
+        tabId: e,
+      },
+      func: (e, t, r, o) => {
+        const a = document.elementFromPoint(r, o);
+        if (a && a !== document.body && a !== document.documentElement) {
+          const r = (e) => {
+            const t = window.getComputedStyle(e);
+            const r = t.overflowY;
+            const o = t.overflowX;
+            return (
+              (r === "auto" ||
+                r === "scroll" ||
+                o === "auto" ||
+                o === "scroll") &&
+              (e.scrollHeight > e.clientHeight || e.scrollWidth > e.clientWidth)
+            );
+          };
+          let o = a;
+          while (o && !r(o)) {
+            o = o.parentElement;
+          }
+          if (o && r(o)) {
+            o.scrollBy({
+              left: e,
+              top: t,
+              behavior: "instant",
+            });
+            return;
+          }
         }
-        if (o && r(o)) {
-          o.scrollBy({
-            left: e,
-            top: t,
-            behavior: "instant"
-          });
-          return;
-        }
-      }
-      window.scrollBy({
-        left: e,
-        top: t,
-        behavior: "instant"
-      });
+        window.scrollBy({
+          left: e,
+          top: t,
+          behavior: "instant",
+        });
+      },
+      args: [o, a, t, r],
     },
-    args: [o, a, t, r]
-  }, n);
+    n,
+  );
 }
 const pe = {
   name: "computer",
-  description: "Use a mouse and keyboard to interact with a web browser, and take screenshots. If you don't have a valid tab ID, use tabs_context first to get available tabs.\n* The screen's resolution is {self.display_width_px}x{self.display_height_px}.\n* Whenever you intend to click on an element like an icon, you should consult a screenshot to determine the coordinates of the element before moving the cursor.\n* If you tried clicking on a program or link but it failed to load, even after waiting, try adjusting your click location so that the tip of the cursor visually falls on the element that you want to click.\n* Make sure to click any buttons, links, icons, etc with the cursor tip in the center of the element. Don't click boxes on their edges unless asked.",
+  description:
+    "Use a mouse and keyboard to interact with a web browser, and take screenshots. If you don't have a valid tab ID, use tabs_context first to get available tabs.\n* The screen's resolution is {self.display_width_px}x{self.display_height_px}.\n* Whenever you intend to click on an element like an icon, you should consult a screenshot to determine the coordinates of the element before moving the cursor.\n* If you tried clicking on a program or link but it failed to load, even after waiting, try adjusting your click location so that the tip of the cursor visually falls on the element that you want to click.\n* Make sure to click any buttons, links, icons, etc with the cursor tip in the center of the element. Don't click boxes on their edges unless asked.",
   parameters: {
     action: {
       type: "string",
-      enum: ["left_click", "right_click", "type", "screenshot", "wait", "scroll", "key", "left_click_drag", "double_click", "triple_click", "zoom", "scroll_to", "hover"],
-      description: "The action to perform:\n* `left_click`: Click the left mouse button at the specified coordinates.\n* `right_click`: Click the right mouse button at the specified coordinates to open context menus.\n* `double_click`: Double-click the left mouse button at the specified coordinates.\n* `triple_click`: Triple-click the left mouse button at the specified coordinates.\n* `type`: Type a string of text.\n* `screenshot`: Take a screenshot of the screen.\n* `wait`: Wait for a specified number of seconds.\n* `scroll`: Scroll up, down, left, or right at the specified coordinates.\n* `key`: Press a specific keyboard key.\n* `left_click_drag`: Drag from start_coordinate to coordinate.\n* `zoom`: Take a screenshot of a specific region and scale it to fill the viewport.\n* `scroll_to`: Scroll an element into view using its element reference ID from read_page or find tools.\n* `hover`: Move the mouse cursor to the specified coordinates or element without clicking. Useful for revealing tooltips, dropdown menus, or triggering hover states."
+      enum: [
+        "left_click",
+        "right_click",
+        "type",
+        "screenshot",
+        "wait",
+        "scroll",
+        "key",
+        "left_click_drag",
+        "double_click",
+        "triple_click",
+        "zoom",
+        "scroll_to",
+        "hover",
+      ],
+      description:
+        "The action to perform:\n* `left_click`: Click the left mouse button at the specified coordinates.\n* `right_click`: Click the right mouse button at the specified coordinates to open context menus.\n* `double_click`: Double-click the left mouse button at the specified coordinates.\n* `triple_click`: Triple-click the left mouse button at the specified coordinates.\n* `type`: Type a string of text.\n* `screenshot`: Take a screenshot of the screen.\n* `wait`: Wait for a specified number of seconds.\n* `scroll`: Scroll up, down, left, or right at the specified coordinates.\n* `key`: Press a specific keyboard key.\n* `left_click_drag`: Drag from start_coordinate to coordinate.\n* `zoom`: Take a screenshot of a specific region and scale it to fill the viewport.\n* `scroll_to`: Scroll an element into view using its element reference ID from read_page or find tools.\n* `hover`: Move the mouse cursor to the specified coordinates or element without clicking. Useful for revealing tooltips, dropdown menus, or triggering hover states.",
     },
     coordinate: {
       type: "array",
       items: {
-        type: "number"
+        type: "number",
       },
       minItems: 2,
       maxItems: 2,
-      description: "(x, y): The x (pixels from the left edge) and y (pixels from the top edge) coordinates. Required for `scroll` and `left_click_drag`. For click actions (left_click, right_click, double_click, triple_click), either `coordinate` or `ref` must be provided (not both)."
+      description:
+        "(x, y): The x (pixels from the left edge) and y (pixels from the top edge) coordinates. Required for `scroll` and `left_click_drag`. For click actions (left_click, right_click, double_click, triple_click), either `coordinate` or `ref` must be provided (not both).",
     },
     text: {
       type: "string",
-      description: "The text to type (for `type` action) or the key(s) to press (for `key` action). For `key` action: Provide space-separated keys (e.g., \"Backspace Backspace Delete\"). Supports keyboard shortcuts using the platform's modifier key (use \"cmd\" on Mac, \"ctrl\" on Windows/Linux, e.g., \"cmd+a\" or \"ctrl+a\" for select all)."
+      description:
+        'The text to type (for `type` action) or the key(s) to press (for `key` action). For `key` action: Provide space-separated keys (e.g., "Backspace Backspace Delete"). Supports keyboard shortcuts using the platform\'s modifier key (use "cmd" on Mac, "ctrl" on Windows/Linux, e.g., "cmd+a" or "ctrl+a" for select all).',
     },
     duration: {
       type: "number",
       minimum: 0,
       maximum: i,
-      description: `The number of seconds to wait. Required for \`wait\`. Maximum ${i} seconds.`
+      description: `The number of seconds to wait. Required for \`wait\`. Maximum ${i} seconds.`,
     },
     scroll_direction: {
       type: "string",
       enum: ["up", "down", "left", "right"],
-      description: "The direction to scroll. Required for `scroll`."
+      description: "The direction to scroll. Required for `scroll`.",
     },
     scroll_amount: {
       type: "number",
       minimum: 1,
       maximum: 10,
-      description: "The number of scroll wheel ticks. Optional for `scroll`, defaults to 3."
+      description:
+        "The number of scroll wheel ticks. Optional for `scroll`, defaults to 3.",
     },
     start_coordinate: {
       type: "array",
       items: {
-        type: "number"
+        type: "number",
       },
       minItems: 2,
       maxItems: 2,
-      description: "(x, y): The starting coordinates for `left_click_drag`."
+      description: "(x, y): The starting coordinates for `left_click_drag`.",
     },
     region: {
       type: "array",
       items: {
-        type: "number"
+        type: "number",
       },
       minItems: 4,
       maxItems: 4,
-      description: "(x0, y0, x1, y1): The rectangular region to capture for `zoom`. Coordinates are in pixels from the top-left corner of the viewport. Required for `zoom` action."
+      description:
+        "(x0, y0, x1, y1): The rectangular region to capture for `zoom`. Coordinates are in pixels from the top-left corner of the viewport. Required for `zoom` action.",
     },
     repeat: {
       type: "number",
       minimum: 1,
       maximum: 100,
-      description: "Number of times to repeat the key sequence. Only applicable for `key` action. Must be a positive integer between 1 and 100. Default is 1."
+      description:
+        "Number of times to repeat the key sequence. Only applicable for `key` action. Must be a positive integer between 1 and 100. Default is 1.",
     },
     ref: {
       type: "string",
-      description: "Element reference ID from read_page or find tools (e.g., \"ref_1\", \"ref_2\"). Required for `scroll_to` action. Can be used as alternative to `coordinate` for click actions (left_click, right_click, double_click, triple_click)."
+      description:
+        'Element reference ID from read_page or find tools (e.g., "ref_1", "ref_2"). Required for `scroll_to` action. Can be used as alternative to `coordinate` for click actions (left_click, right_click, double_click, triple_click).',
     },
     modifiers: {
       type: "string",
-      description: "Modifier keys for click actions (left_click, right_click, double_click, triple_click). Supports: \"ctrl\", \"shift\", \"alt\", \"cmd\" (or \"meta\"), \"win\" (or \"windows\"). Can be combined with \"+\" (e.g., \"ctrl+shift\", \"cmd+alt\"). Optional."
+      description:
+        'Modifier keys for click actions (left_click, right_click, double_click, triple_click). Supports: "ctrl", "shift", "alt", "cmd" (or "meta"), "win" (or "windows"). Can be combined with "+" (e.g., "ctrl+shift", "cmd+alt"). Optional.',
     },
     tabId: {
       type: "number",
-      description: "Tab ID to execute the action on. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID."
-    }
+      description:
+        "Tab ID to execute the action on. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID.",
+    },
   },
   execute: async (e, t) => {
     try {
+      // 语义锚点：computer 是浏览器前台交互总入口。
+      // 所有鼠标/键盘/截图/hover/scroll_to 动作都会先解析执行 tab，再按 action 分流到对应能力链。
       const o = e || {};
       if (!o.action) {
         throw new Error("Action parameter is required");
@@ -4097,17 +4750,23 @@ const pe = {
       if (!t?.tabId) {
         throw new Error("No active tab found in context");
       }
+      // 语义锚点：普通浏览器工具先把显式 tabId 与当前 session tabId 归一到 effective tab，
+      // 后续执行与返回都围绕同一个 executedOnTabId / tabContext 展开。
       const n = await F.getEffectiveTabId(o.tabId, t.tabId);
       const s = await chrome.tabs.get(n);
       if (!s.id) {
         throw new Error("Active tab has no ID");
       }
+      // 语义锚点：computer 的 action -> permission 映射与 wait 例外。
+      // wait 是纯本地 sleep，不读取页面内容也不触发域权限；其余 action 会先映射到 CLICK / TYPE / READ_PAGE_CONTENT。
       if (!["wait"].includes(o.action)) {
         const e = s.url;
         if (!e) {
           throw new Error("No URL available for active tab");
         }
-        const a = function (e) {
+        // 语义锚点：computer 的 action -> permission 映射。
+        // wait 是唯一不走域名 permission 的动作；其余动作按 READ_PAGE_CONTENT / CLICK / TYPE 三类能力收口。
+        const a = (function (e) {
           const t = {
             screenshot: c.READ_PAGE_CONTENT,
             scroll: c.READ_PAGE_CONTENT,
@@ -4120,13 +4779,13 @@ const pe = {
             triple_click: c.CLICK,
             left_click_drag: c.CLICK,
             type: c.TYPE,
-            key: c.TYPE
+            key: c.TYPE,
           };
           if (!t[e]) {
             throw new Error(`Unsupported action: ${e}`);
           }
           return t[e];
-        }(o.action);
+        })(o.action);
         const i = t?.toolUseId;
         const l = await t.permissionManager.checkPermission(e, i);
         if (!l.allowed) {
@@ -4135,13 +4794,22 @@ const pe = {
               type: "permission_required",
               tool: a,
               url: e,
-              toolUseId: i
+              toolUseId: i,
             };
-            if (o.action === "left_click" || o.action === "right_click" || o.action === "double_click" || o.action === "triple_click") {
+            // 语义锚点：permission_required 的 actionData 回填边界。
+            // 这里只回填 popup 预览/确认所需的最小动作载荷：
+            // click 系列可附截图与 coordinate，type 只附 text，drag 只附起止坐标；
+            // wait / scroll / key / screenshot / zoom / scroll_to / hover 不在这里扩展 actionData。
+            if (
+              o.action === "left_click" ||
+              o.action === "right_click" ||
+              o.action === "double_click" ||
+              o.action === "triple_click"
+            ) {
               try {
                 const e = await K.screenshot(n);
                 t.actionData = {
-                  screenshot: `data:image/${e.format};base64,${e.base64}`
+                  screenshot: `data:image/${e.format};base64,${e.base64}`,
                 };
                 if (o.coordinate) {
                   t.actionData.coordinate = o.coordinate;
@@ -4154,18 +4822,22 @@ const pe = {
               }
             } else if (o.action === "type" && o.text) {
               t.actionData = {
-                text: o.text
+                text: o.text,
               };
-            } else if (o.action === "left_click_drag" && o.start_coordinate && o.coordinate) {
+            } else if (
+              o.action === "left_click_drag" &&
+              o.start_coordinate &&
+              o.coordinate
+            ) {
               t.actionData = {
                 start_coordinate: o.start_coordinate,
-                coordinate: o.coordinate
+                coordinate: o.coordinate,
               };
             }
             return t;
           }
           return {
-            error: "Permission denied for this action on this domain"
+            error: "Permission denied for this action on this domain",
           };
         }
       }
@@ -4173,7 +4845,7 @@ const pe = {
       let d;
       const u = {
         skipIndicator: t.skipIndicator,
-        span: t?.span
+        span: t?.span,
       };
       switch (o.action) {
         case "left_click":
@@ -4181,46 +4853,58 @@ const pe = {
           d = await fe(n, o, 1, l, u);
           break;
         case "type":
-          d = await async function (e, t, o) {
+          d = await (async function (e, t, o) {
             if (!t.text) {
               throw new Error("Text parameter is required for type action");
             }
             try {
+              // 语义锚点：type / key / javascript_tool 属于“页面级动作”家族。
+              // 它们不依赖 ref 命中；A(...) 通过后，动作直接落到当前页面/焦点上下文。
               const r = await A(e, o, "type action");
-              return r || (await K.type(e, t.text), {
-                output: `Typed "${t.text}"`
-              });
+              return (
+                r ||
+                (await K.type(e, t.text),
+                {
+                  output: `Typed "${t.text}"`,
+                })
+              );
             } catch (r) {
               return {
-                error: `Failed to type: ${r instanceof Error ? r.message : "Unknown error"}`
+                error: `Failed to type: ${r instanceof Error ? r.message : "Unknown error"}`,
               };
             }
-          }(n, o, l);
+          })(n, o, l);
           break;
         case "screenshot":
           d = await ge(n, u);
           break;
         case "wait":
-          d = await async function (e) {
+          d = await (async function (e) {
             if (!e.duration || e.duration <= 0) {
-              throw new Error("Duration parameter is required and must be positive");
+              throw new Error(
+                "Duration parameter is required and must be positive",
+              );
             }
             if (e.duration > i) {
               throw new Error(`Duration cannot exceed ${i} seconds`);
             }
             const t = Math.round(e.duration * 1000);
-            await new Promise(e => setTimeout(e, t));
+            await new Promise((e) => setTimeout(e, t));
             return {
-              output: `Waited for ${e.duration} second${e.duration === 1 ? "" : "s"}`
+              output: `Waited for ${e.duration} second${e.duration === 1 ? "" : "s"}`,
             };
-          }(o);
+          })(o);
           break;
         case "scroll":
-          d = await async function (e, t, o, a) {
+          d = await (async function (e, t, o, a) {
             if (!t.coordinate || t.coordinate.length !== 2) {
-              throw new Error("Coordinate parameter is required for scroll action");
+              throw new Error(
+                "Coordinate parameter is required for scroll action",
+              );
             }
             let [n, s] = t.coordinate;
+            // 语义锚点：scroll 也会复用 screenshot context 做坐标缩放；
+            // 但和 click/hover/drag 不同，这里不会再进入 A(...) 同域重校验。
             const i = M.getContext(e);
             if (i) {
               const [e, t] = ne(n, s, i);
@@ -4249,6 +4933,7 @@ const pe = {
                 default:
                   throw new Error(`Invalid scroll direction: ${c}`);
               }
+              // 语义锚点：scroll 优先尝试 CDP scrollWheel；无效或超时再回退 DOM/事件注入滚动。
               if (a?.skipIndicator) {
                 await K.scrollWheel(e, n, s, t, i);
               } else {
@@ -4259,30 +4944,40 @@ const pe = {
                     const r = K.scrollWheel(e, n, s, t, i);
                     let a;
                     try {
-                      await Promise.race([r, new Promise((e, t) => {
-                        a = setTimeout(() => t(new Error("Scroll timeout")), de);
-                      })]);
+                      await Promise.race([
+                        r,
+                        new Promise((e, t) => {
+                          a = setTimeout(
+                            () => t(new Error("Scroll timeout")),
+                            de,
+                          );
+                        }),
+                      ]);
                     } finally {
                       if (a !== undefined) {
                         clearTimeout(a);
                       }
                     }
-                    await new Promise(e => setTimeout(e, 200));
+                    await new Promise((e) => setTimeout(e, 200));
                     const c = await be(e);
-                    if (!(Math.abs(c.x - o.x) > 5) && !(Math.abs(c.y - o.y) > 5)) {
+                    if (
+                      !(Math.abs(c.x - o.x) > 5) &&
+                      !(Math.abs(c.y - o.y) > 5)
+                    ) {
                       throw new Error("CDP scroll ineffective");
                     }
                   } catch (r) {
                     await he(e, n, s, t, i, ue);
-                    await new Promise(e => setTimeout(e, 200));
+                    await new Promise((e) => setTimeout(e, 200));
                   }
                 } else {
                   await he(e, n, s, t, i);
-                  await new Promise(e => setTimeout(e, 200));
+                  await new Promise((e) => setTimeout(e, 200));
                 }
               }
               if (!a?.skipIndicator) {
-                const t = await async function (e, t, o) {
+                // 语义锚点：scroll 成功后会尽量补一张新截图，给后续模型继续定位。
+                const t = await (async function (e, t, o) {
                   try {
                     const r = await chrome.tabs.get(e);
                     if (!r?.url) {
@@ -4293,7 +4988,7 @@ const pe = {
                         const t = await ge(e, o);
                         return {
                           base64Image: t.base64Image,
-                          imageFormat: t.imageFormat || "jpeg"
+                          imageFormat: t.imageFormat || "jpeg",
                         };
                       } catch (a) {
                         return;
@@ -4303,29 +4998,29 @@ const pe = {
                   } catch (r) {
                     return;
                   }
-                }(e, o, {
-                  skipIndicator: a?.skipIndicator
+                })(e, o, {
+                  skipIndicator: a?.skipIndicator,
                 });
                 return {
                   output: `Scrolled ${c} by ${l} ticks at (${n}, ${s})`,
                   ...(t && {
                     base64Image: t.base64Image,
-                    imageFormat: t.imageFormat
-                  })
+                    imageFormat: t.imageFormat,
+                  }),
                 };
               }
               return {
-                output: `Scrolled ${c} by ${l} ticks at (${n}, ${s})`
+                output: `Scrolled ${c} by ${l} ticks at (${n}, ${s})`,
               };
             } catch (r) {
               return {
-                error: `Error scrolling: ${r instanceof Error ? r.message : "Unknown error"}`
+                error: `Error scrolling: ${r instanceof Error ? r.message : "Unknown error"}`,
               };
             }
-          }(n, o, t.permissionManager, u);
+          })(n, o, t.permissionManager, u);
           break;
         case "key":
-          d = await async function (e, t, o) {
+          d = await (async function (e, t, o) {
             if (!t.text) {
               throw new Error("Text parameter is required for key action");
             }
@@ -4341,20 +5036,35 @@ const pe = {
               if (r) {
                 return r;
               }
-              const n = t.text.trim().split(/\s+/).filter(e => e.length > 0);
+              const n = t.text
+                .trim()
+                .split(/\s+/)
+                .filter((e) => e.length > 0);
               console.info({
-                keyInputs: n
+                keyInputs: n,
               });
               if (n.length === 1) {
                 const t = n[0].toLowerCase();
-                if (t === "cmd+r" || t === "cmd+shift+r" || t === "ctrl+r" || t === "ctrl+shift+r" || t === "f5" || t === "ctrl+f5" || t === "shift+f5") {
-                  const r = t === "cmd+shift+r" || t === "ctrl+shift+r" || t === "ctrl+f5" || t === "shift+f5";
+                if (
+                  t === "cmd+r" ||
+                  t === "cmd+shift+r" ||
+                  t === "ctrl+r" ||
+                  t === "ctrl+shift+r" ||
+                  t === "f5" ||
+                  t === "ctrl+f5" ||
+                  t === "shift+f5"
+                ) {
+                  const r =
+                    t === "cmd+shift+r" ||
+                    t === "ctrl+shift+r" ||
+                    t === "ctrl+f5" ||
+                    t === "shift+f5";
                   await chrome.tabs.reload(e, {
-                    bypassCache: r
+                    bypassCache: r,
                   });
                   const o = r ? "hard reload" : "reload";
                   return {
-                    output: `Executed ${n[0]} (${o} page)`
+                    output: `Executed ${n[0]} (${o} page)`,
                   };
                 }
               }
@@ -4374,27 +5084,32 @@ const pe = {
               }
               const s = a > 1 ? ` (repeated ${a} times)` : "";
               return {
-                output: `Pressed ${n.length} key${n.length === 1 ? "" : "s"}: ${n.join(" ")}${s}`
+                output: `Pressed ${n.length} key${n.length === 1 ? "" : "s"}: ${n.join(" ")}${s}`,
               };
             } catch (r) {
               return {
-                error: `Error pressing key: ${r instanceof Error ? r.message : "Unknown error"}`
+                error: `Error pressing key: ${r instanceof Error ? r.message : "Unknown error"}`,
               };
             }
-          }(n, o, l);
+          })(n, o, l);
           break;
         case "left_click_drag":
-          d = await async function (e, t, o) {
+          d = await (async function (e, t, o) {
             if (!t.start_coordinate || t.start_coordinate.length !== 2) {
-              throw new Error("start_coordinate parameter is required for left_click_drag action");
+              throw new Error(
+                "start_coordinate parameter is required for left_click_drag action",
+              );
             }
             if (!t.coordinate || t.coordinate.length !== 2) {
-              throw new Error("coordinate parameter (end position) is required for left_click_drag action");
+              throw new Error(
+                "coordinate parameter (end position) is required for left_click_drag action",
+              );
             }
             let [a, n] = t.start_coordinate;
             let [s, i] = t.coordinate;
             const c = M.getContext(e);
             if (c) {
+              // 语义锚点：drag 是纯 coordinate 路径；start/end 两端都会先按截图上下文缩放，再进入 A(...) guard。
               const [e, t] = ne(a, n, c);
               const [r, o] = ne(s, i, c);
               a = e;
@@ -4402,47 +5117,55 @@ const pe = {
               s = r;
               i = o;
             }
+            // 语义锚点：left_click_drag 复用截图上下文做坐标换算，再串成完整拖拽事件序列。
             try {
               const t = await A(e, o, "drag action");
-              return t || (await K.dispatchMouseEvent(e, {
-                type: "mouseMoved",
-                x: a,
-                y: n,
-                button: "none",
-                buttons: 0,
-                modifiers: 0
-              }), await K.dispatchMouseEvent(e, {
-                type: "mousePressed",
-                x: a,
-                y: n,
-                button: "left",
-                buttons: 1,
-                clickCount: 1,
-                modifiers: 0
-              }), await K.dispatchMouseEvent(e, {
-                type: "mouseMoved",
-                x: s,
-                y: i,
-                button: "left",
-                buttons: 1,
-                modifiers: 0
-              }), await K.dispatchMouseEvent(e, {
-                type: "mouseReleased",
-                x: s,
-                y: i,
-                button: "left",
-                buttons: 0,
-                clickCount: 1,
-                modifiers: 0
-              }), {
-                output: `Dragged from (${a}, ${n}) to (${s}, ${i})`
-              });
+              return (
+                t ||
+                (await K.dispatchMouseEvent(e, {
+                  type: "mouseMoved",
+                  x: a,
+                  y: n,
+                  button: "none",
+                  buttons: 0,
+                  modifiers: 0,
+                }),
+                await K.dispatchMouseEvent(e, {
+                  type: "mousePressed",
+                  x: a,
+                  y: n,
+                  button: "left",
+                  buttons: 1,
+                  clickCount: 1,
+                  modifiers: 0,
+                }),
+                await K.dispatchMouseEvent(e, {
+                  type: "mouseMoved",
+                  x: s,
+                  y: i,
+                  button: "left",
+                  buttons: 1,
+                  modifiers: 0,
+                }),
+                await K.dispatchMouseEvent(e, {
+                  type: "mouseReleased",
+                  x: s,
+                  y: i,
+                  button: "left",
+                  buttons: 0,
+                  clickCount: 1,
+                  modifiers: 0,
+                }),
+                {
+                  output: `Dragged from (${a}, ${n}) to (${s}, ${i})`,
+                })
+              );
             } catch (r) {
               return {
-                error: `Error performing drag: ${r instanceof Error ? r.message : "Unknown error"}`
+                error: `Error performing drag: ${r instanceof Error ? r.message : "Unknown error"}`,
               };
             }
-          }(n, o, l);
+          })(n, o, l);
           break;
         case "double_click":
           d = await fe(n, o, 2, l, u);
@@ -4451,15 +5174,20 @@ const pe = {
           d = await fe(n, o, 3, l, u);
           break;
         case "zoom":
-          d = await async function (e, t) {
+          d = await (async function (e, t) {
             if (!t.region || t.region.length !== 4) {
-              throw new Error("Region parameter is required for zoom action and must be [x0, y0, x1, y1]");
+              throw new Error(
+                "Region parameter is required for zoom action and must be [x0, y0, x1, y1]",
+              );
             }
             let [o, n, s, i] = t.region;
             if (o < 0 || n < 0 || s <= o || i <= n) {
-              throw new Error("Invalid region coordinates: x0 and y0 must be non-negative, and x1 > x0, y1 > y0");
+              throw new Error(
+                "Invalid region coordinates: x0 and y0 must be non-negative, and x1 > x0, y1 > y0",
+              );
             }
             try {
+              // 语义锚点：zoom 只消费最近一次 screenshot context，不会回写或清理这本尺寸账本。
               const t = M.getContext(e);
               if (t) {
                 const [e, r] = ne(o, n, t);
@@ -4471,26 +5199,33 @@ const pe = {
               }
               const r = await x({
                 target: {
-                  tabId: e
+                  tabId: e,
                 },
                 injectImmediately: true,
                 func: () => ({
                   width: window.innerWidth,
-                  height: window.innerHeight
-                })
+                  height: window.innerHeight,
+                  scrollX: window.scrollX,
+                  scrollY: window.scrollY,
+                }),
               });
               if (!r || !r[0]?.result) {
                 throw new Error("Failed to get viewport dimensions");
               }
               const {
-                width: l,
-                height: d
+                width: viewportWidth,
+                height: viewportHeight,
+                scrollX: viewportScrollX,
+                scrollY: viewportScrollY,
               } = r[0].result;
-              if (s > l || i > d) {
-                throw new Error(`Region exceeds viewport boundaries (${l}x${d}). Please choose a region within the visible viewport.`);
+              if (s > viewportWidth || i > viewportHeight) {
+                throw new Error(
+                  `Region exceeds viewport boundaries (${viewportWidth}x${viewportHeight}). Please choose a region within the visible viewport.`,
+                );
               }
               const u = s - o;
               const h = i - n;
+              // 语义锚点：zoom 会校验 region 边界，并用 CDP clip 截取局部高分辨率截图。
               if (a()) {
                 try {
                   await K.sendCommand(e, "Page.bringToFront", {});
@@ -4501,12 +5236,12 @@ const pe = {
                 captureBeyondViewport: false,
                 fromSurface: true,
                 clip: {
-                  x: o,
-                  y: n,
+                  x: viewportScrollX + o,
+                  y: viewportScrollY + n,
                   width: u,
                   height: h,
-                  scale: 1
-                }
+                  scale: 1,
+                },
               });
               if (!p || !p.data) {
                 throw new Error("Failed to capture zoomed screenshot via CDP");
@@ -4514,17 +5249,20 @@ const pe = {
               return {
                 output: `Successfully captured zoomed screenshot of region (${o},${n}) to (${s},${i}) - ${u}x${h} pixels`,
                 base64Image: p.data,
-                imageFormat: "png"
+                imageFormat: "png",
               };
             } catch (r) {
               return {
-                error: `Error capturing zoomed screenshot: ${r instanceof Error ? r.message : "Unknown error"}`
+                error: `Error capturing zoomed screenshot: ${r instanceof Error ? r.message : "Unknown error"}`,
               };
             }
-          }(n, o);
+          })(n, o);
           break;
         case "scroll_to":
-          d = await async function (e, t, o, a) {
+          // 语义锚点：scroll_to / hover 与 read_page/find ref 链。
+          // scroll_to 必须消费 read_page/find 产出的 ref；hover 既可走 ref -> 定位元素中心，也可直接走 coordinate。
+          // 顺序上，scroll_to 会先过 A(...) guard，再去解析 ref / scrollIntoView。
+          d = await (async function (e, t, o, a) {
             if (!t.ref) {
               throw new Error("ref parameter is required for scroll_to action");
             }
@@ -4536,37 +5274,41 @@ const pe = {
               const n = await me(e, t.ref, a?.span);
               if (n.success) {
                 return {
-                  output: `Scrolled to element with reference: ${t.ref}`
+                  output: `Scrolled to element with reference: ${t.ref}`,
                 };
               } else {
                 return {
-                  error: n.error
+                  error: n.error,
                 };
               }
             } catch (r) {
               return {
-                error: `Failed to scroll to element: ${r instanceof Error ? r.message : "Unknown error"}`
+                error: `Failed to scroll to element: ${r instanceof Error ? r.message : "Unknown error"}`,
               };
             }
-          }(n, o, l, u);
+          })(n, o, l, u);
           break;
         case "hover":
-          d = await async function (e, t, o, a) {
+          d = await (async function (e, t, o, a) {
             let n;
             let s;
             if (t.ref) {
+              // 语义锚点：hover(ref) 会先把 ref 解析成中心点坐标，再进入 A(...) guard。
               const r = await me(e, t.ref, a?.span);
               if (!r.success) {
                 return {
-                  error: r.error
+                  error: r.error,
                 };
               }
               [n, s] = r.coordinates;
             } else {
               if (!t.coordinate) {
-                throw new Error("Either ref or coordinate parameter is required for hover action");
+                throw new Error(
+                  "Either ref or coordinate parameter is required for hover action",
+                );
               }
               {
+                // 语义锚点：hover(coordinate) 会先按截图上下文做坐标缩放，再进入 A(...) guard。
                 [n, s] = t.coordinate;
                 const r = M.getContext(e);
                 if (r) {
@@ -4578,125 +5320,159 @@ const pe = {
             }
             try {
               const r = await A(e, o, "hover action");
-              return r || (await K.dispatchMouseEvent(e, {
-                type: "mouseMoved",
-                x: n,
-                y: s,
-                button: "none",
-                buttons: 0,
-                modifiers: 0
-              }), t.ref ? {
-                output: `Hovered over element ${t.ref}`
-              } : {
-                output: `Hovered at (${Math.round(t.coordinate[0])}, ${Math.round(t.coordinate[1])})`
-              });
+              return (
+                r ||
+                (await K.dispatchMouseEvent(e, {
+                  type: "mouseMoved",
+                  x: n,
+                  y: s,
+                  button: "none",
+                  buttons: 0,
+                  modifiers: 0,
+                }),
+                t.ref
+                  ? {
+                      output: `Hovered over element ${t.ref}`,
+                    }
+                  : {
+                      output: `Hovered at (${Math.round(t.coordinate[0])}, ${Math.round(t.coordinate[1])})`,
+                    })
+              );
             } catch (r) {
               return {
-                error: `Error hovering: ${r instanceof Error ? r.message : "Unknown error"}`
+                error: `Error hovering: ${r instanceof Error ? r.message : "Unknown error"}`,
               };
             }
-          }(n, o, l, u);
+          })(n, o, l, u);
           break;
         default:
           throw new Error(`Unsupported action: ${o.action}`);
       }
       const h = await F.getValidTabsWithMetadata(t.tabId);
+      // 语义锚点：统一 tabContext。
+      // computer / find / navigate / read_page 这类工具都回填 currentTabId + executedOnTabId + availableTabs，
+      // 让后续工具能沿同一 session/tab 编排链继续执行。
       return {
         ...d,
         tabContext: {
           currentTabId: t.tabId,
           executedOnTabId: n,
           availableTabs: h,
-          tabCount: h.length
-        }
+          tabCount: h.length,
+        },
       };
     } catch (r) {
       return {
-        error: `Failed to execute action: ${r instanceof Error ? r.message : "Unknown error"}`
+        error: `Failed to execute action: ${r instanceof Error ? r.message : "Unknown error"}`,
       };
     }
   },
   toAnthropicSchema: async () => ({
     name: "computer",
-    description: "Use a mouse and keyboard to interact with a web browser, and take screenshots. If you don't have a valid tab ID, use tabs_context first to get available tabs.\n* Whenever you intend to click on an element like an icon, you should consult a screenshot to determine the coordinates of the element before moving the cursor.\n* If you tried clicking on a program or link but it failed to load, even after waiting, try adjusting your click location so that the tip of the cursor visually falls on the element that you want to click.\n* Make sure to click any buttons, links, icons, etc with the cursor tip in the center of the element. Don't click boxes on their edges unless asked.",
+    description:
+      "Use a mouse and keyboard to interact with a web browser, and take screenshots. If you don't have a valid tab ID, use tabs_context first to get available tabs.\n* Whenever you intend to click on an element like an icon, you should consult a screenshot to determine the coordinates of the element before moving the cursor.\n* If you tried clicking on a program or link but it failed to load, even after waiting, try adjusting your click location so that the tip of the cursor visually falls on the element that you want to click.\n* Make sure to click any buttons, links, icons, etc with the cursor tip in the center of the element. Don't click boxes on their edges unless asked.",
     input_schema: {
       type: "object",
       properties: {
         action: {
           type: "string",
-          enum: ["left_click", "right_click", "type", "screenshot", "wait", "scroll", "key", "left_click_drag", "double_click", "triple_click", "zoom", "scroll_to", "hover"],
-          description: "The action to perform:\n* `left_click`: Click the left mouse button at the specified coordinates.\n* `right_click`: Click the right mouse button at the specified coordinates to open context menus.\n* `double_click`: Double-click the left mouse button at the specified coordinates.\n* `triple_click`: Triple-click the left mouse button at the specified coordinates.\n* `type`: Type a string of text.\n* `screenshot`: Take a screenshot of the screen.\n* `wait`: Wait for a specified number of seconds.\n* `scroll`: Scroll up, down, left, or right at the specified coordinates.\n* `key`: Press a specific keyboard key.\n* `left_click_drag`: Drag from start_coordinate to coordinate.\n* `zoom`: Take a screenshot of a specific region for closer inspection.\n* `scroll_to`: Scroll an element into view using its element reference ID from read_page or find tools.\n* `hover`: Move the mouse cursor to the specified coordinates or element without clicking. Useful for revealing tooltips, dropdown menus, or triggering hover states."
+          enum: [
+            "left_click",
+            "right_click",
+            "type",
+            "screenshot",
+            "wait",
+            "scroll",
+            "key",
+            "left_click_drag",
+            "double_click",
+            "triple_click",
+            "zoom",
+            "scroll_to",
+            "hover",
+          ],
+          description:
+            "The action to perform:\n* `left_click`: Click the left mouse button at the specified coordinates.\n* `right_click`: Click the right mouse button at the specified coordinates to open context menus.\n* `double_click`: Double-click the left mouse button at the specified coordinates.\n* `triple_click`: Triple-click the left mouse button at the specified coordinates.\n* `type`: Type a string of text.\n* `screenshot`: Take a screenshot of the screen.\n* `wait`: Wait for a specified number of seconds.\n* `scroll`: Scroll up, down, left, or right at the specified coordinates.\n* `key`: Press a specific keyboard key.\n* `left_click_drag`: Drag from start_coordinate to coordinate.\n* `zoom`: Take a screenshot of a specific region for closer inspection.\n* `scroll_to`: Scroll an element into view using its element reference ID from read_page or find tools.\n* `hover`: Move the mouse cursor to the specified coordinates or element without clicking. Useful for revealing tooltips, dropdown menus, or triggering hover states.",
         },
         coordinate: {
           type: "array",
           items: {
-            type: "number"
+            type: "number",
           },
           minItems: 2,
           maxItems: 2,
-          description: "(x, y): The x (pixels from the left edge) and y (pixels from the top edge) coordinates. Required for `left_click`, `right_click`, `double_click`, `triple_click`, and `scroll`. For `left_click_drag`, this is the end position."
+          description:
+            "(x, y): The x (pixels from the left edge) and y (pixels from the top edge) coordinates. Required for `left_click`, `right_click`, `double_click`, `triple_click`, and `scroll`. For `left_click_drag`, this is the end position.",
         },
         text: {
           type: "string",
-          description: "The text to type (for `type` action) or the key(s) to press (for `key` action). For `key` action: Provide space-separated keys (e.g., \"Backspace Backspace Delete\"). Supports keyboard shortcuts using the platform's modifier key (use \"cmd\" on Mac, \"ctrl\" on Windows/Linux, e.g., \"cmd+a\" or \"ctrl+a\" for select all)."
+          description:
+            'The text to type (for `type` action) or the key(s) to press (for `key` action). For `key` action: Provide space-separated keys (e.g., "Backspace Backspace Delete"). Supports keyboard shortcuts using the platform\'s modifier key (use "cmd" on Mac, "ctrl" on Windows/Linux, e.g., "cmd+a" or "ctrl+a" for select all).',
         },
         duration: {
           type: "number",
           minimum: 0,
           maximum: i,
-          description: `The number of seconds to wait. Required for \`wait\`. Maximum ${i} seconds.`
+          description: `The number of seconds to wait. Required for \`wait\`. Maximum ${i} seconds.`,
         },
         scroll_direction: {
           type: "string",
           enum: ["up", "down", "left", "right"],
-          description: "The direction to scroll. Required for `scroll`."
+          description: "The direction to scroll. Required for `scroll`.",
         },
         scroll_amount: {
           type: "number",
           minimum: 1,
           maximum: 10,
-          description: "The number of scroll wheel ticks. Optional for `scroll`, defaults to 3."
+          description:
+            "The number of scroll wheel ticks. Optional for `scroll`, defaults to 3.",
         },
         start_coordinate: {
           type: "array",
           items: {
-            type: "number"
+            type: "number",
           },
           minItems: 2,
           maxItems: 2,
-          description: "(x, y): The starting coordinates for `left_click_drag`."
+          description:
+            "(x, y): The starting coordinates for `left_click_drag`.",
         },
         region: {
           type: "array",
           items: {
-            type: "number"
+            type: "number",
           },
           minItems: 4,
           maxItems: 4,
-          description: "(x0, y0, x1, y1): The rectangular region to capture for `zoom`. Coordinates define a rectangle from top-left (x0, y0) to bottom-right (x1, y1) in pixels from the viewport origin. Required for `zoom` action. Useful for inspecting small UI elements like icons, buttons, or text."
+          description:
+            "(x0, y0, x1, y1): The rectangular region to capture for `zoom`. Coordinates define a rectangle from top-left (x0, y0) to bottom-right (x1, y1) in pixels from the viewport origin. Required for `zoom` action. Useful for inspecting small UI elements like icons, buttons, or text.",
         },
         repeat: {
           type: "number",
           minimum: 1,
           maximum: 100,
-          description: "Number of times to repeat the key sequence. Only applicable for `key` action. Must be a positive integer between 1 and 100. Default is 1. Useful for navigation tasks like pressing arrow keys multiple times."
+          description:
+            "Number of times to repeat the key sequence. Only applicable for `key` action. Must be a positive integer between 1 and 100. Default is 1. Useful for navigation tasks like pressing arrow keys multiple times.",
         },
         ref: {
           type: "string",
-          description: "Element reference ID from read_page or find tools (e.g., \"ref_1\", \"ref_2\"). Required for `scroll_to` action. Can be used as alternative to `coordinate` for click actions."
+          description:
+            'Element reference ID from read_page or find tools (e.g., "ref_1", "ref_2"). Required for `scroll_to` action. Can be used as alternative to `coordinate` for click actions.',
         },
         modifiers: {
           type: "string",
-          description: "Modifier keys for click actions. Supports: \"ctrl\", \"shift\", \"alt\", \"cmd\" (or \"meta\"), \"win\" (or \"windows\"). Can be combined with \"+\" (e.g., \"ctrl+shift\", \"cmd+alt\"). Optional."
+          description:
+            'Modifier keys for click actions. Supports: "ctrl", "shift", "alt", "cmd" (or "meta"), "win" (or "windows"). Can be combined with "+" (e.g., "ctrl+shift", "cmd+alt"). Optional.',
         },
         tabId: {
           type: "number",
-          description: "Tab ID to execute the action on. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID."
-        }
+          description:
+            "Tab ID to execute the action on. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID.",
+        },
       },
-      required: ["action", "tabId"]
-    }
-  })
+      required: ["action", "tabId"],
+    },
+  }),
 };
 async function me(e, t, r) {
   try {
@@ -4705,13 +5481,14 @@ async function me(e, t, r) {
     try {
       a = await x({
         target: {
-          tabId: e
+          tabId: e,
         },
         injectImmediately: true,
-        func: e => {
+        func: (e) => {
           try {
             let t = null;
             if (window.__claudeElementMap && window.__claudeElementMap[e]) {
+              // 语义锚点：ref lookup 先从 __claudeElementMap 解引用；元素已失效或脱离文档时会顺手清理陈旧 ref。
               t = window.__claudeElementMap[e].deref() || null;
               if (!t || !document.contains(t)) {
                 delete window.__claudeElementMap[e];
@@ -4721,13 +5498,14 @@ async function me(e, t, r) {
             if (!t) {
               return {
                 success: false,
-                error: `No element found with reference: "${e}". The element may have been removed from the page.`
+                error: `No element found with reference: "${e}". The element may have been removed from the page.`,
               };
             }
+            // 语义锚点：ref 解析命中后，会先把元素滚到可视区中心，再取 bounding rect 中心点坐标。
             t.scrollIntoView({
               behavior: "instant",
               block: "center",
-              inline: "center"
+              inline: "center",
             });
             if (t instanceof HTMLElement) {
               t.offsetHeight;
@@ -4736,18 +5514,19 @@ async function me(e, t, r) {
             const o = r.left + r.width / 2;
             return {
               success: true,
-              coordinates: [o, r.top + r.height / 2]
+              coordinates: [o, r.top + r.height / 2],
             };
           } catch (t) {
             return {
               success: false,
-              error: `Error getting element coordinates: ${t instanceof Error ? t.message : "Unknown error"}`
+              error: `Error getting element coordinates: ${t instanceof Error ? t.message : "Unknown error"}`,
             };
           }
         },
-        args: [t]
+        args: [t],
       });
     } finally {
+      // 语义锚点：ref_lookup_ms 记录一次 ref -> 中心点坐标解析的总耗时。
       r?.setAttribute("ref_lookup_ms", performance.now() - o);
     }
     if (a && a.length !== 0) {
@@ -4755,32 +5534,39 @@ async function me(e, t, r) {
     } else {
       return {
         success: false,
-        error: "Failed to execute script to get element coordinates"
+        error: "Failed to execute script to get element coordinates",
       };
     }
   } catch (o) {
     return {
       success: false,
-      error: `Failed to get element coordinates from ref: ${o instanceof Error ? o.message : "Unknown error"}`
+      error: `Failed to get element coordinates from ref: ${o instanceof Error ? o.message : "Unknown error"}`,
     };
   }
 }
+// 语义锚点：me(...) 是 read_page/find ref -> 当前页面可交互中心点坐标的解析器。
+// 它会先解引用元素、scrollIntoView 到可视区中心，再返回 bounding rect 中心点。
+const __cpMcpResolveRefToViewportCenter = me;
 async function fe(e, t, r = 1, o, a) {
   let n;
   let s;
   if (t.ref) {
+    // 语义锚点：click(ref) 会先把 ref 解析成中心点坐标，再进入 A(...) guard。
     const r = await me(e, t.ref, a?.span);
     if (!r.success) {
       return {
-        error: r.error
+        error: r.error,
       };
     }
     [n, s] = r.coordinates;
   } else {
     if (!t.coordinate) {
-      throw new Error("Either ref or coordinate parameter is required for click action");
+      throw new Error(
+        "Either ref or coordinate parameter is required for click action",
+      );
     }
     {
+      // 语义锚点：click(coordinate) 会先按截图上下文做坐标缩放，再进入 A(...) guard。
       [n, s] = t.coordinate;
       const r = M.getContext(e);
       if (r) {
@@ -4793,7 +5579,7 @@ async function fe(e, t, r = 1, o, a) {
   const i = t.action === "right_click" ? "right" : "left";
   let c = 0;
   if (t.modifiers) {
-    c = function (e) {
+    c = (function (e) {
       const t = {
         alt: 1,
         ctrl: 2,
@@ -4803,38 +5589,53 @@ async function fe(e, t, r = 1, o, a) {
         command: 4,
         win: 4,
         windows: 4,
-        shift: 8
+        shift: 8,
       };
       let r = 0;
       for (const o of e) {
         r |= t[o] || 0;
       }
       return r;
-    }(function (e) {
-      const t = e.toLowerCase().split("+");
-      const r = ["ctrl", "control", "alt", "shift", "cmd", "meta", "command", "win", "windows"];
-      return t.filter(e => r.includes(e.trim()));
-    }(t.modifiers));
+    })(
+      (function (e) {
+        const t = e.toLowerCase().split("+");
+        const r = [
+          "ctrl",
+          "control",
+          "alt",
+          "shift",
+          "cmd",
+          "meta",
+          "command",
+          "win",
+          "windows",
+        ];
+        return t.filter((e) => r.includes(e.trim()));
+      })(t.modifiers),
+    );
   }
   try {
+    // 语义锚点：click / double_click / triple_click 属于“定位/指针动作”家族。
+    // 这条链会先把 ref/coordinate 解析成实际坐标，再过 A(...) 同域重校验，最后才发真实鼠标事件。
     const l = await A(e, o, "click action");
     if (l) {
       return l;
     }
     await K.click(e, n, s, i, r, c, a);
-    const d = r === 1 ? "Clicked" : r === 2 ? "Double-clicked" : "Triple-clicked";
+    const d =
+      r === 1 ? "Clicked" : r === 2 ? "Double-clicked" : "Triple-clicked";
     if (t.ref) {
       return {
-        output: `${d} on element ${t.ref}`
+        output: `${d} on element ${t.ref}`,
       };
     } else {
       return {
-        output: `${d} at (${Math.round(t.coordinate[0])}, ${Math.round(t.coordinate[1])})`
+        output: `${d} at (${Math.round(t.coordinate[0])}, ${Math.round(t.coordinate[1])})`,
       };
     }
   } catch (l) {
     return {
-      error: `Error clicking: ${l instanceof Error ? l.message : "Unknown error"}`
+      error: `Error clicking: ${l instanceof Error ? l.message : "Unknown error"}`,
     };
   }
 }
@@ -4843,29 +5644,37 @@ async function ge(e, t) {
     const r = await K.screenshot(e, undefined, t);
     const o = `ss_${Date.now().toString().slice(-4)}${Math.random().toString(36).substring(2, 7)}`;
     console.info(`[Computer Tool] Generated screenshot ID: ${o}`);
-    console.info(`[Computer Tool] Screenshot dimensions: ${r.width}x${r.height}`);
+    console.info(
+      `[Computer Tool] Screenshot dimensions: ${r.width}x${r.height}`,
+    );
+    __cpMcpRememberImage(o, {
+      base64: r.base64,
+      mediaType: `image/${r.format}`,
+      width: r.width,
+      height: r.height,
+    });
     return {
       output: `Successfully captured screenshot (${r.width}x${r.height}, ${r.format}) - ID: ${o}`,
       base64Image: r.base64,
       imageFormat: r.format,
-      imageId: o
+      imageId: o,
     };
   } catch (r) {
     return {
-      error: `Error capturing screenshot: ${r instanceof Error ? r.message : "Unknown error"}`
+      error: `Error capturing screenshot: ${r instanceof Error ? r.message : "Unknown error"}`,
     };
   }
 }
 async function be(e) {
   const t = await x({
     target: {
-      tabId: e
+      tabId: e,
     },
     injectImmediately: true,
     func: () => ({
       x: window.pageXOffset || document.documentElement.scrollLeft,
-      y: window.pageYOffset || document.documentElement.scrollTop
-    })
+      y: window.pageYOffset || document.documentElement.scrollTop,
+    }),
   });
   if (!t || !t[0]?.result) {
     throw new Error("Failed to get scroll position");
@@ -4874,28 +5683,27 @@ async function be(e) {
 }
 const we = {
   name: "javascript_tool",
-  description: "Execute JavaScript code in the context of the current page. The code runs in the page's context and can interact with the DOM, window object, and page variables. Returns the result of the last expression or any thrown errors. If you don't have a valid tab ID, use tabs_context first to get available tabs.",
+  description:
+    "Execute JavaScript code in the context of the current page. The code runs in the page's context and can interact with the DOM, window object, and page variables. Returns the result of the last expression or any thrown errors. If you don't have a valid tab ID, use tabs_context first to get available tabs.",
   parameters: {
     action: {
       type: "string",
-      description: "Must be set to 'javascript_exec'"
+      description: "Must be set to 'javascript_exec'",
     },
     text: {
       type: "string",
-      description: "The JavaScript code to execute. The code will be evaluated in the page context. The result of the last expression will be returned automatically. Do NOT use 'return' statements - just write the expression you want to evaluate (e.g., 'window.myData.value' not 'return window.myData.value'). You can access and modify the DOM, call page functions, and interact with page variables."
+      description:
+        "The JavaScript code to execute. The code will be evaluated in the page context. The result of the last expression will be returned automatically. Do NOT use 'return' statements - just write the expression you want to evaluate (e.g., 'window.myData.value' not 'return window.myData.value'). You can access and modify the DOM, call page functions, and interact with page variables.",
     },
     tabId: {
       type: "number",
-      description: "Tab ID to execute the code in. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID."
-    }
+      description:
+        "Tab ID to execute the code in. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID.",
+    },
   },
   execute: async (e, t) => {
     try {
-      const {
-        action: r,
-        text: o,
-        tabId: a
-      } = e;
+      const { action: r, text: o, tabId: a } = e;
       if (r !== "javascript_exec") {
         throw new Error("'javascript_exec' is the only supported action");
       }
@@ -4914,18 +5722,20 @@ const we = {
       const u = await t.permissionManager.checkPermission(s, i);
       if (!u.allowed) {
         if (u.needsPrompt) {
+          // 语义锚点：javascript_tool 的 permission_required 只透出脚本文本。
+          // timeout / eval 细节 / 返回值模式都留在真正 execute 分支里，不进入 permission popup。
           return {
             type: "permission_required",
             tool: c.EXECUTE_JAVASCRIPT,
             url: s,
             toolUseId: i,
             actionData: {
-              text: o
-            }
+              text: o,
+            },
           };
         }
         return {
-          error: "Permission denied for JavaScript execution on this domain"
+          error: "Permission denied for JavaScript execution on this domain",
         };
       }
       const h = await A(n, s, "JavaScript execution");
@@ -4933,12 +5743,17 @@ const we = {
         return h;
       }
       const p = `\n        (function() {\n          'use strict';\n          try {\n            return eval(${JSON.stringify(o)});\n          } catch (e) {\n            throw e;\n          }\n        })()\n      `;
-      const m = await K.sendCommand(n, "Runtime.evaluate", {
-        expression: p,
-        returnByValue: true,
-        awaitPromise: true,
-        timeout: l
-      }, l + d);
+      const m = await K.sendCommand(
+        n,
+        "Runtime.evaluate",
+        {
+          expression: p,
+          returnByValue: true,
+          awaitPromise: true,
+          timeout: l,
+        },
+        l + d,
+      );
       let f = "";
       let g = false;
       let b = "";
@@ -4946,7 +5761,19 @@ const we = {
         if (t > 5) {
           return "[TRUNCATED: Max depth exceeded]";
         }
-        const r = [/password/i, /token/i, /secret/i, /api[_-]?key/i, /auth/i, /credential/i, /private[_-]?key/i, /access[_-]?key/i, /bearer/i, /oauth/i, /session/i];
+        const r = [
+          /password/i,
+          /token/i,
+          /secret/i,
+          /api[_-]?key/i,
+          /auth/i,
+          /credential/i,
+          /private[_-]?key/i,
+          /access[_-]?key/i,
+          /bearer/i,
+          /oauth/i,
+          /session/i,
+        ];
         if (typeof e == "string") {
           if (e.includes("=") && (e.includes(";") || e.includes("&"))) {
             return "[BLOCKED: Cookie/query string data]";
@@ -4967,13 +5794,17 @@ const we = {
         if (e && typeof e == "object" && !Array.isArray(e)) {
           const o = {};
           for (const [a, n] of Object.entries(e)) {
-            const e = r.some(e => e.test(a));
-            o[a] = e ? "[BLOCKED: Sensitive key]" : a === "cookie" || a === "cookies" ? "[BLOCKED: Cookie access]" : w(n, t + 1);
+            const e = r.some((e) => e.test(a));
+            o[a] = e
+              ? "[BLOCKED: Sensitive key]"
+              : a === "cookie" || a === "cookies"
+                ? "[BLOCKED: Cookie access]"
+                : w(n, t + 1);
           }
           return o;
         }
         if (Array.isArray(e)) {
-          const r = e.slice(0, 100).map(e => w(e, t + 1));
+          const r = e.slice(0, 100).map((e) => w(e, t + 1));
           if (e.length > 100) {
             r.push(`[TRUNCATED: ${e.length - 100} more items]`);
           }
@@ -4986,7 +5817,9 @@ const we = {
         g = true;
         const e = m.exceptionDetails.exception;
         const t = e?.description?.includes("execution was terminated");
-        b = t ? `Execution timeout: Code exceeded ${l / 1000}-second limit` : e?.description || e?.value || "Unknown error";
+        b = t
+          ? `Execution timeout: Code exceeded ${l / 1000}-second limit`
+          : e?.description || e?.value || "Unknown error";
       } else if (m.result) {
         const e = m.result;
         if (e.type === "undefined") {
@@ -5021,8 +5854,8 @@ const we = {
             currentTabId: t.tabId,
             executedOnTabId: n,
             availableTabs: _,
-            tabCount: _.length
-          }
+            tabCount: _.length,
+          },
         };
       } else {
         if (f.length > y) {
@@ -5034,64 +5867,73 @@ const we = {
             currentTabId: t.tabId,
             executedOnTabId: n,
             availableTabs: _,
-            tabCount: _.length
-          }
+            tabCount: _.length,
+          },
         };
       }
     } catch (r) {
       return {
-        error: `Failed to execute JavaScript: ${r instanceof Error ? r.message : "Unknown error"}`
+        error: `Failed to execute JavaScript: ${r instanceof Error ? r.message : "Unknown error"}`,
       };
     }
   },
   toAnthropicSchema: async () => ({
     name: "javascript_tool",
-    description: "Execute JavaScript code in the context of the current page. The code runs in the page's context and can interact with the DOM, window object, and page variables. Returns the result of the last expression or any thrown errors. If you don't have a valid tab ID, use tabs_context first to get available tabs.",
+    description:
+      "Execute JavaScript code in the context of the current page. The code runs in the page's context and can interact with the DOM, window object, and page variables. Returns the result of the last expression or any thrown errors. If you don't have a valid tab ID, use tabs_context first to get available tabs.",
     input_schema: {
       type: "object",
       properties: {
         action: {
           type: "string",
-          description: "Must be set to 'javascript_exec'"
+          description: "Must be set to 'javascript_exec'",
         },
         text: {
           type: "string",
-          description: "The JavaScript code to execute. The code will be evaluated in the page context. The result of the last expression will be returned automatically. Do NOT use 'return' statements - just write the expression you want to evaluate (e.g., 'window.myData.value' not 'return window.myData.value'). You can access and modify the DOM, call page functions, and interact with page variables."
+          description:
+            "The JavaScript code to execute. The code will be evaluated in the page context. The result of the last expression will be returned automatically. Do NOT use 'return' statements - just write the expression you want to evaluate (e.g., 'window.myData.value' not 'return window.myData.value'). You can access and modify the DOM, call page functions, and interact with page variables.",
         },
         tabId: {
           type: "number",
-          description: "Tab ID to execute the code in. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID."
-        }
+          description:
+            "Tab ID to execute the code in. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID.",
+        },
       },
-      required: ["action", "text", "tabId"]
-    }
-  })
+      required: ["action", "text", "tabId"],
+    },
+  }),
 };
 const ye = {
   name: "file_upload",
-  description: "Upload one or multiple files from the local filesystem to a file input element on the page. Do not click on file upload buttons or file inputs — clicking opens a native file picker dialog that you cannot see or interact with. Instead, use read_page or find to locate the file input element, then use this tool with its ref to upload files directly. The paths must be absolute file paths on the local machine.",
+  description:
+    "Upload one or multiple files from the local filesystem to a file input element on the page. Do not click on file upload buttons or file inputs — clicking opens a native file picker dialog that you cannot see or interact with. Instead, use read_page or find to locate the file input element, then use this tool with its ref to upload files directly. The paths must be absolute file paths on the local machine.",
   parameters: {
     paths: {
       type: "array",
       items: {
-        type: "string"
+        type: "string",
       },
-      description: "The absolute paths to the files to upload. Can be a single file or multiple files."
+      description:
+        "The absolute paths to the files to upload. Can be a single file or multiple files.",
     },
     ref: {
       type: "string",
-      description: "Element reference ID of the file input from read_page or find tools (e.g., \"ref_1\", \"ref_2\")."
+      description:
+        'Element reference ID of the file input from read_page or find tools (e.g., "ref_1", "ref_2").',
     },
     tabId: {
       type: "number",
-      description: "Tab ID where the file input is located. Use tabs_context first if you don't have a valid tab ID."
-    }
+      description:
+        "Tab ID where the file input is located. Use tabs_context first if you don't have a valid tab ID.",
+    },
   },
   execute: async (e, t) => {
     try {
       const o = e;
       if (!o?.paths || !Array.isArray(o.paths) || o.paths.length === 0) {
-        throw new Error("paths parameter is required and must be a non-empty array of file paths");
+        throw new Error(
+          "paths parameter is required and must be a non-empty array of file paths",
+        );
       }
       if (!o?.ref) {
         throw new Error("ref parameter is required");
@@ -5118,20 +5960,22 @@ const ye = {
             url: s,
             toolUseId: i,
             actionData: {
-              ref: o.ref
-            }
+              ref: o.ref,
+            },
           };
         }
         return {
-          error: "Permission denied for uploading files to this domain"
+          error: "Permission denied for uploading files to this domain",
         };
       }
       const d = n.url;
       if (!d) {
         return {
-          error: "Unable to get original URL for security check"
+          error: "Unable to get original URL for security check",
         };
       }
+      // 语义锚点：file upload / form_input / upload_image / GIF export upload 属于“表单/上传动作”家族。
+      // A(...) 通过前不会去碰 file input、表单控件或历史图片内容；同域 guard 是这些 DOM/二进制操作的最后前置闸门。
       const u = await A(n.id, d, "file upload action");
       if (u) {
         return u;
@@ -5139,13 +5983,16 @@ const ye = {
       const h = `data-claude-upload-${Date.now()}`;
       const p = await x({
         target: {
-          tabId: n.id
+          tabId: n.id,
         },
         func: (e, t) => {
+          // 语义锚点：file_upload 是直接 ref consumer；
+          // 它不走 me(ref)->坐标 helper，而是在页面上下文里直接验活 __claudeElementMap 的 WeakRef。
+          // 这里只有命中 <input type="file">，才会继续桥接到 CDP DOM.setFileInputFiles。
           const r = window.__claudeElementMap;
           if (!r?.[e]) {
             return {
-              error: `Element ref not found: "${e}". The element may have been removed from the page.`
+              error: `Element ref not found: "${e}". The element may have been removed from the page.`,
             };
           }
           const o = r[e].deref();
@@ -5153,65 +6000,68 @@ const ye = {
             if (document.contains(o)) {
               if (o.tagName !== "INPUT" || o.type !== "file") {
                 return {
-                  error: `Element is not a file input. Found: <${o.tagName.toLowerCase()}${o.type ? ` type="${o.type}"` : ""}>`
+                  error: `Element is not a file input. Found: <${o.tagName.toLowerCase()}${o.type ? ` type="${o.type}"` : ""}>`,
                 };
               } else {
                 o.setAttribute(t, "1");
                 return {
-                  success: true
+                  success: true,
                 };
               }
             } else {
               delete r[e];
               return {
-                error: `Element is no longer in the document: "${e}"`
+                error: `Element is no longer in the document: "${e}"`,
               };
             }
           } else {
             delete r[e];
             return {
-              error: `Element has been garbage collected: "${e}"`
+              error: `Element has been garbage collected: "${e}"`,
             };
           }
         },
-        args: [o.ref, h]
+        args: [o.ref, h],
       });
       if (!p || p.length === 0) {
         return {
-          error: "Failed to execute script to find element"
+          error: "Failed to execute script to find element",
         };
       }
       const m = p[0].result;
       if (m.error) {
         return {
-          error: m.error
+          error: m.error,
         };
       }
       const f = await K.sendCommand(n.id, "Runtime.evaluate", {
         expression: `document.querySelector('[${h}="1"]')`,
-        returnByValue: false
+        returnByValue: false,
       });
       if (f.exceptionDetails) {
         return {
-          error: f.exceptionDetails.exception?.description || f.exceptionDetails.text || "Failed to resolve element via CDP"
+          error:
+            f.exceptionDetails.exception?.description ||
+            f.exceptionDetails.text ||
+            "Failed to resolve element via CDP",
         };
       }
       const g = f.result?.objectId;
       if (!g) {
         return {
-          error: "Failed to get object reference for element"
+          error: "Failed to get object reference for element",
         };
       }
       await K.sendCommand(n.id, "DOM.enable");
       await K.sendCommand(n.id, "DOM.setFileInputFiles", {
         files: o.paths,
-        objectId: g
+        objectId: g,
       });
       await K.sendCommand(n.id, "DOM.disable");
       try {
         await x({
           target: {
-            tabId: n.id
+            tabId: n.id,
           },
           injectImmediately: true,
           func: (e, t) => {
@@ -5224,14 +6074,14 @@ const ye = {
               o.removeAttribute(t);
             }
           },
-          args: [o.ref, h]
+          args: [o.ref, h],
         });
       } catch (r) {
         if (!(r instanceof T)) {
           throw r;
         }
       }
-      const b = o.paths.map(e => {
+      const b = o.paths.map((e) => {
         const t = e.split(/[/\\]/);
         return t[t.length - 1];
       });
@@ -5242,61 +6092,65 @@ const ye = {
           currentTabId: t.tabId,
           executedOnTabId: a,
           availableTabs: w,
-          tabCount: w.length
-        }
+          tabCount: w.length,
+        },
       };
     } catch (o) {
       return {
-        error: `Failed to upload file(s): ${o instanceof Error ? o.message : "Unknown error"}`
+        error: `Failed to upload file(s): ${o instanceof Error ? o.message : "Unknown error"}`,
       };
     }
   },
   toAnthropicSchema: async () => ({
     name: "file_upload",
-    description: "Upload one or multiple files from the local filesystem to a file input element on the page. Do not click on file upload buttons or file inputs — clicking opens a native file picker dialog that you cannot see or interact with. Instead, use read_page or find to locate the file input element, then use this tool with its ref to upload files directly. The paths must be absolute file paths on the local machine.",
+    description:
+      "Upload one or multiple files from the local filesystem to a file input element on the page. Do not click on file upload buttons or file inputs — clicking opens a native file picker dialog that you cannot see or interact with. Instead, use read_page or find to locate the file input element, then use this tool with its ref to upload files directly. The paths must be absolute file paths on the local machine.",
     input_schema: {
       type: "object",
       properties: {
         paths: {
           type: "array",
           items: {
-            type: "string"
+            type: "string",
           },
-          description: "The absolute paths to the files to upload. Can be a single file or multiple files."
+          description:
+            "The absolute paths to the files to upload. Can be a single file or multiple files.",
         },
         ref: {
           type: "string",
-          description: "Element reference ID of the file input from read_page or find tools (e.g., \"ref_1\", \"ref_2\")."
+          description:
+            'Element reference ID of the file input from read_page or find tools (e.g., "ref_1", "ref_2").',
         },
         tabId: {
           type: "number",
-          description: "Tab ID where the file input is located. Use tabs_context first if you don't have a valid tab ID."
-        }
+          description:
+            "Tab ID where the file input is located. Use tabs_context first if you don't have a valid tab ID.",
+        },
       },
-      required: ["paths", "ref", "tabId"]
-    }
-  })
+      required: ["paths", "ref", "tabId"],
+    },
+  }),
 };
 const _e = {
   name: "find",
-  description: "Find elements on the page using natural language. Can search for elements by their purpose (e.g., \"search bar\", \"login button\") or by text content (e.g., \"organic mango product\"). Returns up to 20 matching elements with references that can be used with other tools. If more than 20 matches exist, you'll be notified to use a more specific query. If you don't have a valid tab ID, use tabs_context first to get available tabs.",
+  description:
+    'Find elements on the page using natural language. Can search for elements by their purpose (e.g., "search bar", "login button") or by text content (e.g., "organic mango product"). Returns up to 20 matching elements with references that can be used with other tools. If more than 20 matches exist, you\'ll be notified to use a more specific query. If you don\'t have a valid tab ID, use tabs_context first to get available tabs.',
   parameters: {
     query: {
       type: "string",
-      description: "Natural language description of what to find (e.g., \"search bar\", \"add to cart button\", \"product title containing organic\")",
-      required: true
+      description:
+        'Natural language description of what to find (e.g., "search bar", "add to cart button", "product title containing organic")',
+      required: true,
     },
     tabId: {
       type: "number",
-      description: "Tab ID to search in. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID."
-    }
+      description:
+        "Tab ID to search in. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID.",
+    },
   },
   execute: async (e, t) => {
     try {
-      const {
-        query: r,
-        tabId: o
-      } = e;
+      const { query: r, tabId: o } = e;
       if (!r) {
         throw new Error("Query parameter is required");
       }
@@ -5316,34 +6170,43 @@ const _e = {
       const l = await t.permissionManager.checkPermission(s, i);
       if (!l.allowed) {
         if (l.needsPrompt) {
+          // 语义锚点：find / get_page_text / read_page / read_console_messages / read_network_requests / navigate
+          // 这类读页/读状态/跳转型 permission_required 默认只返回基础四元组，不附 actionData。
           return {
             type: "permission_required",
             tool: c.READ_PAGE_CONTENT,
             url: s,
-            toolUseId: i
+            toolUseId: i,
           };
         }
         return {
-          error: "Permission denied for reading pages on this domain"
+          error: "Permission denied for reading pages on this domain",
         };
       }
+      // 语义锚点：find 的 accessibility tree -> createAnthropicMessage(modelClass=small_fast) -> provider 文本提取。
+      // 先抓整页 accessibility tree，再交给 small_fast provider 做轻量语义筛选，最后把文本结果解析回 ref 列表。
+      // ref_X 本身来自 __generateAccessibilityTree 这一侧的页面账本；find 只是重排/裁剪已有 ref，不会自己生成新 ref。
       const d = await x({
         target: {
-          tabId: n.id
+          tabId: n.id,
         },
         func: () => {
           if (typeof window.__generateAccessibilityTree != "function") {
-            throw new Error("Accessibility tree function not found. Please refresh the page.");
+            throw new Error(
+              "Accessibility tree function not found. Please refresh the page.",
+            );
           }
           return window.__generateAccessibilityTree("all");
         },
-        args: []
+        args: [],
       });
       if (!d || d.length === 0) {
         throw new Error("No results returned from page script");
       }
       if ("error" in d[0] && d[0].error) {
-        throw new Error(`Script execution failed: ${d[0].error.message || "Unknown error"}`);
+        throw new Error(
+          `Script execution failed: ${d[0].error.message || "Unknown error"}`,
+        );
       }
       if (!d[0].result) {
         throw new Error("Page script returned empty result");
@@ -5351,9 +6214,13 @@ const _e = {
       const u = d[0].result;
       const h = t?.createAnthropicMessage;
       if (!h) {
-        throw new Error("Custom provider client not available. Please check your custom provider settings.");
+        throw new Error(
+          "Custom provider client not available. Please check your custom provider settings.",
+        );
       }
-      const p = function (pageContent, query, maxChars = 18000) {
+      // 语义锚点：find 的 query 裁剪。
+      // provider 提示词只带裁剪后的 accessibility tree 片段，按 query 命中行优先保留，避免超长上下文压垮 small_fast。
+      const p = (function (pageContent, query, maxChars = 18000) {
         if (typeof pageContent != "string") {
           return "";
         }
@@ -5361,31 +6228,43 @@ const _e = {
         if (!trimmed || trimmed.length <= maxChars) {
           return trimmed;
         }
-        const lowerQuery = String(query || "").toLowerCase().trim();
-        const terms = lowerQuery.split(/[\s"'`.,!?;:()[\]{}<>\/\\|+-]+/).map(e => e.trim()).filter((e, t, r) => e.length >= 2 && r.indexOf(e) === t);
-        const lines = trimmed.split("\n").map(e => e.trimEnd());
-        const ranked = lines.map((line, index) => {
-          const lowerLine = line.toLowerCase();
-          let score = 0;
-          if (lowerQuery && lowerLine.includes(lowerQuery)) {
-            score += 20;
-          }
-          for (const term of terms) {
-            if (lowerLine.includes(term)) {
-              score += term.length >= 4 ? 6 : 3;
+        const lowerQuery = String(query || "")
+          .toLowerCase()
+          .trim();
+        const terms = lowerQuery
+          .split(/[\s"'`.,!?;:()[\]{}<>\/\\|+-]+/)
+          .map((e) => e.trim())
+          .filter((e, t, r) => e.length >= 2 && r.indexOf(e) === t);
+        const lines = trimmed.split("\n").map((e) => e.trimEnd());
+        const ranked = lines
+          .map((line, index) => {
+            const lowerLine = line.toLowerCase();
+            let score = 0;
+            if (lowerQuery && lowerLine.includes(lowerQuery)) {
+              score += 20;
             }
-          }
-          if (line.includes("[ref_")) {
-            score += 4;
-          }
-          if (/\b(button|link|textbox|combobox|checkbox|radio|heading|navigation|main|article|region|listitem|menuitem)\b/i.test(line)) {
-            score += 1;
-          }
-          return {
-            index,
-            score
-          };
-        }).filter(e => e.score > 0).sort((e, t) => t.score - e.score || e.index - t.index);
+            for (const term of terms) {
+              if (lowerLine.includes(term)) {
+                score += term.length >= 4 ? 6 : 3;
+              }
+            }
+            if (line.includes("[ref_")) {
+              score += 4;
+            }
+            if (
+              /\b(button|link|textbox|combobox|checkbox|radio|heading|navigation|main|article|region|listitem|menuitem)\b/i.test(
+                line,
+              )
+            ) {
+              score += 1;
+            }
+            return {
+              index,
+              score,
+            };
+          })
+          .filter((e) => e.score > 0)
+          .sort((e, t) => t.score - e.score || e.index - t.index);
         const selected = new Set();
         for (const entry of ranked) {
           for (const index of [entry.index - 1, entry.index, entry.index + 1]) {
@@ -5397,7 +6276,9 @@ const _e = {
             break;
           }
         }
-        const ordered = (selected.size ? Array.from(selected).sort((e, t) => e - t) : lines.map((e, t) => t));
+        const ordered = selected.size
+          ? Array.from(selected).sort((e, t) => e - t)
+          : lines.map((e, t) => t);
         const collected = [];
         let length = 0;
         for (const index of ordered) {
@@ -5418,16 +6299,23 @@ const _e = {
           length += nextLength;
         }
         return collected.join("\n").trim();
-      }(u.pageContent, r);
-      const m = await h({
-        maxTokens: 800,
-        modelClass: "small_fast",
-        messages: [{
-          role: "user",
-          content: `You are helping find elements on a web page. The user wants to find: "${r}"\n\nHere is the accessibility tree of the page:\n${p}\n\nFind ALL elements that match the user's query. Return up to 20 most relevant matches, ordered by relevance.\n\nReturn plain text only in this exact format (one line per matching element):\n\nFOUND: <total_number_of_matching_elements>\nSHOWING: <number_shown_up_to_20>\n---\nref_X | role | name | type | reason why this matches\nref_Y | role | name | type | reason why this matches\n...\n\nIf there are more than 20 matches, add this line at the end:\nMORE: Use a more specific query to see additional results\n\nIf no matching elements are found, return only:\nFOUND: 0\nERROR: explanation of why no elements were found`
-        }]
-      }, "sampling_find_tool");
-      const f = function (e) {
+      })(u.pageContent, r);
+      const m = await h(
+        {
+          maxTokens: 800,
+          modelClass: "small_fast",
+          messages: [
+            {
+              role: "user",
+              content: `You are helping find elements on a web page. The user wants to find: "${r}"\n\nHere is the accessibility tree of the page:\n${p}\n\nFind ALL elements that match the user's query. Return up to 20 most relevant matches, ordered by relevance.\n\nReturn plain text only in this exact format (one line per matching element):\n\nFOUND: <total_number_of_matching_elements>\nSHOWING: <number_shown_up_to_20>\n---\nref_X | role | name | type | reason why this matches\nref_Y | role | name | type | reason why this matches\n...\n\nIf there are more than 20 matches, add this line at the end:\nMORE: Use a more specific query to see additional results\n\nIf no matching elements are found, return only:\nFOUND: 0\nERROR: explanation of why no elements were found`,
+            },
+          ],
+        },
+        "sampling_find_tool",
+      );
+      // 语义锚点：provider 文本提取兼容层。
+      // 这里统一吸收 output_text / content / message / choices 等不同返回形态，最后只保留可解析的纯文本。
+      const f = (function (e) {
         function t(e, t = false) {
           if (typeof e == "string") {
             return e.trim();
@@ -5435,7 +6323,9 @@ const _e = {
           if (!e || typeof e != "object") {
             return "";
           }
-          const r = String(e.type || "").trim().toLowerCase();
+          const r = String(e.type || "")
+            .trim()
+            .toLowerCase();
           if (r === "tool_use" || r === "tool_result") {
             return "";
           }
@@ -5465,7 +6355,13 @@ const _e = {
           if (typeof e.content == "string" && e.content.trim()) {
             return e.content.trim();
           }
-          for (const r of [e.content, e.message?.content, e.output, e.reasoning_details, e.delta]) {
+          for (const r of [
+            e.content,
+            e.message?.content,
+            e.output,
+            e.reasoning_details,
+            e.delta,
+          ]) {
             const e = n(r, t);
             if (e) {
               return e;
@@ -5483,7 +6379,11 @@ const _e = {
           if (!Array.isArray(e)) {
             return "";
           }
-          return e.map(e => t(e, n)).filter(Boolean).join(" ").trim();
+          return e
+            .map((e) => t(e, n))
+            .filter(Boolean)
+            .join(" ")
+            .trim();
         }
         if (!e || typeof e != "object") {
           return "";
@@ -5491,18 +6391,54 @@ const _e = {
         if (typeof e.output_text == "string" && e.output_text.trim()) {
           return e.output_text.trim();
         }
-        for (const t of [n(e.content, false), n(e.message, false), n(e.message?.content, false), Array.isArray(e.output) ? e.output.map(e => n(e?.content, false)).filter(Boolean).join(" ").trim() : "", Array.isArray(e.choices) ? e.choices.map(e => typeof e?.message?.content == "string" ? e.message.content.trim() : n(e?.message, false) || n(e?.message?.content, false)).filter(Boolean).join(" ").trim() : "", typeof e.message == "string" ? e.message.trim() : "", typeof e.content == "string" ? e.content.trim() : "", typeof e.response_text == "string" ? e.response_text.trim() : "", typeof e.content_text == "string" ? e.content_text.trim() : ""]) {
+        for (const t of [
+          n(e.content, false),
+          n(e.message, false),
+          n(e.message?.content, false),
+          Array.isArray(e.output)
+            ? e.output
+                .map((e) => n(e?.content, false))
+                .filter(Boolean)
+                .join(" ")
+                .trim()
+            : "",
+          Array.isArray(e.choices)
+            ? e.choices
+                .map((e) =>
+                  typeof e?.message?.content == "string"
+                    ? e.message.content.trim()
+                    : n(e?.message, false) || n(e?.message?.content, false),
+                )
+                .filter(Boolean)
+                .join(" ")
+                .trim()
+            : "",
+          typeof e.message == "string" ? e.message.trim() : "",
+          typeof e.content == "string" ? e.content.trim() : "",
+          typeof e.response_text == "string" ? e.response_text.trim() : "",
+          typeof e.content_text == "string" ? e.content_text.trim() : "",
+        ]) {
           if (t) {
             return t;
           }
         }
         return "";
-      }(m);
+      })(m);
       if (!f) {
-        const e = Array.isArray(m?.content) ? m.content.map(e => e?.type || "unknown").filter(Boolean).join(", ") : "none";
+        const e = Array.isArray(m?.content)
+          ? m.content
+              .map((e) => e?.type || "unknown")
+              .filter(Boolean)
+              .join(", ")
+          : "none";
         throw new Error(`API returned no text content (received: ${e})`);
       }
-      const g = f.split("\n").map(e => e.trim()).filter(e => e);
+      const g = f
+        .split("\n")
+        .map((e) => e.trim())
+        .filter((e) => e);
+      // 语义锚点：find 只消费 provider 文本里的 ref_X 行，不会回到 __claudeElementMap 验活。
+      // 所以 stale ref 是否仍然可用，要等 click/form_input/upload_image 这类后续 consumer 再次解引用时才会暴露。
       let b = 0;
       const w = [];
       let y;
@@ -5510,85 +6446,101 @@ const _e = {
       for (const e of g) {
         if (e.startsWith("FOUND:")) {
           b = parseInt(e.split(":")[1].trim()) || 0;
-        } else if (e.startsWith("SHOWING:")) ;else if (e.startsWith("ERROR:")) {
+        } else if (e.startsWith("SHOWING:"));
+        else if (e.startsWith("ERROR:")) {
           y = e.substring(6).trim();
         } else if (e.startsWith("MORE:")) {
           _ = true;
         } else if (e.includes("|") && e.startsWith("ref_")) {
-          const t = e.split("|").map(e => e.trim());
+          // 语义锚点：find 这里只解析 provider 回传的 `ref | role | name | type | reason` 文本格式；
+          // 不做 DOM 二次确认，也不会补写新的 ref 账本。
+          const t = e.split("|").map((e) => e.trim());
           if (t.length >= 4) {
             w.push({
               ref: t[0],
               role: t[1],
               name: t[2],
               type: t[3] || undefined,
-              description: t[4] || undefined
+              description: t[4] || undefined,
             });
           }
         }
       }
       if (b === 0 || w.length === 0) {
         return {
-          error: y || "No matching elements found"
+          error: y || "No matching elements found",
         };
       }
       let v = `Found ${b} matching element${b === 1 ? "" : "s"}`;
       if (_) {
         v += ` (showing first ${w.length}, use a more specific query to narrow results)`;
       }
-      const T = w.map(e => `- ${e.ref}: ${e.role}${e.name ? ` "${e.name}"` : ""}${e.type ? ` (${e.type})` : ""}${e.description ? ` - ${e.description}` : ""}`).join("\n");
+      const T = w
+        .map(
+          (e) =>
+            `- ${e.ref}: ${e.role}${e.name ? ` "${e.name}"` : ""}${e.type ? ` (${e.type})` : ""}${e.description ? ` - ${e.description}` : ""}`,
+        )
+        .join("\n");
       w.length;
       const I = await F.getValidTabsWithMetadata(t.tabId);
+      // 语义锚点：统一 tabContext。
       return {
         output: `${v}\n\n${T}`,
         tabContext: {
           currentTabId: t.tabId,
           executedOnTabId: a,
           availableTabs: I,
-          tabCount: I.length
-        }
+          tabCount: I.length,
+        },
       };
     } catch (r) {
       return {
-        error: `Failed to find element: ${r instanceof Error ? r.message : "Unknown error"}`
+        error: `Failed to find element: ${r instanceof Error ? r.message : "Unknown error"}`,
       };
     }
   },
   toAnthropicSchema: async () => ({
     name: "find",
-    description: "Find elements on the page using natural language. Can search for elements by their purpose (e.g., \"search bar\", \"login button\") or by text content (e.g., \"organic mango product\"). Returns up to 20 matching elements with references that can be used with other tools. If more than 20 matches exist, you'll be notified to use a more specific query. If you don't have a valid tab ID, use tabs_context first to get available tabs.",
+    description:
+      'Find elements on the page using natural language. Can search for elements by their purpose (e.g., "search bar", "login button") or by text content (e.g., "organic mango product"). Returns up to 20 matching elements with references that can be used with other tools. If more than 20 matches exist, you\'ll be notified to use a more specific query. If you don\'t have a valid tab ID, use tabs_context first to get available tabs.',
     input_schema: {
       type: "object",
       properties: {
         query: {
           type: "string",
-          description: "Natural language description of what to find (e.g., \"search bar\", \"add to cart button\", \"product title containing organic\")"
+          description:
+            'Natural language description of what to find (e.g., "search bar", "add to cart button", "product title containing organic")',
         },
         tabId: {
           type: "number",
-          description: "Tab ID to search in. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID."
-        }
+          description:
+            "Tab ID to search in. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID.",
+        },
       },
-      required: ["query", "tabId"]
-    }
-  })
+      required: ["query", "tabId"],
+    },
+  }),
 };
 const ve = {
   name: "form_input",
-  description: "Set values in form elements using element reference ID from the read_page or find tools. If you don't have a valid tab ID, use tabs_context first to get available tabs.",
+  description:
+    "Set values in form elements using element reference ID from the read_page or find tools. If you don't have a valid tab ID, use tabs_context first to get available tabs.",
   parameters: {
     ref: {
       type: "string",
-      description: "Element reference ID from the read_page or find tools (e.g., \"ref_1\", \"ref_2\")"
+      description:
+        'Element reference ID from the read_page or find tools (e.g., "ref_1", "ref_2")',
     },
     value: {
       type: ["string", "boolean", "number"],
-      description: "The value to set. For checkboxes use boolean, for selects use option value or text, for other inputs use appropriate string/number"
+      description:
+        "The value to set. For checkboxes use boolean, for selects use option value or text, for other inputs use appropriate string/number",
     },
     tabId: {
       type: "number",
-      description: "Tab ID to set form value in. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID."
-    }
+      description:
+        "Tab ID to set form value in. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID.",
+    },
   },
   execute: async (e, t) => {
     try {
@@ -5615,6 +6567,8 @@ const ve = {
       const i = await t.permissionManager.checkPermission(n, s);
       if (!i.allowed) {
         if (i.needsPrompt) {
+          // 语义锚点：form_input / upload_image 这类 DOM 命中型 permission_required，
+          // 只回填 ref / coordinate / value / imageId 这类最小定位字段，不附 DOM 快照或二进制 payload。
           return {
             type: "permission_required",
             tool: c.TYPE,
@@ -5622,32 +6576,37 @@ const ve = {
             toolUseId: s,
             actionData: {
               ref: r.ref,
-              value: r.value
-            }
+              value: r.value,
+            },
           };
         }
         return {
-          error: "Permission denied for form input on this domain"
+          error: "Permission denied for form input on this domain",
         };
       }
       const l = a.url;
       if (!l) {
         return {
-          error: "Unable to get original URL for security check"
+          error: "Unable to get original URL for security check",
         };
       }
+      // 语义锚点：form_input 和 file/upload 家族共用同一层 A(...) 同域 guard；
+      // 只有 guard 通过后，才会继续做 ref 解引用、控件类型分支和实际赋值。
       const d = await A(a.id, l, "form input action");
       if (d) {
         return d;
       }
       const u = await x({
         target: {
-          tabId: a.id
+          tabId: a.id,
         },
         func: (e, t) => {
           try {
             let r = null;
             if (window.__claudeElementMap && window.__claudeElementMap[e]) {
+              // 语义锚点：form_input 是直接 ref consumer；
+              // 它不走 me(ref)->坐标 helper，而是在页面上下文里直接验活 __claudeElementMap。
+              // stale ref 会在这里清掉，guard 通过后才进入 select/checkbox/radio/textbox 分支。
               r = window.__claudeElementMap[e].deref() || null;
               if (!r || !document.contains(r)) {
                 delete window.__claudeElementMap[e];
@@ -5656,12 +6615,12 @@ const ve = {
             }
             if (!r) {
               return {
-                error: `No element found with reference: "${e}". The element may have been removed from the page.`
+                error: `No element found with reference: "${e}". The element may have been removed from the page.`,
               };
             }
             r.scrollIntoView({
               behavior: "smooth",
-              block: "center"
+              block: "center",
             });
             if (r instanceof HTMLSelectElement) {
               const e = r.value;
@@ -5677,18 +6636,22 @@ const ve = {
               }
               if (a) {
                 r.focus();
-                r.dispatchEvent(new Event("change", {
-                  bubbles: true
-                }));
-                r.dispatchEvent(new Event("input", {
-                  bubbles: true
-                }));
+                r.dispatchEvent(
+                  new Event("change", {
+                    bubbles: true,
+                  }),
+                );
+                r.dispatchEvent(
+                  new Event("input", {
+                    bubbles: true,
+                  }),
+                );
                 return {
-                  output: `Selected option "${n}" in dropdown (previous: "${e}")`
+                  output: `Selected option "${n}" in dropdown (previous: "${e}")`,
                 };
               } else {
                 return {
-                  error: `Option "${n}" not found. Available options: ${o.map(e => `"${e.text}" (value: "${e.value}")`).join(", ")}`
+                  error: `Option "${n}" not found. Available options: ${o.map((e) => `"${e.text}" (value: "${e.value}")`).join(", ")}`,
                 };
               }
             }
@@ -5696,19 +6659,23 @@ const ve = {
               const e = r.checked;
               if (typeof t != "boolean") {
                 return {
-                  error: "Checkbox requires a boolean value (true/false)"
+                  error: "Checkbox requires a boolean value (true/false)",
                 };
               } else {
                 r.checked = t;
                 r.focus();
-                r.dispatchEvent(new Event("change", {
-                  bubbles: true
-                }));
-                r.dispatchEvent(new Event("input", {
-                  bubbles: true
-                }));
+                r.dispatchEvent(
+                  new Event("change", {
+                    bubbles: true,
+                  }),
+                );
+                r.dispatchEvent(
+                  new Event("input", {
+                    bubbles: true,
+                  }),
+                );
                 return {
-                  output: `Checkbox ${r.checked ? "checked" : "unchecked"} (previous: ${e})`
+                  output: `Checkbox ${r.checked ? "checked" : "unchecked"} (previous: ${e})`,
                 };
               }
             }
@@ -5717,12 +6684,16 @@ const ve = {
               const o = r.name;
               r.checked = true;
               r.focus();
-              r.dispatchEvent(new Event("change", {
-                bubbles: true
-              }));
-              r.dispatchEvent(new Event("input", {
-                bubbles: true
-              }));
+              r.dispatchEvent(
+                new Event("change", {
+                  bubbles: true,
+                }),
+              );
+              r.dispatchEvent(
+                new Event("input", {
+                  bubbles: true,
+                }),
+              );
               return {
                 success: true,
                 action: "form_input",
@@ -5730,21 +6701,33 @@ const ve = {
                 element_type: "radio",
                 previous_value: t,
                 new_value: r.checked,
-                message: "Radio button selected" + (o ? ` in group "${o}"` : "")
+                message:
+                  "Radio button selected" + (o ? ` in group "${o}"` : ""),
               };
             }
-            if (r instanceof HTMLInputElement && (r.type === "date" || r.type === "time" || r.type === "datetime-local" || r.type === "month" || r.type === "week")) {
+            if (
+              r instanceof HTMLInputElement &&
+              (r.type === "date" ||
+                r.type === "time" ||
+                r.type === "datetime-local" ||
+                r.type === "month" ||
+                r.type === "week")
+            ) {
               const e = r.value;
               r.value = String(t);
               r.focus();
-              r.dispatchEvent(new Event("change", {
-                bubbles: true
-              }));
-              r.dispatchEvent(new Event("input", {
-                bubbles: true
-              }));
+              r.dispatchEvent(
+                new Event("change", {
+                  bubbles: true,
+                }),
+              );
+              r.dispatchEvent(
+                new Event("input", {
+                  bubbles: true,
+                }),
+              );
               return {
-                output: `Set ${r.type} to "${r.value}" (previous: ${e})`
+                output: `Set ${r.type} to "${r.value}" (previous: ${e})`,
               };
             }
             if (r instanceof HTMLInputElement && r.type === "range") {
@@ -5752,17 +6735,21 @@ const ve = {
               const a = Number(t);
               if (isNaN(a)) {
                 return {
-                  error: "Range input requires a numeric value"
+                  error: "Range input requires a numeric value",
                 };
               } else {
                 r.value = String(a);
                 r.focus();
-                r.dispatchEvent(new Event("change", {
-                  bubbles: true
-                }));
-                r.dispatchEvent(new Event("input", {
-                  bubbles: true
-                }));
+                r.dispatchEvent(
+                  new Event("change", {
+                    bubbles: true,
+                  }),
+                );
+                r.dispatchEvent(
+                  new Event("input", {
+                    bubbles: true,
+                  }),
+                );
                 return {
                   success: true,
                   action: "form_input",
@@ -5770,7 +6757,7 @@ const ve = {
                   element_type: "range",
                   previous_value: o,
                   new_value: r.value,
-                  message: `Set range to ${r.value} (min: ${r.min}, max: ${r.max})`
+                  message: `Set range to ${r.value} (min: ${r.min}, max: ${r.max})`,
                 };
               }
             }
@@ -5779,49 +6766,64 @@ const ve = {
               const o = Number(t);
               if (isNaN(o) && t !== "") {
                 return {
-                  error: "Number input requires a numeric value"
+                  error: "Number input requires a numeric value",
                 };
               } else {
                 r.value = String(t);
                 r.focus();
-                r.dispatchEvent(new Event("change", {
-                  bubbles: true
-                }));
-                r.dispatchEvent(new Event("input", {
-                  bubbles: true
-                }));
+                r.dispatchEvent(
+                  new Event("change", {
+                    bubbles: true,
+                  }),
+                );
+                r.dispatchEvent(
+                  new Event("input", {
+                    bubbles: true,
+                  }),
+                );
                 return {
-                  output: `Set number input to ${r.value} (previous: ${e})`
+                  output: `Set number input to ${r.value} (previous: ${e})`,
                 };
               }
             }
-            if (r instanceof HTMLInputElement || r instanceof HTMLTextAreaElement) {
+            if (
+              r instanceof HTMLInputElement ||
+              r instanceof HTMLTextAreaElement
+            ) {
               const e = r.value;
               r.value = String(t);
               r.focus();
-              if (r instanceof HTMLTextAreaElement || r instanceof HTMLInputElement && ["text", "search", "url", "tel", "password"].includes(r.type)) {
+              if (
+                r instanceof HTMLTextAreaElement ||
+                (r instanceof HTMLInputElement &&
+                  ["text", "search", "url", "tel", "password"].includes(r.type))
+              ) {
                 r.setSelectionRange(r.value.length, r.value.length);
               }
-              r.dispatchEvent(new Event("change", {
-                bubbles: true
-              }));
-              r.dispatchEvent(new Event("input", {
-                bubbles: true
-              }));
+              r.dispatchEvent(
+                new Event("change", {
+                  bubbles: true,
+                }),
+              );
+              r.dispatchEvent(
+                new Event("input", {
+                  bubbles: true,
+                }),
+              );
               return {
-                output: `Set ${r instanceof HTMLTextAreaElement ? "textarea" : r.type || "text"} value to "${r.value}" (previous: "${e}")`
+                output: `Set ${r instanceof HTMLTextAreaElement ? "textarea" : r.type || "text"} value to "${r.value}" (previous: "${e}")`,
               };
             }
             return {
-              error: `Element type "${r.tagName}" is not a supported form input`
+              error: `Element type "${r.tagName}" is not a supported form input`,
             };
           } catch (r) {
             return {
-              error: `Error setting form value: ${r instanceof Error ? r.message : "Unknown error"}`
+              error: `Error setting form value: ${r instanceof Error ? r.message : "Unknown error"}`,
             };
           }
         },
-        args: [r.ref, r.value]
+        args: [r.ref, r.value],
       });
       if (!u || u.length === 0) {
         throw new Error("Failed to execute form input");
@@ -5833,56 +6835,60 @@ const ve = {
           currentTabId: t.tabId,
           executedOnTabId: o,
           availableTabs: h,
-          tabCount: h.length
-        }
+          tabCount: h.length,
+        },
       };
     } catch (r) {
       return {
-        error: `Failed to execute form input: ${r instanceof Error ? r.message : "Unknown error"}`
+        error: `Failed to execute form input: ${r instanceof Error ? r.message : "Unknown error"}`,
       };
     }
   },
   toAnthropicSchema: async () => ({
     name: "form_input",
-    description: "Set values in form elements using element reference ID from the read_page tool. If you don't have a valid tab ID, use tabs_context first to get available tabs.",
+    description:
+      "Set values in form elements using element reference ID from the read_page tool. If you don't have a valid tab ID, use tabs_context first to get available tabs.",
     input_schema: {
       type: "object",
       properties: {
         ref: {
           type: "string",
-          description: "Element reference ID from the read_page tool (e.g., \"ref_1\", \"ref_2\")"
+          description:
+            'Element reference ID from the read_page tool (e.g., "ref_1", "ref_2")',
         },
         value: {
           type: ["string", "boolean", "number"],
-          description: "The value to set. For checkboxes use boolean, for selects use option value or text, for other inputs use appropriate string/number"
+          description:
+            "The value to set. For checkboxes use boolean, for selects use option value or text, for other inputs use appropriate string/number",
         },
         tabId: {
           type: "number",
-          description: "Tab ID to set form value in. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID."
-        }
+          description:
+            "Tab ID to set form value in. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID.",
+        },
       },
-      required: ["ref", "value", "tabId"]
-    }
-  })
+      required: ["ref", "value", "tabId"],
+    },
+  }),
 };
 const Ie = {
   name: "get_page_text",
-  description: "Extract raw text content from the page, prioritizing article content. Ideal for reading articles, blog posts, or other text-heavy pages. Returns plain text without HTML formatting. If you don't have a valid tab ID, use tabs_context first to get available tabs. Output is limited to 50000 characters by default.",
+  description:
+    "Extract raw text content from the page, prioritizing article content. Ideal for reading articles, blog posts, or other text-heavy pages. Returns plain text without HTML formatting. If you don't have a valid tab ID, use tabs_context first to get available tabs. Output is limited to 50000 characters by default.",
   parameters: {
     tabId: {
       type: "number",
-      description: "Tab ID to extract text from. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID."
+      description:
+        "Tab ID to extract text from. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID.",
     },
     max_chars: {
       type: "number",
-      description: "Maximum characters for output (default: 50000). Set to a higher value if your client can handle large outputs."
-    }
+      description:
+        "Maximum characters for output (default: 50000). Set to a higher value if your client can handle large outputs.",
+    },
   },
   execute: async (e, t) => {
-    const {
-      tabId: r,
-      max_chars: o
-    } = e || {};
+    const { tabId: r, max_chars: o } = e || {};
     if (!t?.tabId) {
       throw new Error("No active tab found");
     }
@@ -5899,139 +6905,212 @@ const Ie = {
           type: "permission_required",
           tool: c.READ_PAGE_CONTENT,
           url: n,
-          toolUseId: s
+          toolUseId: s,
         };
       }
       return {
-        error: "Permission denied for reading page content on this domain"
+        error: "Permission denied for reading page content on this domain",
       };
     }
+    // 语义锚点：get_page_text / read_page 共用“先 permission，后 hideIndicator/read DOM”的读页模板。
+    // 也就是说 permission popup 分支不会提前隐藏 indicator；真正读正文只发生在授权通过之后。
     await F.hideIndicatorForToolUse(a);
-    await new Promise(e => setTimeout(e, 50));
+    await new Promise((e) => setTimeout(e, 50));
     try {
       const e = await x({
         target: {
-          tabId: a
+          tabId: a,
         },
-        func: e => function () {
-          const t = ["article", "main", "[role=\"main\"]", "[class*=\"articleBody\"]", "[class*=\"article-body\"]", "[class*=\"article\"]", "[class*=\"post-content\"]", "[class*=\"entry-content\"]", "[class*=\"content-body\"]", "[class*=\"markdown\"]", "[class*=\"readme\"]", "[class*=\"doc\"]", ".content", "#content", "[id*=\"content\"]", "[id*=\"article\"]", "[id*=\"readme\"]"];
-          const r = new Set(["script", "style", "noscript", "template", "svg", "canvas", "iframe"]);
-          const o = function (e) {
-            if (!(e instanceof Element)) {
-              return true;
-            }
-            const t = window.getComputedStyle(e);
-            const r = e.getBoundingClientRect();
-            return t.display !== "none" && t.visibility !== "hidden" && t.opacity !== "0" && r.width > 0 && r.height > 0;
-          };
-          const a = function (e) {
-            return String(e || "").replace(/\u00a0/g, " ").replace(/[ \t]+\n/g, "\n").replace(/\n[ \t]+/g, "\n").replace(/[ \t]{2,}/g, " ").replace(/\n{3,}/g, "\n\n").trim();
-          };
-          const n = function (e) {
-            if (!e || !o(e)) {
-              return "";
-            }
-            const t = document.createTreeWalker(e, NodeFilter.SHOW_TEXT, {
-              acceptNode(t) {
-                const a = t.parentElement;
-                if (!a || !o(a)) {
-                  return NodeFilter.FILTER_REJECT;
-                }
-                if (a.closest("nav,header,footer,aside,form,button,select,textarea")) {
-                  return NodeFilter.FILTER_REJECT;
-                }
-                const n = a.tagName.toLowerCase();
-                if (r.has(n)) {
-                  return NodeFilter.FILTER_REJECT;
-                }
-                const s = (t.textContent || "").replace(/\s+/g, " ").trim();
-                return s ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+        func: (e) =>
+          (function () {
+            const t = [
+              "article",
+              "main",
+              '[role="main"]',
+              '[class*="articleBody"]',
+              '[class*="article-body"]',
+              '[class*="article"]',
+              '[class*="post-content"]',
+              '[class*="entry-content"]',
+              '[class*="content-body"]',
+              '[class*="markdown"]',
+              '[class*="readme"]',
+              '[class*="doc"]',
+              ".content",
+              "#content",
+              '[id*="content"]',
+              '[id*="article"]',
+              '[id*="readme"]',
+            ];
+            const r = new Set([
+              "script",
+              "style",
+              "noscript",
+              "template",
+              "svg",
+              "canvas",
+              "iframe",
+            ]);
+            const o = function (e) {
+              if (!(e instanceof Element)) {
+                return true;
               }
-            });
-            const n = [];
-            let s;
-            while (s = t.nextNode()) {
-              n.push(s.textContent || "");
-              if (n.length >= 4000) {
-                break;
+              const t = window.getComputedStyle(e);
+              const r = e.getBoundingClientRect();
+              return (
+                t.display !== "none" &&
+                t.visibility !== "hidden" &&
+                t.opacity !== "0" &&
+                r.width > 0 &&
+                r.height > 0
+              );
+            };
+            const a = function (e) {
+              return String(e || "")
+                .replace(/\u00a0/g, " ")
+                .replace(/[ \t]+\n/g, "\n")
+                .replace(/\n[ \t]+/g, "\n")
+                .replace(/[ \t]{2,}/g, " ")
+                .replace(/\n{3,}/g, "\n\n")
+                .trim();
+            };
+            const n = function (e) {
+              if (!e || !o(e)) {
+                return "";
               }
-            }
-            return a(n.join("\n"));
-          };
-          const s = function (e) {
-            const r = n(e);
-            if (r.length < 40) {
+              const t = document.createTreeWalker(e, NodeFilter.SHOW_TEXT, {
+                acceptNode(t) {
+                  const a = t.parentElement;
+                  if (!a || !o(a)) {
+                    return NodeFilter.FILTER_REJECT;
+                  }
+                  if (
+                    a.closest(
+                      "nav,header,footer,aside,form,button,select,textarea",
+                    )
+                  ) {
+                    return NodeFilter.FILTER_REJECT;
+                  }
+                  const n = a.tagName.toLowerCase();
+                  if (r.has(n)) {
+                    return NodeFilter.FILTER_REJECT;
+                  }
+                  const s = (t.textContent || "").replace(/\s+/g, " ").trim();
+                  return s
+                    ? NodeFilter.FILTER_ACCEPT
+                    : NodeFilter.FILTER_REJECT;
+                },
+              });
+              const n = [];
+              let s;
+              while ((s = t.nextNode())) {
+                n.push(s.textContent || "");
+                if (n.length >= 4000) {
+                  break;
+                }
+              }
+              return a(n.join("\n"));
+            };
+            const s = function (e) {
+              const r = n(e);
+              if (r.length < 40) {
+                return {
+                  score: -Infinity,
+                  text: r,
+                };
+              }
+              const o = e.matches('article,main,[role="main"]')
+                ? 80
+                : e.matches(
+                      '[class*="articleBody"],[class*="article-body"],[class*="article"],[class*="post-content"],[class*="entry-content"],[class*="content-body"],[class*="markdown"],[class*="readme"],[class*="doc"],.content,#content,[id*="content"],[id*="article"],[id*="readme"]',
+                    )
+                  ? 40
+                  : 0;
+              const a = e.querySelectorAll("p,li,pre,code,blockquote").length;
+              const s = e.querySelectorAll("h1,h2,h3,h4").length;
+              const i = e.querySelectorAll("a").length;
+              const l = e.querySelectorAll(
+                "button,input,select,textarea",
+              ).length;
               return {
-                score: -Infinity,
-                text: r
+                score:
+                  o +
+                  Math.min(r.length, 6000) / 20 +
+                  a * 8 +
+                  s * 6 -
+                  i * 1.5 -
+                  l * 12,
+                text: r,
+              };
+            };
+            const i = new Set();
+            for (const e of t) {
+              for (const t of document.querySelectorAll(e)) {
+                if (o(t)) {
+                  i.add(t);
+                }
+              }
+            }
+            Array.from(document.querySelectorAll("main,article,section,div"))
+              .filter((e) => o(e) && (e.textContent?.trim().length || 0) >= 120)
+              .sort(
+                (e, t) =>
+                  (t.textContent?.length || 0) - (e.textContent?.length || 0),
+              )
+              .slice(0, 80)
+              .forEach((e) => i.add(e));
+            let l = null;
+            let d = "";
+            let c = -Infinity;
+            for (const e of i) {
+              const t = s(e);
+              if (t.score > c) {
+                c = t.score;
+                l = e;
+                d = t.text;
+              }
+            }
+            if (!l) {
+              l = document.querySelector("main") || document.body;
+              d = n(l);
+            }
+            if ((!d || d.length < 40) && l !== document.body) {
+              l = document.body;
+              d = n(l);
+            }
+            if (!d || d.length < 10) {
+              return {
+                text: "",
+                source: "none",
+                title: document.title,
+                url: window.location.href,
+                error:
+                  "No text content found. Page may contain only images, videos, or canvas-based content.",
               };
             }
-            const o = e.matches("article,main,[role=\"main\"]") ? 80 : e.matches("[class*=\"articleBody\"],[class*=\"article-body\"],[class*=\"article\"],[class*=\"post-content\"],[class*=\"entry-content\"],[class*=\"content-body\"],[class*=\"markdown\"],[class*=\"readme\"],[class*=\"doc\"],.content,#content,[id*=\"content\"],[id*=\"article\"],[id*=\"readme\"]") ? 40 : 0;
-            const a = e.querySelectorAll("p,li,pre,code,blockquote").length;
-            const s = e.querySelectorAll("h1,h2,h3,h4").length;
-            const i = e.querySelectorAll("a").length;
-            const l = e.querySelectorAll("button,input,select,textarea").length;
-            return {
-              score: o + Math.min(r.length, 6000) / 20 + a * 8 + s * 6 - i * 1.5 - l * 12,
-              text: r
-            };
-          };
-          const i = new Set();
-          for (const e of t) {
-            for (const t of document.querySelectorAll(e)) {
-              if (o(t)) {
-                i.add(t);
-              }
+            const u = d.length > e;
+            if (u) {
+              d = d.slice(0, e).trimEnd() + "\n...[truncated]";
             }
-          }
-          Array.from(document.querySelectorAll("main,article,section,div")).filter(e => o(e) && (e.textContent?.trim().length || 0) >= 120).sort((e, t) => (t.textContent?.length || 0) - (e.textContent?.length || 0)).slice(0, 80).forEach(e => i.add(e));
-          let l = null;
-          let d = "";
-          let c = -Infinity;
-          for (const e of i) {
-            const t = s(e);
-            if (t.score > c) {
-              c = t.score;
-              l = e;
-              d = t.text;
-            }
-          }
-          if (!l) {
-            l = document.querySelector("main") || document.body;
-            d = n(l);
-          }
-          if ((!d || d.length < 40) && l !== document.body) {
-            l = document.body;
-            d = n(l);
-          }
-          if (!d || d.length < 10) {
             return {
-              text: "",
-              source: "none",
+              text: d,
+              source: l === document.body ? "body" : l.tagName.toLowerCase(),
               title: document.title,
               url: window.location.href,
-              error: "No text content found. Page may contain only images, videos, or canvas-based content."
+              truncated: u,
             };
-          }
-          const u = d.length > e;
-          if (u) {
-            d = d.slice(0, e).trimEnd() + "\n...[truncated]";
-          }
-          return {
-            text: d,
-            source: l === document.body ? "body" : l.tagName.toLowerCase(),
-            title: document.title,
-            url: window.location.href,
-            truncated: u
-          };
-        }(),
-        args: [o ?? 50000]
+          })(),
+        args: [o ?? 50000],
       });
       if (!e || e.length === 0) {
-        throw new Error("No main text content found. The content might be visual content only, or rendered in a canvas element.");
+        throw new Error(
+          "No main text content found. The content might be visual content only, or rendered in a canvas element.",
+        );
       }
       if ("error" in e[0] && e[0].error) {
-        throw new Error(`Script execution failed: ${e[0].error.message || "Unknown error"}`);
+        throw new Error(
+          `Script execution failed: ${e[0].error.message || "Unknown error"}`,
+        );
       }
       if (!e[0].result) {
         throw new Error("Page script returned empty result");
@@ -6045,8 +7124,8 @@ const Ie = {
             currentTabId: t.tabId,
             executedOnTabId: a,
             availableTabs: n,
-            tabCount: n.length
-          }
+            tabCount: n.length,
+          },
         };
       } else {
         return {
@@ -6055,13 +7134,13 @@ const Ie = {
             currentTabId: t.tabId,
             executedOnTabId: a,
             availableTabs: n,
-            tabCount: n.length
-          }
+            tabCount: n.length,
+          },
         };
       }
     } catch (l) {
       return {
-        error: `Failed to extract page text: ${l instanceof Error ? l.message : "Unknown error"}`
+        error: `Failed to extract page text: ${l instanceof Error ? l.message : "Unknown error"}`,
       };
     } finally {
       await F.restoreIndicatorAfterToolUse(a);
@@ -6069,22 +7148,25 @@ const Ie = {
   },
   toAnthropicSchema: async () => ({
     name: "get_page_text",
-    description: "Extract raw text content from the page, prioritizing article content. Ideal for reading articles, blog posts, or other text-heavy pages. Returns plain text without HTML formatting. If you don't have a valid tab ID, use tabs_context first to get available tabs. Output is limited to 50000 characters by default. If the output exceeds this limit, you will receive an error suggesting alternatives.",
+    description:
+      "Extract raw text content from the page, prioritizing article content. Ideal for reading articles, blog posts, or other text-heavy pages. Returns plain text without HTML formatting. If you don't have a valid tab ID, use tabs_context first to get available tabs. Output is limited to 50000 characters by default. If the output exceeds this limit, you will receive an error suggesting alternatives.",
     input_schema: {
       type: "object",
       properties: {
         tabId: {
           type: "number",
-          description: "Tab ID to extract text from. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID."
+          description:
+            "Tab ID to extract text from. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID.",
         },
         max_chars: {
           type: "number",
-          description: "Maximum characters for output (default: 50000). Set to a higher value if your client can handle large outputs."
-        }
+          description:
+            "Maximum characters for output (default: 50000). Set to a higher value if your client can handle large outputs.",
+        },
       },
-      required: ["tabId"]
-    }
-  })
+      required: ["tabId"],
+    },
+  }),
 };
 let ke;
 function Te() {
@@ -6093,8 +7175,12 @@ function Te() {
       if (!(await chrome.offscreen.hasDocument())) {
         await chrome.offscreen.createDocument({
           url: "offscreen.html",
-          reasons: [chrome.offscreen.Reason.AUDIO_PLAYBACK, chrome.offscreen.Reason.BLOBS],
-          justification: "Keep service worker alive, play notification sounds, generate GIFs"
+          reasons: [
+            chrome.offscreen.Reason.AUDIO_PLAYBACK,
+            chrome.offscreen.Reason.BLOBS,
+          ],
+          justification:
+            "Keep service worker alive, play notification sounds, generate GIFs",
         });
       }
     }
@@ -6103,14 +7189,14 @@ function Te() {
   });
   return ke;
 }
-const xe = new class {
+const xe = new (class {
   storage = new Map();
   recordingGroups = new Set();
   addFrame(e, t) {
     if (!this.storage.has(e)) {
       this.storage.set(e, {
         frames: [],
-        lastUpdated: Date.now()
+        lastUpdated: Date.now(),
       });
     }
     const r = this.storage.get(e);
@@ -6151,36 +7237,62 @@ const xe = new class {
     this.storage.clear();
     this.recordingGroups.clear();
   }
-}();
+})();
 const Se = "mcp-native-session";
+// 语义锚点：gif_creator 工具协议（action / upload / offscreen GIF 生成消息）。
+const __cpGifCreatorToolName = "gif_creator";
+const __cpGifCreatorActionStartRecording = "start_recording";
+const __cpGifCreatorActionStopRecording = "stop_recording";
+const __cpGifCreatorActionExport = "export";
+const __cpGifCreatorActionClear = "clear";
+const __cpGifCreatorFieldCoordinate = "coordinate";
+const __cpGifCreatorFieldDownload = "download";
+const __cpGifCreatorFieldFilename = "filename";
+const __cpGifCreatorContractMessages =
+  globalThis.__CP_CONTRACT__?.messages || {};
+const __cpGifCreatorOffscreenMessageTypeGenerateGif =
+  __cpGifCreatorContractMessages.GENERATE_GIF || "GENERATE_GIF";
+const __cpGifCreatorOffscreenMessageTypeRevokeBlobUrl =
+  __cpGifCreatorContractMessages.REVOKE_BLOB_URL || "REVOKE_BLOB_URL";
+const __cpGifCreatorFilenamePrefix = "recording-";
+const __cpGifCreatorFilenameExtension = ".gif";
+const __cpGifCreatorPermissionDeniedMessage =
+  "Permission denied for uploading to this domain";
 const Ee = {
-  name: "gif_creator",
-  description: "Manage GIF recording and export for browser automation sessions. Control when to start/stop recording browser actions (clicks, scrolls, navigation), then export as an animated GIF with visual overlays (click indicators, action labels, progress bar, watermark). All operations are scoped to the tab's group. When starting recording, take a screenshot immediately after to capture the initial state as the first frame. When stopping recording, take a screenshot immediately before to capture the final state as the last frame. For export, either provide 'coordinate' to drag/drop upload to a page element, or set 'download: true' to download the GIF.",
+  name: __cpGifCreatorToolName,
+  description:
+    "Manage GIF recording and export for browser automation sessions. Control when to start/stop recording browser actions (clicks, scrolls, navigation), then export as an animated GIF with visual overlays (click indicators, action labels, progress bar, watermark). All operations are scoped to the tab's group. When starting recording, take a screenshot immediately after to capture the initial state as the first frame. When stopping recording, take a screenshot immediately before to capture the final state as the last frame. For export, either provide 'coordinate' to drag/drop upload to a page element, or set 'download: true' to download the GIF.",
   parameters: {
     action: {
       type: "string",
-      description: "Action to perform: 'start_recording' (begin capturing), 'stop_recording' (stop capturing but keep frames), 'export' (generate and export GIF), 'clear' (discard frames)"
+      description:
+        "Action to perform: 'start_recording' (begin capturing), 'stop_recording' (stop capturing but keep frames), 'export' (generate and export GIF), 'clear' (discard frames)",
     },
     tabId: {
       type: "number",
-      description: "Tab ID to identify which tab group this operation applies to"
+      description:
+        "Tab ID to identify which tab group this operation applies to",
     },
     coordinate: {
       type: "array",
-      description: "Viewport coordinates [x, y] for drag & drop upload. Required for 'export' action unless 'download' is true."
+      description:
+        "Viewport coordinates [x, y] for drag & drop upload. Required for 'export' action unless 'download' is true.",
     },
     download: {
       type: "boolean",
-      description: "If true, download the GIF instead of drag/drop upload. For 'export' action only."
+      description:
+        "If true, download the GIF instead of drag/drop upload. For 'export' action only.",
     },
     filename: {
       type: "string",
-      description: "Optional filename for exported GIF (default: 'recording-[timestamp].gif'). For 'export' action only."
+      description:
+        "Optional filename for exported GIF (default: 'recording-[timestamp].gif'). For 'export' action only.",
     },
     options: {
       type: "object",
-      description: "Optional GIF enhancement options for 'export' action. All default to true."
-    }
+      description:
+        "Optional GIF enhancement options for 'export' action. All default to true.",
+    },
   },
   execute: async (e, t) => {
     try {
@@ -6200,44 +7312,54 @@ const Ee = {
         const e = await chrome.storage.local.get(r.MCP_TAB_GROUP_ID);
         if (n !== e[r.MCP_TAB_GROUP_ID]) {
           return {
-            error: `Tab ${o.tabId} is not in the MCP tab group. GIF recording only works for tabs within the MCP tab group.`
+            error: `Tab ${o.tabId} is not in the MCP tab group. GIF recording only works for tabs within the MCP tab group.`,
           };
         }
       }
+      // 语义锚点：GIF 录制/导出主状态机（start/stop/export/clear）。
       switch (o.action) {
-        case "start_recording":
-          return await async function (e) {
+        case __cpGifCreatorActionStartRecording:
+          return await (async function (e) {
             const t = xe.isRecording(e);
             if (t) {
               return {
-                output: "Recording is already active for this tab group. Use 'stop_recording' to stop or 'export' to generate GIF."
+                output:
+                  "Recording is already active for this tab group. Use 'stop_recording' to stop or 'export' to generate GIF.",
               };
             }
             xe.clearFrames(e);
             xe.startRecording(e);
             return {
-              output: "Started recording browser actions for this tab group. All computer and navigate tool actions will now be captured (max 50 frames). Previous frames cleared."
+              output:
+                "Started recording browser actions for this tab group. All computer and navigate tool actions will now be captured (max 50 frames). Previous frames cleared.",
             };
-          }(n);
-        case "stop_recording":
-          return await async function (e) {
+          })(n);
+        case __cpGifCreatorActionStopRecording:
+          return await (async function (e) {
             const t = xe.isRecording(e);
             if (!t) {
               return {
-                output: "Recording is not active for this tab group. Use 'start_recording' to begin capturing."
+                output:
+                  "Recording is not active for this tab group. Use 'start_recording' to begin capturing.",
               };
             }
             xe.stopRecording(e);
             const r = xe.getFrameCount(e);
             return {
-              output: `Stopped recording for this tab group. Captured ${r} frame${r === 1 ? "" : "s"}. Use 'export' to generate GIF or 'clear' to discard.`
+              output: `Stopped recording for this tab group. Captured ${r} frame${r === 1 ? "" : "s"}. Use 'export' to generate GIF or 'clear' to discard.`,
             };
-          }(n);
-        case "export":
-          return await async function (e, t, r, o) {
-            const a = e.download === true;
-            if (!a && (!e.coordinate || e.coordinate.length !== 2)) {
-              throw new Error("coordinate parameter is required for export action (or set download: true to download the GIF)");
+          })(n);
+        case __cpGifCreatorActionExport:
+          return await (async function (e, t, r, o) {
+            const a = e[__cpGifCreatorFieldDownload] === true;
+            if (
+              !a &&
+              (!e[__cpGifCreatorFieldCoordinate] ||
+                e[__cpGifCreatorFieldCoordinate].length !== 2)
+            ) {
+              throw new Error(
+                "coordinate parameter is required for export action (or set download: true to download the GIF)",
+              );
             }
             if (!t.id || !t.url) {
               throw new Error("Tab has no ID or URL");
@@ -6245,7 +7367,8 @@ const Ee = {
             const n = xe.getFrames(r);
             if (n.length === 0) {
               return {
-                error: "No frames recorded for this tab group. Use 'start_recording' and perform browser actions first."
+                error:
+                  "No frames recorded for this tab group. Use 'start_recording' and perform browser actions first.",
               };
             }
             if (!a) {
@@ -6253,6 +7376,8 @@ const Ee = {
               const a = o?.toolUseId;
               const n = await o.permissionManager.checkPermission(r, a);
               if (!n.allowed) {
+                // 语义锚点：GIF 导出上传前的 permission_required 产出点。
+                // 它复用 upload_image 家族，但 permission popup 这里只需要 coordinate 预览，不携带 gif 二进制。
                 if (n.needsPrompt) {
                   return {
                     type: "permission_required",
@@ -6260,25 +7385,25 @@ const Ee = {
                     url: r,
                     toolUseId: a,
                     actionData: {
-                      coordinate: e.coordinate
-                    }
+                      coordinate: e[__cpGifCreatorFieldCoordinate],
+                    },
                   };
                 }
                 return {
-                  error: "Permission denied for uploading to this domain"
+                  error: __cpGifCreatorPermissionDeniedMessage,
                 };
               }
             }
             const s = t.url;
             await Te();
-            const i = n.map(e => ({
+            const i = n.map((e) => ({
               base64: e.base64,
               format: "jpeg",
               action: e.action,
               delay: e.action ? Ce(e.action.type) : 800,
               viewportWidth: e.viewportWidth,
               viewportHeight: e.viewportHeight,
-              devicePixelRatio: e.devicePixelRatio
+              devicePixelRatio: e.devicePixelRatio,
             }));
             const l = {
               showClickIndicators: e.options?.showClickIndicators ?? true,
@@ -6286,30 +7411,35 @@ const Ee = {
               showActionLabels: e.options?.showActionLabels ?? true,
               showProgressBar: e.options?.showProgressBar ?? true,
               showWatermark: e.options?.showWatermark ?? true,
-              quality: e.options?.quality ?? 10
+              quality: e.options?.quality ?? 10,
             };
             const d = await new Promise((e, t) => {
-              chrome.runtime.sendMessage({
-                type: "GENERATE_GIF",
-                frames: i,
-                options: l
-              }, r => {
-                if (chrome.runtime.lastError) {
-                  t(new Error(chrome.runtime.lastError.message));
-                } else if (r && r.success) {
-                  e(r.result);
-                } else {
-                  t(new Error(r?.error || "Unknown error from offscreen"));
-                }
-              });
+              chrome.runtime.sendMessage(
+                {
+                  type: __cpGifCreatorOffscreenMessageTypeGenerateGif,
+                  frames: i,
+                  options: l,
+                },
+                (r) => {
+                  if (chrome.runtime.lastError) {
+                    t(new Error(chrome.runtime.lastError.message));
+                  } else if (r && r.success) {
+                    e(r.result);
+                  } else {
+                    t(new Error(r?.error || "Unknown error from offscreen"));
+                  }
+                },
+              );
             });
             const u = new Date().toISOString().replace(/[:.]/g, "-");
-            const h = e.filename || `recording-${u}.gif`;
+            const h =
+              e[__cpGifCreatorFieldFilename] ||
+              `${__cpGifCreatorFilenamePrefix}${u}${__cpGifCreatorFilenameExtension}`;
             let p;
             const m = () => {
               chrome.runtime.sendMessage({
-                type: "REVOKE_BLOB_URL",
-                blobUrl: d.blobUrl
+                type: __cpGifCreatorOffscreenMessageTypeRevokeBlobUrl,
+                blobUrl: d.blobUrl,
               });
             };
             let f = false;
@@ -6318,10 +7448,14 @@ const Ee = {
                 const e = await chrome.downloads.download({
                   url: d.blobUrl,
                   filename: h,
-                  saveAs: false
+                  saveAs: false,
                 });
-                const t = r => {
-                  if (r.id === e && (r.state?.current === "complete" || r.state?.current === "interrupted")) {
+                const t = (r) => {
+                  if (
+                    r.id === e &&
+                    (r.state?.current === "complete" ||
+                      r.state?.current === "interrupted")
+                  ) {
                     chrome.downloads.onChanged.removeListener(t);
                     m();
                   }
@@ -6329,7 +7463,7 @@ const Ee = {
                 chrome.downloads.onChanged.addListener(t);
                 f = true;
                 const [r] = await chrome.downloads.search({
-                  id: e
+                  id: e,
                 });
                 if (r && r.state !== "in_progress") {
                   chrome.downloads.onChanged.removeListener(t);
@@ -6337,13 +7471,14 @@ const Ee = {
                 }
                 p = `Successfully exported GIF with ${n.length} frames. Downloaded "${h}" (${Math.round(d.size / 1024)}KB). Dimensions: ${d.width}x${d.height}. Recording cleared.`;
               } else {
+                // 语义锚点：GIF 导出后的页面内拖拽上传分支（DataTransfer + dragenter/dragover/drop）。
                 const r = await A(t.id, s, "GIF export upload action");
                 if (r) {
                   return r;
                 }
                 const o = await chrome.scripting.executeScript({
                   target: {
-                    tabId: t.id
+                    tabId: t.id,
                   },
                   func: (e, t, r, o) => {
                     const a = atob(e);
@@ -6353,44 +7488,57 @@ const Ee = {
                     }
                     const s = new Uint8Array(n);
                     const i = new Blob([s], {
-                      type: "image/gif"
+                      type: "image/gif",
                     });
                     const c = new File([i], t, {
                       type: "image/gif",
-                      lastModified: Date.now()
+                      lastModified: Date.now(),
                     });
                     const l = new DataTransfer();
                     l.items.add(c);
                     const d = document.elementFromPoint(r, o);
                     if (!d) {
-                      throw new Error(`No element found at coordinates (${r}, ${o})`);
+                      throw new Error(
+                        `No element found at coordinates (${r}, ${o})`,
+                      );
                     }
-                    d.dispatchEvent(new DragEvent("dragenter", {
-                      bubbles: true,
-                      cancelable: true,
-                      dataTransfer: l,
-                      clientX: r,
-                      clientY: o
-                    }));
-                    d.dispatchEvent(new DragEvent("dragover", {
-                      bubbles: true,
-                      cancelable: true,
-                      dataTransfer: l,
-                      clientX: r,
-                      clientY: o
-                    }));
-                    d.dispatchEvent(new DragEvent("drop", {
-                      bubbles: true,
-                      cancelable: true,
-                      dataTransfer: l,
-                      clientX: r,
-                      clientY: o
-                    }));
+                    d.dispatchEvent(
+                      new DragEvent("dragenter", {
+                        bubbles: true,
+                        cancelable: true,
+                        dataTransfer: l,
+                        clientX: r,
+                        clientY: o,
+                      }),
+                    );
+                    d.dispatchEvent(
+                      new DragEvent("dragover", {
+                        bubbles: true,
+                        cancelable: true,
+                        dataTransfer: l,
+                        clientX: r,
+                        clientY: o,
+                      }),
+                    );
+                    d.dispatchEvent(
+                      new DragEvent("drop", {
+                        bubbles: true,
+                        cancelable: true,
+                        dataTransfer: l,
+                        clientX: r,
+                        clientY: o,
+                      }),
+                    );
                     return {
-                      output: `Successfully dropped ${t} (${Math.round(i.size / 1024)}KB) at (${r}, ${o})`
+                      output: `Successfully dropped ${t} (${Math.round(i.size / 1024)}KB) at (${r}, ${o})`,
                     };
                   },
-                  args: [d.base64, h, e.coordinate[0], e.coordinate[1]]
+                  args: [
+                    d.base64,
+                    h,
+                    e[__cpGifCreatorFieldCoordinate][0],
+                    e[__cpGifCreatorFieldCoordinate][1],
+                  ],
                 });
                 if (!o || !o[0]?.result) {
                   throw new Error("Failed to upload GIF to page");
@@ -6410,114 +7558,131 @@ const Ee = {
                 currentTabId: o.tabId,
                 executedOnTabId: t.id,
                 availableTabs: g,
-                tabCount: g.length
-              }
+                tabCount: g.length,
+              },
             };
-          }(o, a, n, t);
-        case "clear":
-          return await async function (e) {
+          })(o, a, n, t);
+        case __cpGifCreatorActionClear:
+          return await (async function (e) {
             const t = xe.getFrameCount(e);
             if (t === 0) {
               return {
-                output: "No frames to clear for this tab group."
+                output: "No frames to clear for this tab group.",
               };
             }
             xe.clearFrames(e);
             return {
-              output: `Cleared ${t} frame${t === 1 ? "" : "s"} for this tab group. Recording stopped.`
+              output: `Cleared ${t} frame${t === 1 ? "" : "s"} for this tab group. Recording stopped.`,
             };
-          }(n);
+          })(n);
         default:
-          throw new Error(`Unknown action: ${o.action}. Must be one of: start_recording, stop_recording, export, clear`);
+          throw new Error(
+            `Unknown action: ${o.action}. Must be one of: ${__cpGifCreatorActionStartRecording}, ${__cpGifCreatorActionStopRecording}, ${__cpGifCreatorActionExport}, ${__cpGifCreatorActionClear}`,
+          );
       }
     } catch (o) {
       return {
-        error: `Failed to execute gif_creator: ${o instanceof Error ? o.message : "Unknown error"}`
+        error: `Failed to execute gif_creator: ${o instanceof Error ? o.message : "Unknown error"}`,
       };
     }
   },
   toAnthropicSchema: async () => ({
-    name: "gif_creator",
-    description: "Manage GIF recording and export for browser automation sessions. Control when to start/stop recording browser actions (clicks, scrolls, navigation), then export as an animated GIF with visual overlays (click indicators, action labels, progress bar, watermark). All operations are scoped to the tab's group. When starting recording, take a screenshot immediately after to capture the initial state as the first frame. When stopping recording, take a screenshot immediately before to capture the final state as the last frame. For export, either provide 'coordinate' to drag/drop upload to a page element, or set 'download: true' to download the GIF.",
+    name: __cpGifCreatorToolName,
+    description:
+      "Manage GIF recording and export for browser automation sessions. Control when to start/stop recording browser actions (clicks, scrolls, navigation), then export as an animated GIF with visual overlays (click indicators, action labels, progress bar, watermark). All operations are scoped to the tab's group. When starting recording, take a screenshot immediately after to capture the initial state as the first frame. When stopping recording, take a screenshot immediately before to capture the final state as the last frame. For export, either provide 'coordinate' to drag/drop upload to a page element, or set 'download: true' to download the GIF.",
     input_schema: {
       type: "object",
       properties: {
         action: {
           type: "string",
           enum: ["start_recording", "stop_recording", "export", "clear"],
-          description: "Action to perform: 'start_recording' (begin capturing), 'stop_recording' (stop capturing but keep frames), 'export' (generate and export GIF), 'clear' (discard frames)"
+          description:
+            "Action to perform: 'start_recording' (begin capturing), 'stop_recording' (stop capturing but keep frames), 'export' (generate and export GIF), 'clear' (discard frames)",
         },
         tabId: {
           type: "number",
-          description: "Tab ID to identify which tab group this operation applies to"
+          description:
+            "Tab ID to identify which tab group this operation applies to",
         },
         coordinate: {
           type: "array",
           items: {
-            type: "number"
+            type: "number",
           },
-          description: "Viewport coordinates [x, y] for drag & drop upload. Required for 'export' action unless 'download' is true."
+          description:
+            "Viewport coordinates [x, y] for drag & drop upload. Required for 'export' action unless 'download' is true.",
         },
         download: {
           type: "boolean",
-          description: "If true, download the GIF instead of drag/drop upload. For 'export' action only."
+          description:
+            "If true, download the GIF instead of drag/drop upload. For 'export' action only.",
         },
         filename: {
           type: "string",
-          description: "Optional filename for exported GIF (default: 'recording-[timestamp].gif'). For 'export' action only."
+          description:
+            "Optional filename for exported GIF (default: 'recording-[timestamp].gif'). For 'export' action only.",
         },
         options: {
           type: "object",
-          description: "Optional GIF enhancement options for 'export' action. Properties: showClickIndicators (bool), showDragPaths (bool), showActionLabels (bool), showProgressBar (bool), showWatermark (bool), quality (number 1-30). All default to true except quality (default: 10).",
+          description:
+            "Optional GIF enhancement options for 'export' action. Properties: showClickIndicators (bool), showDragPaths (bool), showActionLabels (bool), showProgressBar (bool), showWatermark (bool), quality (number 1-30). All default to true except quality (default: 10).",
           properties: {
             showClickIndicators: {
               type: "boolean",
-              description: "Show orange circles at click locations (default: true)"
+              description:
+                "Show orange circles at click locations (default: true)",
             },
             showDragPaths: {
               type: "boolean",
-              description: "Show red arrows for drag actions (default: true)"
+              description: "Show red arrows for drag actions (default: true)",
             },
             showActionLabels: {
               type: "boolean",
-              description: "Show black labels describing actions (default: true)"
+              description:
+                "Show black labels describing actions (default: true)",
             },
             showProgressBar: {
               type: "boolean",
-              description: "Show orange progress bar at bottom (default: true)"
+              description: "Show orange progress bar at bottom (default: true)",
             },
             showWatermark: {
               type: "boolean",
-              description: "Show Claw logo watermark (default: true)"
+              description: "Show Claw logo watermark (default: true)",
             },
             quality: {
               type: "number",
-              description: "GIF compression quality, 1-30 (lower = better quality, slower encoding). Default: 10"
-            }
-          }
-        }
+              description:
+                "GIF compression quality, 1-30 (lower = better quality, slower encoding). Default: 10",
+            },
+          },
+        },
       },
-      required: ["action", "tabId"]
-    }
-  })
+      required: ["action", "tabId"],
+    },
+  }),
 };
 function Ce(e) {
-  return {
-    wait: 300,
-    screenshot: 300,
-    navigate: 800,
-    scroll: 800,
-    scroll_to: 800,
-    type: 800,
-    key: 800,
-    zoom: 800,
-    left_click: 1500,
-    right_click: 1500,
-    double_click: 1500,
-    triple_click: 1500,
-    left_click_drag: 1500
-  }[e] ?? 800;
+  return (
+    {
+      wait: 300,
+      screenshot: 300,
+      navigate: 800,
+      scroll: 800,
+      scroll_to: 800,
+      type: 800,
+      key: 800,
+      zoom: 800,
+      left_click: 1500,
+      right_click: 1500,
+      double_click: 1500,
+      triple_click: 1500,
+      left_click_drag: 1500,
+    }[e] ?? 800
+  );
 }
+// 语义锚点：navigate 的 Me beforeunload / unsaved changes(force)。
+// 这个包装器把 leave-site 对话框统一收口成 accepted / blocked / none 三态；
+// force=true 时策略改为 accept，否则保留页面并返回阻塞错误。
 async function Me(e, t, r) {
   K.setBeforeunloadPolicy(e, t ? "accept" : "dismiss");
   await r();
@@ -6527,44 +7692,77 @@ async function Me(e, t, r) {
     if (o.action === "accepted") {
       return {
         kind: "accepted",
-        suffix: " (discarded a \"Leave site?\" dialog — the page had unsaved changes that are now lost)"
+        suffix:
+          ' (discarded a "Leave site?" dialog — the page had unsaved changes that are now lost)',
       };
     } else {
       return {
         kind: "blocked",
-        error: `Navigation was blocked by a "Leave site?" dialog — the page at ${o.url} has unsaved changes. The page is still open and unchanged. Either address the unsaved state first, or retry with force: true to discard it and navigate anyway.`
+        error: `Navigation was blocked by a "Leave site?" dialog — the page at ${o.url} has unsaved changes. The page is still open and unchanged. Either address the unsaved state first, or retry with force: true to discard it and navigate anyway.`,
       };
     }
   } else {
     return {
-      kind: "none"
+      kind: "none",
     };
   }
 }
+// 语义锚点：navigate 的历史栈回退/前进改走 CDP。
+// 实测 chrome.tabs.goBack() 在 MCP 新建 tab 上会误报“Cannot find a next page in history”，
+// 即使页面自己的 history.back() 与 CDP history 都证明存在上一页；因此这里统一改成
+// Page.getNavigationHistory + Page.navigateToHistoryEntry，直接跟浏览器真实历史栈对齐。
+async function __cpMcpNavigateHistoryWithCdp(e, t) {
+  const r = await K.sendCommand(e, "Page.getNavigationHistory");
+  const o = Array.isArray(r?.entries) ? r.entries : [];
+  const a =
+    typeof r?.currentIndex === "number" && Number.isFinite(r.currentIndex)
+      ? r.currentIndex
+      : -1;
+  const n = t === "back" ? a - 1 : a + 1;
+  if (n < 0 || n >= o.length) {
+    throw new Error(
+      t === "back"
+        ? "Cannot find a previous page in history."
+        : "Cannot find a next page in history.",
+    );
+  }
+  const s = o[n];
+  const i = s?.id;
+  if (typeof i !== "number" || !Number.isFinite(i)) {
+    throw new Error("Navigation history entry is missing an ID.");
+  }
+  await K.sendCommand(e, "Page.navigateToHistoryEntry", {
+    entryId: i,
+  });
+  return {
+    url: typeof s?.url === "string" ? s.url : "",
+  };
+}
+const __cpMcpBeforeunloadNavigationGuard = Me;
 const De = {
   name: "navigate",
-  description: "Navigate to a URL, or go forward/back in browser history. If you don't have a valid tab ID, use tabs_context first to get available tabs.",
+  description:
+    "Navigate to a URL, or go forward/back in browser history. If you don't have a valid tab ID, use tabs_context first to get available tabs.",
   parameters: {
     url: {
       type: "string",
-      description: "The URL to navigate to. Can be provided with or without protocol (defaults to https://). Use \"forward\" to go forward in history or \"back\" to go back in history."
+      description:
+        'The URL to navigate to. Can be provided with or without protocol (defaults to https://). Use "forward" to go forward in history or "back" to go back in history.',
     },
     tabId: {
       type: "number",
-      description: "Tab ID to navigate. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID."
+      description:
+        "Tab ID to navigate. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID.",
     },
     force: {
       type: "boolean",
-      description: "If the page shows a \"Leave site?\" dialog because of unsaved changes, discard those changes and navigate anyway. Defaults to false: navigation is blocked and an error is returned so you can decide first."
-    }
+      description:
+        'If the page shows a "Leave site?" dialog because of unsaved changes, discard those changes and navigate anyway. Defaults to false: navigation is blocked and an error is returned so you can decide first.',
+    },
   },
   execute: async (e, t) => {
     try {
-      const {
-        url: o,
-        tabId: a,
-        force: n
-      } = e;
+      const { url: o, tabId: a, force: n } = e;
       if (!o) {
         throw new Error("URL parameter is required");
       }
@@ -6582,9 +7780,17 @@ const De = {
       if (o && !["back", "forward"].includes(o.toLowerCase())) {
         try {
           const e = await O.getCategory(o);
-          if (e && (e === "category1" || e === "category2" || e === "category_org_blocked")) {
+          if (
+            e &&
+            (e === "category1" ||
+              e === "category2" ||
+              e === "category_org_blocked")
+          ) {
             return {
-              error: e === "category_org_blocked" ? "This site is blocked by your organization's policy." : "This site is not allowed due to safety restrictions."
+              error:
+                e === "category_org_blocked"
+                  ? "This site is blocked by your organization's policy."
+                  : "This site is not allowed due to safety restrictions.",
             };
           }
         } catch {}
@@ -6593,46 +7799,59 @@ const De = {
       if (!i.id) {
         throw new Error("Active tab has no ID");
       }
+      // 语义锚点：navigate 的 back / forward / 普通 URL 三路。
+      // back/forward 直接走浏览器历史；普通 URL 则先补协议、过 blocklist，再做域权限检查。
       if (o.toLowerCase() === "back") {
-        const e = await Me(s, n, () => chrome.tabs.goBack(i.id));
-        if (e.kind === "blocked") {
+        let e;
+        const r = await Me(s, n, async () => {
+          e = await __cpMcpNavigateHistoryWithCdp(i.id, "back");
+        });
+        if (r.kind === "blocked") {
           return {
-            error: e.error
+            error: r.error,
           };
         }
-        const r = await chrome.tabs.get(i.id);
-        const o = await F.getValidTabsWithMetadata(t.tabId);
+        const o = await chrome.tabs.get(i.id);
+        const a = await F.getValidTabsWithMetadata(t.tabId);
+        const c = e?.url || o.url || "";
         return {
-          output: `Navigated back to ${r.url}${e.kind === "accepted" ? e.suffix : ""}`,
+          output: `Navigated back to ${c}${r.kind === "accepted" ? r.suffix : ""}`,
           tabContext: {
             currentTabId: t.tabId,
             executedOnTabId: s,
-            availableTabs: o,
-            tabCount: o.length
-          }
+            availableTabs: a,
+            tabCount: a.length,
+          },
         };
       }
       if (o.toLowerCase() === "forward") {
-        const e = await Me(s, n, () => chrome.tabs.goForward(i.id));
-        if (e.kind === "blocked") {
+        let e;
+        const r = await Me(s, n, async () => {
+          e = await __cpMcpNavigateHistoryWithCdp(i.id, "forward");
+        });
+        if (r.kind === "blocked") {
           return {
-            error: e.error
+            error: r.error,
           };
         }
-        const r = await chrome.tabs.get(i.id);
-        const o = await F.getValidTabsWithMetadata(t.tabId);
+        const o = await chrome.tabs.get(i.id);
+        const a = await F.getValidTabsWithMetadata(t.tabId);
+        const c = e?.url || o.url || "";
         return {
-          output: `Navigated forward to ${r.url}${e.kind === "accepted" ? e.suffix : ""}`,
+          output: `Navigated forward to ${c}${r.kind === "accepted" ? r.suffix : ""}`,
           tabContext: {
             currentTabId: t.tabId,
             executedOnTabId: s,
-            availableTabs: o,
-            tabCount: o.length
-          }
+            availableTabs: a,
+            tabCount: a.length,
+          },
         };
       }
       let l = o;
-      if (!l.match(/^https?:\/\//i)) {
+      // 语义锚点：普通 URL 补 https + blocklist + permission。
+      // 只有普通 URL 分支会做协议补全、组织/安全 blocklist 检查，以及 permission_required / denied 判定。
+      // back / forward 复用浏览器历史栈，不会重新走域名 permission gate。
+      if (!/^[a-z][a-z\d+.-]*:/i.test(l)) {
         l = `https://${l}`;
       }
       try {
@@ -6648,87 +7867,97 @@ const De = {
             type: "permission_required",
             tool: c.NAVIGATE,
             url: l,
-            toolUseId: d
+            toolUseId: d,
           };
         } else {
           return {
-            error: "Navigation to this domain is not allowed"
+            error: "Navigation to this domain is not allowed",
           };
         }
       }
       const h = await Me(s, n, async () => {
         await chrome.tabs.update(s, {
-          url: l
+          url: l,
         });
       });
       if (h.kind === "blocked") {
         return {
-          error: h.error
+          error: h.error,
         };
       }
       const p = await F.getValidTabsWithMetadata(t.tabId);
+      // 语义锚点：统一 tabContext。
       return {
         output: `Navigated to ${l}${h.kind === "accepted" ? h.suffix : ""}`,
         tabContext: {
           currentTabId: t.tabId,
           executedOnTabId: s,
           availableTabs: p,
-          tabCount: p.length
-        }
+          tabCount: p.length,
+        },
       };
     } catch (o) {
       return {
-        error: `Failed to navigate: ${o instanceof Error ? o.message : "Unknown error"}`
+        error: `Failed to navigate: ${o instanceof Error ? o.message : "Unknown error"}`,
       };
     }
   },
   toAnthropicSchema: async () => ({
     name: "navigate",
-    description: "Navigate to a URL, or go forward/back in browser history. If you don't have a valid tab ID, use tabs_context first to get available tabs.",
+    description:
+      "Navigate to a URL, or go forward/back in browser history. If you don't have a valid tab ID, use tabs_context first to get available tabs.",
     input_schema: {
       type: "object",
       properties: {
         url: {
           type: "string",
-          description: "The URL to navigate to. Can be provided with or without protocol (defaults to https://). Use \"forward\" to go forward in history or \"back\" to go back in history."
+          description:
+            'The URL to navigate to. Can be provided with or without protocol (defaults to https://). Use "forward" to go forward in history or "back" to go back in history.',
         },
         tabId: {
           type: "number",
-          description: "Tab ID to navigate. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID."
+          description:
+            "Tab ID to navigate. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID.",
         },
         force: {
           type: "boolean",
-          description: "If the page shows a \"Leave site?\" dialog because of unsaved changes, discard those changes and navigate anyway. Defaults to false: navigation is blocked and an error is returned so you can decide first."
-        }
+          description:
+            'If the page shows a "Leave site?" dialog because of unsaved changes, discard those changes and navigate anyway. Defaults to false: navigation is blocked and an error is returned so you can decide first.',
+        },
       },
-      required: ["url", "tabId"]
-    }
-  })
+      required: ["url", "tabId"],
+    },
+  }),
 };
 const Re = {
   name: "read_console_messages",
-  description: "Read browser console messages (console.log, console.error, console.warn, etc.) from a specific tab. Useful for debugging JavaScript errors, viewing application logs, or understanding what's happening in the browser console. Returns console messages from the current domain only. If you don't have a valid tab ID, use tabs_context first to get available tabs. IMPORTANT: Always provide a pattern to filter messages - without a pattern, you may get too many irrelevant messages.",
+  description:
+    "Read browser console messages (console.log, console.error, console.warn, etc.) from a specific tab. Useful for debugging JavaScript errors, viewing application logs, or understanding what's happening in the browser console. Returns console messages from the current domain only. If you don't have a valid tab ID, use tabs_context first to get available tabs. IMPORTANT: Always provide a pattern to filter messages - without a pattern, you may get too many irrelevant messages.",
   parameters: {
     tabId: {
       type: "number",
-      description: "Tab ID to read console messages from. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID.",
-      required: true
+      description:
+        "Tab ID to read console messages from. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID.",
+      required: true,
     },
     onlyErrors: {
       type: "boolean",
-      description: "If true, only return error and exception messages. Default is false (return all message types).",
-      required: false
+      description:
+        "If true, only return error and exception messages. Default is false (return all message types).",
+      required: false,
     },
     clear: {
       type: "boolean",
-      description: "If true, clear the console messages after reading to avoid duplicates on subsequent calls. Default is false.",
-      required: false
+      description:
+        "If true, clear the console messages after reading to avoid duplicates on subsequent calls. Default is false.",
+      required: false,
     },
     pattern: {
       type: "string",
-      description: "Regex pattern to filter console messages. Only messages matching this pattern will be returned (e.g., 'error|warning' to find errors and warnings, 'MyApp' to filter app-specific logs). You should always provide a pattern to avoid getting too many irrelevant messages.",
-      required: false
-    }
+      description:
+        "Regex pattern to filter console messages. Only messages matching this pattern will be returned (e.g., 'error|warning' to find errors and warnings, 'MyApp' to filter app-specific logs). You should always provide a pattern to avoid getting too many irrelevant messages.",
+      required: false,
+    },
   },
   execute: async (e, t) => {
     try {
@@ -6737,7 +7966,7 @@ const Re = {
         onlyErrors: a = false,
         clear: n = false,
         pattern: s,
-        limit: i = 100
+        limit: i = 100,
       } = e;
       if (!t?.tabId) {
         throw new Error("No active tab found");
@@ -6759,11 +7988,12 @@ const Re = {
             type: "permission_required",
             tool: c.READ_CONSOLE_MESSAGES,
             url: u,
-            toolUseId: h
+            toolUseId: h,
           };
         }
         return {
-          error: "Permission denied for reading console messages on this domain"
+          error:
+            "Permission denied for reading console messages on this domain",
         };
       }
       try {
@@ -6780,21 +8010,26 @@ const Re = {
             currentTabId: t.tabId,
             executedOnTabId: l,
             availableTabs: await F.getValidTabsWithMetadata(t.tabId),
-            tabCount: (await F.getValidTabsWithMetadata(t.tabId)).length
-          }
+            tabCount: (await F.getValidTabsWithMetadata(t.tabId)).length,
+          },
         };
       }
       const f = m.slice(0, i);
       const g = m.length > i;
-      const b = f.map((e, t) => {
-        const r = new Date(e.timestamp).toLocaleTimeString();
-        const o = e.url && e.lineNumber !== undefined ? ` (${e.url}:${e.lineNumber}${e.columnNumber !== undefined ? `:${e.columnNumber}` : ""})` : "";
-        let a = `[${t + 1}] [${r}] [${e.type.toUpperCase()}]${o}\n${e.text}`;
-        if (e.stackTrace) {
-          a += `\nStack trace:\n${e.stackTrace}`;
-        }
-        return a;
-      }).join("\n\n");
+      const b = f
+        .map((e, t) => {
+          const r = new Date(e.timestamp).toLocaleTimeString();
+          const o =
+            e.url && e.lineNumber !== undefined
+              ? ` (${e.url}:${e.lineNumber}${e.columnNumber !== undefined ? `:${e.columnNumber}` : ""})`
+              : "";
+          let a = `[${t + 1}] [${r}] [${e.type.toUpperCase()}]${o}\n${e.text}`;
+          if (e.stackTrace) {
+            a += `\nStack trace:\n${e.stackTrace}`;
+          }
+          return a;
+        })
+        .join("\n\n");
       const w = a ? "error/exception messages" : "console messages";
       const y = g ? ` (showing first ${i} of ${m.length})` : "";
       const _ = `Found ${m.length} ${w}${y}:`;
@@ -6805,79 +8040,85 @@ const Re = {
           currentTabId: t.tabId,
           executedOnTabId: l,
           availableTabs: v,
-          tabCount: v.length
-        }
+          tabCount: v.length,
+        },
       };
     } catch (r) {
       return {
-        error: `Failed to read console messages: ${r instanceof Error ? r.message : "Unknown error"}`
+        error: `Failed to read console messages: ${r instanceof Error ? r.message : "Unknown error"}`,
       };
     }
   },
   toAnthropicSchema: async () => ({
     name: "read_console_messages",
-    description: "Read browser console messages (console.log, console.error, console.warn, etc.) from a specific tab. Useful for debugging JavaScript errors, viewing application logs, or understanding what's happening in the browser console. Returns console messages from the current domain only. If you don't have a valid tab ID, use tabs_context first to get available tabs. IMPORTANT: Always provide a pattern to filter messages - without a pattern, you may get too many irrelevant messages.",
+    description:
+      "Read browser console messages (console.log, console.error, console.warn, etc.) from a specific tab. Useful for debugging JavaScript errors, viewing application logs, or understanding what's happening in the browser console. Returns console messages from the current domain only. If you don't have a valid tab ID, use tabs_context first to get available tabs. IMPORTANT: Always provide a pattern to filter messages - without a pattern, you may get too many irrelevant messages.",
     input_schema: {
       type: "object",
       properties: {
         tabId: {
           type: "number",
-          description: "Tab ID to read console messages from. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID."
+          description:
+            "Tab ID to read console messages from. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID.",
         },
         onlyErrors: {
           type: "boolean",
-          description: "If true, only return error and exception messages. Default is false (return all message types)."
+          description:
+            "If true, only return error and exception messages. Default is false (return all message types).",
         },
         clear: {
           type: "boolean",
-          description: "If true, clear the console messages after reading to avoid duplicates on subsequent calls. Default is false."
+          description:
+            "If true, clear the console messages after reading to avoid duplicates on subsequent calls. Default is false.",
         },
         pattern: {
           type: "string",
-          description: "Regex pattern to filter console messages. Only messages matching this pattern will be returned (e.g., 'error|warning' to find errors and warnings, 'MyApp' to filter app-specific logs). You should always provide a pattern to avoid getting too many irrelevant messages."
+          description:
+            "Regex pattern to filter console messages. Only messages matching this pattern will be returned (e.g., 'error|warning' to find errors and warnings, 'MyApp' to filter app-specific logs). You should always provide a pattern to avoid getting too many irrelevant messages.",
         },
         limit: {
           type: "number",
-          description: "Maximum number of messages to return. Defaults to 100. Increase only if you need more results."
-        }
+          description:
+            "Maximum number of messages to return. Defaults to 100. Increase only if you need more results.",
+        },
       },
-      required: ["tabId"]
-    }
-  })
+      required: ["tabId"],
+    },
+  }),
 };
 const Ae = {
   name: "read_network_requests",
-  description: "Read HTTP network requests (XHR, Fetch, documents, images, etc.) from a specific tab. Useful for debugging API calls, monitoring network activity, or understanding what requests a page is making. Returns all network requests made by the current page, including cross-origin requests. Requests are automatically cleared when the page navigates to a different domain. If you don't have a valid tab ID, use tabs_context first to get available tabs.",
+  description:
+    "Read HTTP network requests (XHR, Fetch, documents, images, etc.) from a specific tab. Useful for debugging API calls, monitoring network activity, or understanding what requests a page is making. Returns all network requests made by the current page, including cross-origin requests. Requests are automatically cleared when the page navigates to a different domain. If you don't have a valid tab ID, use tabs_context first to get available tabs.",
   parameters: {
     tabId: {
       type: "number",
-      description: "Tab ID to read network requests from. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID.",
-      required: true
+      description:
+        "Tab ID to read network requests from. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID.",
+      required: true,
     },
     urlPattern: {
       type: "string",
-      description: "Optional URL pattern to filter requests. Only requests whose URL contains this string will be returned (e.g., '/api/' to filter API calls, 'example.com' to filter by domain).",
-      required: false
+      description:
+        "Optional URL pattern to filter requests. Only requests whose URL contains this string will be returned (e.g., '/api/' to filter API calls, 'example.com' to filter by domain).",
+      required: false,
     },
     clear: {
       type: "boolean",
-      description: "If true, clear the network requests after reading to avoid duplicates on subsequent calls. Default is false.",
-      required: false
+      description:
+        "If true, clear the network requests after reading to avoid duplicates on subsequent calls. Default is false.",
+      required: false,
     },
     limit: {
       type: "number",
-      description: "Maximum number of requests to return. Defaults to 100. Increase only if you need more results.",
-      required: false
-    }
+      description:
+        "Maximum number of requests to return. Defaults to 100. Increase only if you need more results.",
+      required: false,
+    },
   },
   execute: async (e, t) => {
     try {
-      const {
-        tabId: o,
-        urlPattern: a,
-        clear: n = false,
-        limit: s = 100
-      } = e;
+      const { tabId: o, urlPattern: a, clear: n = false, limit: s = 100 } = e;
       if (!t?.tabId) {
         throw new Error("No active tab found");
       }
@@ -6898,11 +8139,12 @@ const Ae = {
             type: "permission_required",
             tool: c.READ_NETWORK_REQUESTS,
             url: d,
-            toolUseId: u
+            toolUseId: u,
           };
         }
         return {
-          error: "Permission denied for reading network requests on this domain"
+          error:
+            "Permission denied for reading network requests on this domain",
         };
       }
       try {
@@ -6923,16 +8165,18 @@ const Ae = {
             currentTabId: t.tabId,
             executedOnTabId: i,
             availableTabs: await F.getValidTabsWithMetadata(t.tabId),
-            tabCount: (await F.getValidTabsWithMetadata(t.tabId)).length
-          }
+            tabCount: (await F.getValidTabsWithMetadata(t.tabId)).length,
+          },
         };
       }
       const m = p.slice(0, s);
       const f = p.length > s;
-      const g = m.map((e, t) => {
-        const r = e.status || "pending";
-        return `${t + 1}. url: ${e.url}\n   method: ${e.method}\n   statusCode: ${r}`;
-      }).join("\n\n");
+      const g = m
+        .map((e, t) => {
+          const r = e.status || "pending";
+          return `${t + 1}. url: ${e.url}\n   method: ${e.method}\n   statusCode: ${r}`;
+        })
+        .join("\n\n");
       const b = [];
       if (a) {
         b.push(`URL pattern: "${a}"`);
@@ -6947,76 +8191,81 @@ const Ae = {
           currentTabId: t.tabId,
           executedOnTabId: i,
           availableTabs: v,
-          tabCount: v.length
-        }
+          tabCount: v.length,
+        },
       };
     } catch (r) {
       return {
-        error: `Failed to read network requests: ${r instanceof Error ? r.message : "Unknown error"}`
+        error: `Failed to read network requests: ${r instanceof Error ? r.message : "Unknown error"}`,
       };
     }
   },
   toAnthropicSchema: async () => ({
     name: "read_network_requests",
-    description: "Read HTTP network requests (XHR, Fetch, documents, images, etc.) from a specific tab. Useful for debugging API calls, monitoring network activity, or understanding what requests a page is making. Returns all network requests made by the current page, including cross-origin requests. Requests are automatically cleared when the page navigates to a different domain. If you don't have a valid tab ID, use tabs_context first to get available tabs.",
+    description:
+      "Read HTTP network requests (XHR, Fetch, documents, images, etc.) from a specific tab. Useful for debugging API calls, monitoring network activity, or understanding what requests a page is making. Returns all network requests made by the current page, including cross-origin requests. Requests are automatically cleared when the page navigates to a different domain. If you don't have a valid tab ID, use tabs_context first to get available tabs.",
     input_schema: {
       type: "object",
       properties: {
         tabId: {
           type: "number",
-          description: "Tab ID to read network requests from. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID."
+          description:
+            "Tab ID to read network requests from. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID.",
         },
         urlPattern: {
           type: "string",
-          description: "Optional URL pattern to filter requests. Only requests whose URL contains this string will be returned (e.g., '/api/' to filter API calls, 'example.com' to filter by domain)."
+          description:
+            "Optional URL pattern to filter requests. Only requests whose URL contains this string will be returned (e.g., '/api/' to filter API calls, 'example.com' to filter by domain).",
         },
         clear: {
           type: "boolean",
-          description: "If true, clear the network requests after reading to avoid duplicates on subsequent calls. Default is false."
+          description:
+            "If true, clear the network requests after reading to avoid duplicates on subsequent calls. Default is false.",
         },
         limit: {
           type: "number",
-          description: "Maximum number of requests to return. Defaults to 100. Increase only if you need more results."
-        }
+          description:
+            "Maximum number of requests to return. Defaults to 100. Increase only if you need more results.",
+        },
       },
-      required: ["tabId"]
-    }
-  })
+      required: ["tabId"],
+    },
+  }),
 };
 const Pe = {
   name: "read_page",
-  description: "Get an accessibility tree representation of elements on the page. By default returns all elements including non-visible ones. Can optionally filter for only interactive elements, limit tree depth, or focus on a specific element. Returns a structured tree that represents how screen readers see the page content. If you don't have a valid tab ID, use tabs_context first to get available tabs. Output is limited to 50000 characters - if exceeded, specify a depth limit or ref_id to focus on a specific element.",
+  description:
+    "Get an accessibility tree representation of elements on the page. By default returns all elements including non-visible ones. Can optionally filter for only interactive elements, limit tree depth, or focus on a specific element. Returns a structured tree that represents how screen readers see the page content. If you don't have a valid tab ID, use tabs_context first to get available tabs. Output is limited to 50000 characters - if exceeded, specify a depth limit or ref_id to focus on a specific element.",
   parameters: {
     filter: {
       type: "string",
       enum: ["interactive", "all"],
-      description: "Filter elements: \"interactive\" for buttons/links/inputs only, \"all\" for all elements including non-visible ones (default: all elements)"
+      description:
+        'Filter elements: "interactive" for buttons/links/inputs only, "all" for all elements including non-visible ones (default: all elements)',
     },
     tabId: {
       type: "number",
-      description: "Tab ID to read from. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID."
+      description:
+        "Tab ID to read from. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID.",
     },
     depth: {
       type: "number",
-      description: "Maximum depth of the tree to traverse (default: 15). Use a smaller depth if output is too large."
+      description:
+        "Maximum depth of the tree to traverse (default: 15). Use a smaller depth if output is too large.",
     },
     ref_id: {
       type: "string",
-      description: "Reference ID of a parent element to read. Will return the specified element and all its children. Use this to focus on a specific part of the page when output is too large."
+      description:
+        "Reference ID of a parent element to read. Will return the specified element and all its children. Use this to focus on a specific part of the page when output is too large.",
     },
     max_chars: {
       type: "number",
-      description: "Maximum characters for output (default: 50000). Set to a higher value if your client can handle large outputs."
-    }
+      description:
+        "Maximum characters for output (default: 50000). Set to a higher value if your client can handle large outputs.",
+    },
   },
   execute: async (e, t) => {
-    const {
-      filter: r,
-      tabId: o,
-      depth: a,
-      ref_id: n,
-      max_chars: s
-    } = e || {};
+    const { filter: r, tabId: o, depth: a, ref_id: n, max_chars: s } = e || {};
     if (!t?.tabId) {
       throw new Error("No active tab found");
     }
@@ -7037,62 +8286,89 @@ const Pe = {
           type: "permission_required",
           tool: c.READ_PAGE_CONTENT,
           url: d,
-          toolUseId: u
+          toolUseId: u,
         };
       }
       return {
-        error: "Permission denied for reading pages on this domain"
+        error: "Permission denied for reading pages on this domain",
       };
     }
+    // 语义锚点：read_page 的 hideIndicatorForToolUse。
+    // 读取 accessibility tree 前先隐藏工具运行态指示器，避免把 overlay 自己读进页面内容。
     await F.hideIndicatorForToolUse(i);
-    await new Promise(e => setTimeout(e, 50));
+    await new Promise((e) => setTimeout(e, 50));
     try {
+      // 语义锚点：read_page 是原始 ref 产出面；ref_id 只是在既有 ref 树上聚焦某个子树，不会改写 ref 身份空间。
       const e = await x({
         target: {
-          tabId: l.id
+          tabId: l.id,
         },
         func: (e, t, r, o) => {
           if (typeof window.__generateAccessibilityTree != "function") {
-            throw new Error("Accessibility tree function not found. Please refresh the page.");
+            throw new Error(
+              "Accessibility tree function not found. Please refresh the page.",
+            );
           }
           return window.__generateAccessibilityTree(e, t, r, o);
         },
-        args: [r || null, a ?? null, s ?? 50000, n ?? null]
+        args: [r || null, a ?? null, s ?? 50000, n ?? null],
       });
       if (!e || e.length === 0) {
         throw new Error("No results returned from page script");
       }
       if ("error" in e[0] && e[0].error) {
-        throw new Error(`Script execution failed: ${e[0].error.message || "Unknown error"}`);
+        throw new Error(
+          `Script execution failed: ${e[0].error.message || "Unknown error"}`,
+        );
       }
       if (!e[0].result) {
         throw new Error("Page script returned empty result");
       }
       const o = e[0].result;
       if (o.error || !o.pageContent?.trim()) {
+        // 语义锚点：read_page 的 main frame 失败转 allFrames。
+        // 主 frame 没拿到有效 pageContent 时，再并行读取所有 frame，把非空结果拼接成统一输出。
         const e = await x({
           target: {
             tabId: l.id,
-            allFrames: true
+            allFrames: true,
           },
           func: (e, t, r, o) => {
             if (typeof window.__generateAccessibilityTree != "function") {
-              throw new Error("Accessibility tree function not found. Please refresh the page.");
+              throw new Error(
+                "Accessibility tree function not found. Please refresh the page.",
+              );
             }
             return window.__generateAccessibilityTree(e, t, r, o);
           },
-          args: [r || null, a ?? null, s ?? 50000, n ?? null]
+          args: [r || null, a ?? null, s ?? 50000, n ?? null],
         });
-        const c = (e || []).filter(e => !("error" in e && e.error) && !!e.result && !e.result.error && !!e.result.pageContent?.trim()).map(e => ({
-          frameId: e.frameId ?? 0,
-          result: e.result
-        })).sort((e, t) => e.frameId === 0 ? -1 : t.frameId === 0 ? 1 : e.frameId - t.frameId);
+        const c = (e || [])
+          .filter(
+            (e) =>
+              !("error" in e && e.error) &&
+              !!e.result &&
+              !e.result.error &&
+              !!e.result.pageContent?.trim(),
+          )
+          .map((e) => ({
+            frameId: e.frameId ?? 0,
+            result: e.result,
+          }))
+          .sort((e, t) =>
+            e.frameId === 0 ? -1 : t.frameId === 0 ? 1 : e.frameId - t.frameId,
+          );
         if (!c.length) {
           return {
-            error: o.error || "Page script returned empty result"
+            error: o.error || "Page script returned empty result",
           };
         }
-        const u = c.map(e => `${e.frameId === 0 ? "Main frame" : `Frame ${e.frameId}`}\n${e.result.pageContent}`).join("\n\n---\n\n");
+        const u = c
+          .map(
+            (e) =>
+              `${e.frameId === 0 ? "Main frame" : `Frame ${e.frameId}`}\n${e.result.pageContent}`,
+          )
+          .join("\n\n---\n\n");
         const h = await F.getValidTabsWithMetadata(t.tabId);
         const p = c[0].result.viewport;
         return {
@@ -7101,8 +8377,8 @@ const Pe = {
             currentTabId: t.tabId,
             executedOnTabId: i,
             availableTabs: h,
-            tabCount: h.length
-          }
+            tabCount: h.length,
+          },
         };
       }
       const c = `Viewport: ${o.viewport.width}x${o.viewport.height}`;
@@ -7113,73 +8389,79 @@ const Pe = {
           currentTabId: t.tabId,
           executedOnTabId: i,
           availableTabs: d,
-          tabCount: d.length
-        }
+          tabCount: d.length,
+        },
       };
     } catch (p) {
       return {
-        error: `Failed to read page: ${p instanceof Error ? p.message : "Unknown error"}`
+        error: `Failed to read page: ${p instanceof Error ? p.message : "Unknown error"}`,
       };
     } finally {
+      // 语义锚点：read_page 的 finally restoreIndicatorAfterToolUse。
+      // 无论主 frame 成功、allFrames 回退成功，还是中途抛错，最终都恢复指示器状态。
       await F.restoreIndicatorAfterToolUse(i);
     }
   },
   toAnthropicSchema: async () => ({
     name: "read_page",
-    description: "Get an accessibility tree representation of elements on the page. By default returns all elements including non-visible ones. Output is limited to 50000 characters. If the output exceeds this limit, you will receive an error asking you to specify a smaller depth or focus on a specific element using ref_id. Optionally filter for only interactive elements. If you don't have a valid tab ID, use tabs_context first to get available tabs.",
+    description:
+      "Get an accessibility tree representation of elements on the page. By default returns all elements including non-visible ones. Output is limited to 50000 characters. If the output exceeds this limit, you will receive an error asking you to specify a smaller depth or focus on a specific element using ref_id. Optionally filter for only interactive elements. If you don't have a valid tab ID, use tabs_context first to get available tabs.",
     input_schema: {
       type: "object",
       properties: {
         filter: {
           type: "string",
           enum: ["interactive", "all"],
-          description: "Filter elements: \"interactive\" for buttons/links/inputs only, \"all\" for all elements including non-visible ones (default: all elements)"
+          description:
+            'Filter elements: "interactive" for buttons/links/inputs only, "all" for all elements including non-visible ones (default: all elements)',
         },
         tabId: {
           type: "number",
-          description: "Tab ID to read from. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID."
+          description:
+            "Tab ID to read from. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID.",
         },
         depth: {
           type: "number",
-          description: "Maximum depth of the tree to traverse (default: 15). Use a smaller depth if output is too large."
+          description:
+            "Maximum depth of the tree to traverse (default: 15). Use a smaller depth if output is too large.",
         },
         ref_id: {
           type: "string",
-          description: "Reference ID of a parent element to read. Will return the specified element and all its children. Use this to focus on a specific part of the page when output is too large."
+          description:
+            "Reference ID of a parent element to read. Will return the specified element and all its children. Use this to focus on a specific part of the page when output is too large.",
         },
         max_chars: {
           type: "number",
-          description: "Maximum characters for output (default: 50000). Set to a higher value if your client can handle large outputs."
-        }
+          description:
+            "Maximum characters for output (default: 50000). Set to a higher value if your client can handle large outputs.",
+        },
       },
-      required: ["tabId"]
-    }
-  })
+      required: ["tabId"],
+    },
+  }),
 };
 const Ue = {
   name: "resize_window",
-  description: "Resize the current browser window to specified dimensions. Useful for testing responsive designs or setting up specific screen sizes. If you don't have a valid tab ID, use tabs_context first to get available tabs.",
+  description:
+    "Resize the current browser window to specified dimensions. Useful for testing responsive designs or setting up specific screen sizes. If you don't have a valid tab ID, use tabs_context first to get available tabs.",
   parameters: {
     width: {
       type: "number",
-      description: "Target window width in pixels"
+      description: "Target window width in pixels",
     },
     height: {
       type: "number",
-      description: "Target window height in pixels"
+      description: "Target window height in pixels",
     },
     tabId: {
       type: "number",
-      description: "Tab ID to get the window for. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID."
-    }
+      description:
+        "Tab ID to get the window for. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID.",
+    },
   },
   execute: async (e, t) => {
     try {
-      const {
-        width: r,
-        height: o,
-        tabId: a
-      } = e;
+      const { width: r, height: o, tabId: a } = e;
       if (!r || !o) {
         throw new Error("Both width and height parameters are required");
       }
@@ -7196,7 +8478,9 @@ const Ue = {
         throw new Error("Width and height must be positive numbers");
       }
       if (r > 7680 || o > 4320) {
-        throw new Error("Dimensions exceed 8K resolution limit. Maximum dimensions are 7680x4320");
+        throw new Error(
+          "Dimensions exceed 8K resolution limit. Maximum dimensions are 7680x4320",
+        );
       }
       const n = await F.getEffectiveTabId(a, t.tabId);
       const s = await chrome.tabs.get(n);
@@ -7205,43 +8489,46 @@ const Ue = {
       }
       await chrome.windows.update(s.windowId, {
         width: Math.floor(r),
-        height: Math.floor(o)
+        height: Math.floor(o),
       });
       return {
-        output: `Successfully resized window containing tab ${n} to ${Math.floor(r)}x${Math.floor(o)} pixels`
+        output: `Successfully resized window containing tab ${n} to ${Math.floor(r)}x${Math.floor(o)} pixels`,
       };
     } catch (r) {
       return {
-        error: `Failed to resize window: ${r instanceof Error ? r.message : "Unknown error"}`
+        error: `Failed to resize window: ${r instanceof Error ? r.message : "Unknown error"}`,
       };
     }
   },
   toAnthropicSchema: async () => ({
     name: "resize_window",
-    description: "Resize the current browser window to specified dimensions. Useful for testing responsive designs or setting up specific screen sizes. If you don't have a valid tab ID, use tabs_context first to get available tabs.",
+    description:
+      "Resize the current browser window to specified dimensions. Useful for testing responsive designs or setting up specific screen sizes. If you don't have a valid tab ID, use tabs_context first to get available tabs.",
     input_schema: {
       type: "object",
       properties: {
         width: {
           type: "number",
-          description: "Target window width in pixels"
+          description: "Target window width in pixels",
         },
         height: {
           type: "number",
-          description: "Target window height in pixels"
+          description: "Target window height in pixels",
         },
         tabId: {
           type: "number",
-          description: "Tab ID to get the window for. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID."
-        }
+          description:
+            "Tab ID to get the window for. Must be a tab in the current group. Use tabs_context first if you don't have a valid tab ID.",
+        },
       },
-      required: ["width", "height", "tabId"]
-    }
-  })
+      required: ["width", "height", "tabId"],
+    },
+  }),
 };
 const $e = {
   name: "tabs_context",
-  description: "Get context information about all tabs in the current tab group",
+  description:
+    "Get context information about all tabs in the current tab group",
   parameters: {},
   execute: async (e, t) => {
     try {
@@ -7253,18 +8540,18 @@ const $e = {
       const o = {
         currentTabId: t.tabId,
         availableTabs: r,
-        tabCount: r.length
+        tabCount: r.length,
       };
       let a;
       if (e) {
-        a = await async function (e) {
+        a = await (async function (e) {
           try {
             const t = await chrome.tabs.get(e);
             if (t.groupId !== chrome.tabGroups.TAB_GROUP_ID_NONE) {
               return t.groupId;
             }
           } catch (t) {}
-        }(t.tabId);
+        })(t.tabId);
       }
       const n = J(r, a);
       if (a !== undefined) {
@@ -7272,30 +8559,31 @@ const $e = {
           output: n,
           tabContext: {
             ...o,
-            tabGroupId: a
-          }
+            tabGroupId: a,
+          },
         };
       } else {
         return {
           output: n,
-          tabContext: o
+          tabContext: o,
         };
       }
     } catch (r) {
       return {
-        error: `Failed to query tabs: ${r instanceof Error ? r.message : "Unknown error"}`
+        error: `Failed to query tabs: ${r instanceof Error ? r.message : "Unknown error"}`,
       };
     }
   },
   toAnthropicSchema: async () => ({
     name: "tabs_context",
-    description: "Get context information about all tabs in the current tab group",
+    description:
+      "Get context information about all tabs in the current tab group",
     input_schema: {
       type: "object",
       properties: {},
-      required: []
-    }
-  })
+      required: [],
+    },
+  }),
 };
 const Oe = {
   name: "tabs_create",
@@ -7309,7 +8597,7 @@ const Oe = {
       const e = await chrome.tabs.get(t.tabId);
       const r = await chrome.tabs.create({
         url: "chrome://newtab",
-        active: false
+        active: false,
       });
       if (!r.id) {
         throw new Error("Failed to create tab - no tab ID returned");
@@ -7317,7 +8605,7 @@ const Oe = {
       if (e.groupId && e.groupId !== chrome.tabGroups.TAB_GROUP_ID_NONE) {
         await chrome.tabs.group({
           tabIds: r.id,
-          groupId: e.groupId
+          groupId: e.groupId,
         });
       }
       const o = await F.getValidTabsWithMetadata(t.tabId);
@@ -7327,12 +8615,12 @@ const Oe = {
           currentTabId: t.tabId,
           executedOnTabId: r.id,
           availableTabs: o,
-          tabCount: o.length
-        }
+          tabCount: o.length,
+        },
       };
     } catch (r) {
       return {
-        error: `Failed to create tab: ${r instanceof Error ? r.message : "Unknown error"}`
+        error: `Failed to create tab: ${r instanceof Error ? r.message : "Unknown error"}`,
       };
     }
   },
@@ -7342,30 +8630,31 @@ const Oe = {
     input_schema: {
       type: "object",
       properties: {},
-      required: []
-    }
-  })
+      required: [],
+    },
+  }),
 };
 const Ge = {
   type: "object",
   properties: {},
-  required: []
+  required: [],
 };
 const Ne = {
   name: "turn_answer_start",
-  description: "Call this immediately before your text response to the user for this turn. Required every turn - whether or not you made tool calls. After calling, write your response. No more tools after this.",
+  description:
+    "Call this immediately before your text response to the user for this turn. Required every turn - whether or not you made tool calls. After calling, write your response. No more tools after this.",
   parameters: Ge,
   execute: async () => ({
-    output: "Proceed with your response."
+    output: "Proceed with your response.",
   }),
   toAnthropicSchema() {
     return {
       type: "custom",
       name: this.name,
       description: this.description,
-      input_schema: Ge
+      input_schema: Ge,
     };
-  }
+  },
 };
 function Le(e, t) {
   return e === "follow_a_plan" && !t;
@@ -7380,7 +8669,10 @@ async function Be(e) {
     try {
       const e = a.startsWith("http") ? a : `https://${a}`;
       const o = await O.getCategory(e);
-      if (!o || o !== "category1" && o !== "category2" && o !== "category_org_blocked") {
+      if (
+        !o ||
+        (o !== "category1" && o !== "category2" && o !== "category_org_blocked")
+      ) {
         t.push(a);
       } else {
         r.push(a);
@@ -7391,17 +8683,14 @@ async function Be(e) {
   }
   return {
     approved: t,
-    filtered: r
+    filtered: r,
   };
 }
 async function Fe(e, t) {
   if (!e || e.length === 0) {
     return [];
   }
-  const {
-    approved: r,
-    filtered: o
-  } = await Be(e);
+  const { approved: r, filtered: o } = await Be(e);
   o.length;
   t.setTurnApprovedDomains(r);
   return r;
@@ -7412,26 +8701,29 @@ const We = {
     domains: {
       type: "array",
       items: {
-        type: "string"
+        type: "string",
       },
-      description: "List of domains you will visit (e.g., ['github.com', 'stackoverflow.com']). These domains will be approved for the session when the user accepts the plan."
+      description:
+        "List of domains you will visit (e.g., ['github.com', 'stackoverflow.com']). These domains will be approved for the session when the user accepts the plan.",
     },
     approach: {
       type: "array",
       items: {
-        type: "string"
+        type: "string",
       },
-      description: "High-level description of what you will do. Focus on outcomes and key actions, not implementation details. Be concise - aim for 3-7 items."
-    }
+      description:
+        "High-level description of what you will do. Focus on outcomes and key actions, not implementation details. Be concise - aim for 3-7 items.",
+    },
   },
-  required: ["domains", "approach"]
+  required: ["domains", "approach"],
 };
 const je = {
   name: "update_plan",
-  description: "Present a plan to the user for approval before taking actions. The user will see the domains you intend to visit and your approach. Once approved, you can proceed with actions on the approved domains without additional permission prompts.",
+  description:
+    "Present a plan to the user for approval before taking actions. The user will see the domains you intend to visit and your approach. Once approved, you can proceed with actions on the approved domains without additional permission prompts.",
   parameters: We,
   async execute(e, t) {
-    const r = function (e) {
+    const r = (function (e) {
       const t = e;
       const r = {};
       if (!t.domains || !Array.isArray(t.domains)) {
@@ -7444,24 +8736,22 @@ const je = {
         return {
           error: {
             type: "validation_error",
-            message: "Invalid plan format. Both 'domains' and 'approach' are required arrays.",
-            fields: r
-          }
+            message:
+              "Invalid plan format. Both 'domains' and 'approach' are required arrays.",
+            fields: r,
+          },
         };
       } else {
         return null;
       }
-    }(e);
+    })(e);
     if (r) {
       return {
-        error: JSON.stringify(r.error)
+        error: JSON.stringify(r.error),
       };
     }
-    const {
-      domains: o,
-      approach: a
-    } = e;
-    const n = await async function (e) {
+    const { domains: o, approach: a } = e;
+    const n = await (async function (e) {
       const t = [];
       for (const o of e) {
         try {
@@ -7469,16 +8759,16 @@ const je = {
           const r = await O.getCategory(e);
           t.push({
             domain: o,
-            category: r
+            category: r,
           });
         } catch (r) {
           t.push({
-            domain: o
+            domain: o,
           });
         }
       }
       return t;
-    }(o);
+    })(o);
     return {
       type: "permission_required",
       tool: c.PLAN_APPROVAL,
@@ -7487,9 +8777,9 @@ const je = {
       actionData: {
         plan: {
           domains: n,
-          approach: a
-        }
-      }
+          approach: a,
+        },
+      },
     };
   },
   setPromptsConfig(e) {
@@ -7511,34 +8801,40 @@ const je = {
       type: "custom",
       name: this.name,
       description: this.description,
-      input_schema: We
+      input_schema: We,
     };
-  }
+  },
 };
 const He = {
   name: "upload_image",
-  description: "Upload a previously captured screenshot or user-uploaded image to a file input or drag & drop target. Supports two approaches: (1) ref - for targeting specific elements, especially hidden file inputs, (2) coordinate - for drag & drop to visible locations like Google Docs. Provide either ref or coordinate, not both.",
+  description:
+    "Upload a previously captured screenshot or user-uploaded image to a file input or drag & drop target. Supports two approaches: (1) ref - for targeting specific elements, especially hidden file inputs, (2) coordinate - for drag & drop to visible locations like Google Docs. Provide either ref or coordinate, not both.",
   parameters: {
     imageId: {
       type: "string",
-      description: "ID of a previously captured screenshot (from the computer tool's screenshot action) or a user-uploaded image"
+      description:
+        "ID of a previously captured screenshot (from the computer tool's screenshot action) or a user-uploaded image",
     },
     ref: {
       type: "string",
-      description: "Element reference ID from read_page or find tools (e.g., \"ref_1\", \"ref_2\"). Use this for file inputs (especially hidden ones) or specific elements. Provide either ref or coordinate, not both."
+      description:
+        'Element reference ID from read_page or find tools (e.g., "ref_1", "ref_2"). Use this for file inputs (especially hidden ones) or specific elements. Provide either ref or coordinate, not both.',
     },
     coordinate: {
       type: "array",
-      description: "Viewport coordinates [x, y] for drag & drop to a visible location. Use this for drag & drop targets like Google Docs. Provide either ref or coordinate, not both."
+      description:
+        "Viewport coordinates [x, y] for drag & drop to a visible location. Use this for drag & drop targets like Google Docs. Provide either ref or coordinate, not both.",
     },
     tabId: {
       type: "number",
-      description: "Tab ID where the target element is located. This is where the image will be uploaded to."
+      description:
+        "Tab ID where the target element is located. This is where the image will be uploaded to.",
     },
     filename: {
       type: "string",
-      description: "Optional filename for the uploaded file (default: \"image.png\")"
-    }
+      description:
+        'Optional filename for the uploaded file (default: "image.png")',
+    },
   },
   execute: async (e, t) => {
     try {
@@ -7547,10 +8843,14 @@ const He = {
         throw new Error("imageId parameter is required");
       }
       if (!r?.ref && !r?.coordinate) {
-        throw new Error("Either ref or coordinate parameter is required. Provide ref for targeting specific elements or coordinate for drag & drop to a location.");
+        throw new Error(
+          "Either ref or coordinate parameter is required. Provide ref for targeting specific elements or coordinate for drag & drop to a location.",
+        );
       }
       if (r?.ref && r?.coordinate) {
-        throw new Error("Provide either ref or coordinate, not both. Use ref for specific elements or coordinate for drag & drop.");
+        throw new Error(
+          "Provide either ref or coordinate, not both. Use ref for specific elements or coordinate for drag & drop.",
+        );
       }
       if (!t?.tabId) {
         throw new Error("No active tab found");
@@ -7576,31 +8876,39 @@ const He = {
             actionData: {
               ref: r.ref,
               coordinate: r.coordinate,
-              imageId: r.imageId
-            }
+              imageId: r.imageId,
+            },
           };
         }
         return {
-          error: "Permission denied for uploading to this domain"
+          error: "Permission denied for uploading to this domain",
         };
       }
+      // 语义锚点：upload_image 先过目标域 permission，再做原始 URL 安全校验和 message image 解析。
+      // 也就是说 permission popup 不会读取历史图片二进制；真正取图发生在授权通过之后。
       const l = a.url;
       if (!l) {
         return {
-          error: "Unable to get original URL for security check"
-        };
-      }
-      if (!t.messages) {
-        return {
-          error: "Unable to access message history to retrieve image"
+          error: "Unable to get original URL for security check",
         };
       }
       console.info(`[Upload-Image] Looking for image with ID: ${r.imageId}`);
-      console.info(`[Upload-Image] Messages available: ${t.messages.length}`);
-      const d = oe(t.messages, r.imageId);
+      if (t.messages) {
+        console.info(`[Upload-Image] Messages available: ${t.messages.length}`);
+      } else {
+        console.info(
+          "[Upload-Image] Message history unavailable, falling back to local image registry",
+        );
+      }
+      const d =
+        __cpMcpResolveImageFromLocalRegistry(r.imageId) ||
+        (t.messages ? oe(t.messages, r.imageId) : undefined);
       if (!d) {
         return {
-          error: `Image not found with ID: ${r.imageId}. Please ensure the image was captured or uploaded earlier in this conversation.`
+          error:
+            t.messages
+              ? `Image not found with ID: ${r.imageId}. Please ensure the image was captured or uploaded earlier in this conversation.`
+              : `Image not found with ID: ${r.imageId}. Capture a screenshot with the computer tool earlier in this session, or provide the image again in the current conversation.`,
         };
       }
       const u = d.base64;
@@ -7611,22 +8919,25 @@ const He = {
       }
       const m = await x({
         target: {
-          tabId: a.id
+          tabId: a.id,
         },
         func: (e, t, r, o, a) => {
           try {
             let n = null;
             if (t) {
+              // 语义锚点：upload_image(coordinate) 先走 elementFromPoint 命中，必要时再进 iframe 内部坐标换算。
               n = document.elementFromPoint(t[0], t[1]);
               if (!n) {
                 return {
-                  error: `No element found at coordinates (${t[0]}, ${t[1]})`
+                  error: `No element found at coordinates (${t[0]}, ${t[1]})`,
                 };
               }
               if (n.tagName === "IFRAME") {
                 try {
                   const e = n;
-                  const r = e.contentDocument || (e.contentWindow ? e.contentWindow.document : null);
+                  const r =
+                    e.contentDocument ||
+                    (e.contentWindow ? e.contentWindow.document : null);
                   if (r) {
                     const o = e.getBoundingClientRect();
                     const a = t[0] - o.left;
@@ -7641,9 +8952,11 @@ const He = {
             } else {
               if (!e) {
                 return {
-                  error: "Neither coordinate nor elementRef provided"
+                  error: "Neither coordinate nor elementRef provided",
                 };
               }
+              // 语义锚点：upload_image(ref) 不走 me(ref)->坐标 helper，而是在页面上下文里直接验活 __claudeElementMap。
+              // 命中 <input type="file"> 走 files 注入；否则统一按 drag-drop target 派发事件，不做 droppable 能力校验。
               if (window.__claudeElementMap && window.__claudeElementMap[e]) {
                 n = window.__claudeElementMap[e].deref() || null;
                 if (!n || !document.contains(n)) {
@@ -7653,13 +8966,13 @@ const He = {
               }
               if (!n) {
                 return {
-                  error: `No element found with reference: "${e}". The element may have been removed from the page.`
+                  error: `No element found with reference: "${e}". The element may have been removed from the page.`,
                 };
               }
             }
             n.scrollIntoView({
               behavior: "smooth",
-              block: "center"
+              block: "center",
             });
             const s = atob(r);
             const i = new Array(s.length);
@@ -7668,11 +8981,11 @@ const He = {
             }
             const c = new Uint8Array(i);
             const l = new Blob([c], {
-              type: a
+              type: a,
             });
             const d = new File([l], o, {
               type: a,
-              lastModified: Date.now()
+              lastModified: Date.now(),
             });
             const u = new DataTransfer();
             u.items.add(d);
@@ -7680,21 +8993,25 @@ const He = {
               const e = n;
               e.files = u.files;
               e.focus();
-              e.dispatchEvent(new Event("change", {
-                bubbles: true
-              }));
-              e.dispatchEvent(new Event("input", {
-                bubbles: true
-              }));
+              e.dispatchEvent(
+                new Event("change", {
+                  bubbles: true,
+                }),
+              );
+              e.dispatchEvent(
+                new Event("input", {
+                  bubbles: true,
+                }),
+              );
               const t = new CustomEvent("filechange", {
                 bubbles: true,
                 detail: {
-                  files: u.files
-                }
+                  files: u.files,
+                },
               });
               e.dispatchEvent(t);
               return {
-                output: `Successfully uploaded image "${o}" (${Math.round(l.size / 1024)}KB) to file input`
+                output: `Successfully uploaded image "${o}" (${Math.round(l.size / 1024)}KB) to file input`,
               };
             }
             {
@@ -7716,7 +9033,7 @@ const He = {
                 clientX: e,
                 clientY: r,
                 screenX: e + window.screenX,
-                screenY: r + window.screenY
+                screenY: r + window.screenY,
               });
               n.dispatchEvent(a);
               const s = new DragEvent("dragover", {
@@ -7726,7 +9043,7 @@ const He = {
                 clientX: e,
                 clientY: r,
                 screenX: e + window.screenX,
-                screenY: r + window.screenY
+                screenY: r + window.screenY,
               });
               n.dispatchEvent(s);
               const i = new DragEvent("drop", {
@@ -7736,20 +9053,26 @@ const He = {
                 clientX: e,
                 clientY: r,
                 screenX: e + window.screenX,
-                screenY: r + window.screenY
+                screenY: r + window.screenY,
               });
               n.dispatchEvent(i);
               return {
-                output: `Successfully dropped image "${o}" (${Math.round(l.size / 1024)}KB) onto element at (${Math.round(e)}, ${Math.round(r)})`
+                output: `Successfully dropped image "${o}" (${Math.round(l.size / 1024)}KB) onto element at (${Math.round(e)}, ${Math.round(r)})`,
               };
             }
           } catch (n) {
             return {
-              error: `Error uploading image: ${n instanceof Error ? n.message : "Unknown error"}`
+              error: `Error uploading image: ${n instanceof Error ? n.message : "Unknown error"}`,
             };
           }
         },
-        args: [r.ref || null, r.coordinate || null, u, r.filename || "image.png", h]
+        args: [
+          r.ref || null,
+          r.coordinate || null,
+          u,
+          r.filename || "image.png",
+          h,
+        ],
       });
       if (!m || m.length === 0) {
         throw new Error("Failed to execute upload image");
@@ -7761,85 +9084,99 @@ const He = {
           currentTabId: t.tabId,
           executedOnTabId: o,
           availableTabs: f,
-          tabCount: f.length
-        }
+          tabCount: f.length,
+        },
       };
     } catch (r) {
       return {
-        error: `Failed to upload image: ${r instanceof Error ? r.message : "Unknown error"}`
+        error: `Failed to upload image: ${r instanceof Error ? r.message : "Unknown error"}`,
       };
     }
   },
   toAnthropicSchema: async () => ({
     name: "upload_image",
-    description: "Upload a previously captured screenshot or user-uploaded image to a file input or drag & drop target. Supports two approaches: (1) ref - for targeting specific elements, especially hidden file inputs, (2) coordinate - for drag & drop to visible locations like Google Docs. Provide either ref or coordinate, not both.",
+    description:
+      "Upload a previously captured screenshot or user-uploaded image to a file input or drag & drop target. Supports two approaches: (1) ref - for targeting specific elements, especially hidden file inputs, (2) coordinate - for drag & drop to visible locations like Google Docs. Provide either ref or coordinate, not both.",
     input_schema: {
       type: "object",
       properties: {
         imageId: {
           type: "string",
-          description: "ID of a previously captured screenshot (from the computer tool's screenshot action) or a user-uploaded image"
+          description:
+            "ID of a previously captured screenshot (from the computer tool's screenshot action) or a user-uploaded image",
         },
         ref: {
           type: "string",
-          description: "Element reference ID from read_page or find tools (e.g., \"ref_1\", \"ref_2\"). Use this for file inputs (especially hidden ones) or specific elements. Provide either ref or coordinate, not both."
+          description:
+            'Element reference ID from read_page or find tools (e.g., "ref_1", "ref_2"). Use this for file inputs (especially hidden ones) or specific elements. Provide either ref or coordinate, not both.',
         },
         coordinate: {
           type: "array",
           items: {
-            type: "number"
+            type: "number",
           },
-          description: "Viewport coordinates [x, y] for drag & drop to a visible location. Use this for drag & drop targets like Google Docs. Provide either ref or coordinate, not both."
+          description:
+            "Viewport coordinates [x, y] for drag & drop to a visible location. Use this for drag & drop targets like Google Docs. Provide either ref or coordinate, not both.",
         },
         tabId: {
           type: "number",
-          description: "Tab ID where the target element is located. This is where the image will be uploaded to."
+          description:
+            "Tab ID where the target element is located. This is where the image will be uploaded to.",
         },
         filename: {
           type: "string",
-          description: "Optional filename for the uploaded file (default: \"image.png\")"
-        }
+          description:
+            'Optional filename for the uploaded file (default: "image.png")',
+        },
       },
-      required: ["imageId", "tabId"]
-    }
-  })
+      required: ["imageId", "tabId"],
+    },
+  }),
 };
 const Ke = Y((e, t) => ({
   remoteServers: {},
   remoteTools: {},
-  addServers: t => e(e => ({
-    remoteServers: t.reduce((e, t) => ({
-      ...e,
-      [t.uuid]: t
-    }), e.remoteServers)
-  })),
-  addTools: (t, r) => e(e => ({
-    remoteTools: {
-      ...e.remoteTools,
-      [t]: r
-    }
-  })),
-  updateServerConnection: (t, r) => e(e => {
-    const o = e.remoteServers[t];
-    if (o) {
-      return {
-        remoteServers: {
-          ...e.remoteServers,
-          [t]: {
-            ...o,
-            connected: r
-          }
-        }
-      };
-    } else {
-      return e;
-    }
-  }),
-  getServerByUuid: e => t().remoteServers[e]
+  addServers: (t) =>
+    e((e) => ({
+      remoteServers: t.reduce(
+        (e, t) => ({
+          ...e,
+          [t.uuid]: t,
+        }),
+        e.remoteServers,
+      ),
+    })),
+  addTools: (t, r) =>
+    e((e) => ({
+      remoteTools: {
+        ...e.remoteTools,
+        [t]: r,
+      },
+    })),
+  updateServerConnection: (t, r) =>
+    e((e) => {
+      const o = e.remoteServers[t];
+      if (o) {
+        return {
+          remoteServers: {
+            ...e.remoteServers,
+            [t]: {
+              ...o,
+              connected: r,
+            },
+          },
+        };
+      } else {
+        return e;
+      }
+    }),
+  getServerByUuid: (e) => t().remoteServers[e],
 }));
 function ze(e, t, r, o, a) {
   if (typeof t == "function" || !t.has(e)) {
-    throw new TypeError("Cannot write private member to an object whose class did not declare it");
+    throw new TypeError(
+      "Cannot write private member to an object whose class did not declare it",
+    );
   }
   t.set(e, r);
   return r;
@@ -7849,7 +9186,9 @@ function Xe(e, t, r, o) {
     throw new TypeError("Private accessor was defined without a getter");
   }
   if (typeof t == "function" ? e !== t || !o : !t.has(e)) {
-    throw new TypeError("Cannot read private member from an object whose class did not declare it");
+    throw new TypeError(
+      "Cannot read private member from an object whose class did not declare it",
+    );
   }
   if (r === "m") {
     return o;
@@ -7862,30 +9201,43 @@ function Xe(e, t, r, o) {
   }
 }
 let Ve = function () {
-  const {
-    crypto: e
-  } = globalThis;
+  const { crypto: e } = globalThis;
   if (e?.randomUUID) {
     Ve = e.randomUUID.bind(e);
     return e.randomUUID();
   }
   const t = new Uint8Array(1);
-  const r = e ? () => e.getRandomValues(t)[0] : () => Math.random() * 255 & 255;
-  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, e => (+e ^ r() & 15 >> +e / 4).toString(16));
+  const r = e
+    ? () => e.getRandomValues(t)[0]
+    : () => (Math.random() * 255) & 255;
+  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (e) =>
+    (+e ^ (r() & (15 >> (+e / 4)))).toString(16),
+  );
 };
 function Ye(e) {
-  return typeof e == "object" && e !== null && ("name" in e && e.name === "AbortError" || "message" in e && String(e.message).includes("FetchRequestCanceledException"));
+  return (
+    typeof e == "object" &&
+    e !== null &&
+    (("name" in e && e.name === "AbortError") ||
+      ("message" in e &&
+        String(e.message).includes("FetchRequestCanceledException")))
+  );
 }
-const Je = e => {
+const Je = (e) => {
   if (e instanceof Error) {
     return e;
   }
   if (typeof e == "object" && e !== null) {
     try {
       if (Object.prototype.toString.call(e) === "[object Error]") {
-        const t = new Error(e.message, e.cause ? {
-          cause: e.cause
-        } : {});
+        const t = new Error(
+          e.message,
+          e.cause
+            ? {
+                cause: e.cause,
+              }
+            : {},
+        );
         if (e.stack) {
           t.stack = e.stack;
         }
@@ -7914,7 +9266,13 @@ class Ze extends Qe {
     this.error = t;
   }
   static makeMessage(e, t, r) {
-    const o = t?.message ? typeof t.message == "string" ? t.message : JSON.stringify(t.message) : t ? JSON.stringify(t) : r;
+    const o = t?.message
+      ? typeof t.message == "string"
+        ? t.message
+        : JSON.stringify(t.message)
+      : t
+        ? JSON.stringify(t)
+        : r;
     if (e && o) {
       return `${e} ${o}`;
     } else if (e) {
@@ -7927,7 +9285,7 @@ class Ze extends Qe {
     if (!e || !o) {
       return new tt({
         message: r,
-        cause: Je(t)
+        cause: Je(t),
       });
     }
     const a = t;
@@ -7953,17 +9311,12 @@ class Ze extends Qe {
   }
 }
 class et extends Ze {
-  constructor({
-    message: e
-  } = {}) {
+  constructor({ message: e } = {}) {
     super(undefined, undefined, e || "Request was aborted.", undefined);
   }
 }
 class tt extends Ze {
-  constructor({
-    message: e,
-    cause: t
-  }) {
+  constructor({ message: e, cause: t }) {
     super(undefined, undefined, e || "Connection error.", undefined);
     if (t) {
       this.cause = t;
@@ -7971,11 +9324,9 @@ class tt extends Ze {
   }
 }
 class rt extends tt {
-  constructor({
-    message: e
-  } = {}) {
+  constructor({ message: e } = {}) {
     super({
-      message: e ?? "Request timed out."
+      message: e ?? "Request timed out.",
     });
   }
 }
@@ -7988,7 +9339,7 @@ class ct extends Ze {}
 class lt extends Ze {}
 class dt extends Ze {}
 const ut = /^[a-z][a-z0-9+.-]*:/i;
-let ht = e => {
+let ht = (e) => {
   ht = Array.isArray;
   return ht(e);
 };
@@ -8000,7 +9351,7 @@ function mt(e) {
     return e ?? {};
   }
 }
-const ft = e => {
+const ft = (e) => {
   try {
     return JSON.parse(e);
   } catch (t) {
@@ -8009,7 +9360,16 @@ const ft = e => {
 };
 const gt = "0.72.1";
 const bt = () => {
-  const e = typeof Deno != "undefined" && Deno.build != null ? "deno" : typeof EdgeRuntime != "undefined" ? "edge" : Object.prototype.toString.call(globalThis.process !== undefined ? globalThis.process : 0) === "[object process]" ? "node" : "unknown";
+  const e =
+    typeof Deno != "undefined" && Deno.build != null
+      ? "deno"
+      : typeof EdgeRuntime != "undefined"
+        ? "edge"
+        : Object.prototype.toString.call(
+              globalThis.process !== undefined ? globalThis.process : 0,
+            ) === "[object process]"
+          ? "node"
+          : "unknown";
   if (e === "deno") {
     return {
       "X-Stainless-Lang": "js",
@@ -8017,7 +9377,10 @@ const bt = () => {
       "X-Stainless-OS": yt(Deno.build.os),
       "X-Stainless-Arch": wt(Deno.build.arch),
       "X-Stainless-Runtime": "deno",
-      "X-Stainless-Runtime-Version": typeof Deno.version == "string" ? Deno.version : Deno.version?.deno ?? "unknown"
+      "X-Stainless-Runtime-Version":
+        typeof Deno.version == "string"
+          ? Deno.version
+          : (Deno.version?.deno ?? "unknown"),
     };
   }
   if (typeof EdgeRuntime != "undefined") {
@@ -8027,7 +9390,7 @@ const bt = () => {
       "X-Stainless-OS": "Unknown",
       "X-Stainless-Arch": `other:${EdgeRuntime}`,
       "X-Stainless-Runtime": "edge",
-      "X-Stainless-Runtime-Version": globalThis.process.version
+      "X-Stainless-Runtime-Version": globalThis.process.version,
     };
   }
   if (e === "node") {
@@ -8037,46 +9400,51 @@ const bt = () => {
       "X-Stainless-OS": yt(globalThis.process.platform ?? "unknown"),
       "X-Stainless-Arch": wt(globalThis.process.arch ?? "unknown"),
       "X-Stainless-Runtime": "node",
-      "X-Stainless-Runtime-Version": globalThis.process.version ?? "unknown"
+      "X-Stainless-Runtime-Version": globalThis.process.version ?? "unknown",
     };
   }
-  const t = function () {
+  const t = (function () {
     if (typeof navigator == "undefined" || !navigator) {
       return null;
     }
-    const e = [{
-      key: "edge",
-      pattern: /Edge(?:\W+(\d+)\.(\d+)(?:\.(\d+))?)?/
-    }, {
-      key: "ie",
-      pattern: /MSIE(?:\W+(\d+)\.(\d+)(?:\.(\d+))?)?/
-    }, {
-      key: "ie",
-      pattern: /Trident(?:.*rv\:(\d+)\.(\d+)(?:\.(\d+))?)?/
-    }, {
-      key: "chrome",
-      pattern: /Chrome(?:\W+(\d+)\.(\d+)(?:\.(\d+))?)?/
-    }, {
-      key: "firefox",
-      pattern: /Firefox(?:\W+(\d+)\.(\d+)(?:\.(\d+))?)?/
-    }, {
-      key: "safari",
-      pattern: /(?:Version\W+(\d+)\.(\d+)(?:\.(\d+))?)?(?:\W+Mobile\S*)?\W+Safari/
-    }];
-    for (const {
-      key: t,
-      pattern: r
-    } of e) {
+    const e = [
+      {
+        key: "edge",
+        pattern: /Edge(?:\W+(\d+)\.(\d+)(?:\.(\d+))?)?/,
+      },
+      {
+        key: "ie",
+        pattern: /MSIE(?:\W+(\d+)\.(\d+)(?:\.(\d+))?)?/,
+      },
+      {
+        key: "ie",
+        pattern: /Trident(?:.*rv\:(\d+)\.(\d+)(?:\.(\d+))?)?/,
+      },
+      {
+        key: "chrome",
+        pattern: /Chrome(?:\W+(\d+)\.(\d+)(?:\.(\d+))?)?/,
+      },
+      {
+        key: "firefox",
+        pattern: /Firefox(?:\W+(\d+)\.(\d+)(?:\.(\d+))?)?/,
+      },
+      {
+        key: "safari",
+        pattern:
+          /(?:Version\W+(\d+)\.(\d+)(?:\.(\d+))?)?(?:\W+Mobile\S*)?\W+Safari/,
+      },
+    ];
+    for (const { key: t, pattern: r } of e) {
       const e = r.exec(navigator.userAgent);
       if (e) {
         return {
           browser: t,
-          version: `${e[1] || 0}.${e[2] || 0}.${e[3] || 0}`
+          version: `${e[1] || 0}.${e[2] || 0}.${e[3] || 0}`,
         };
       }
     }
     return null;
-  }();
+  })();
   if (t) {
     return {
       "X-Stainless-Lang": "js",
@@ -8084,7 +9452,7 @@ const bt = () => {
       "X-Stainless-OS": "Unknown",
       "X-Stainless-Arch": "unknown",
       "X-Stainless-Runtime": `browser:${t.browser}`,
-      "X-Stainless-Runtime-Version": t.version
+      "X-Stainless-Runtime-Version": t.version,
     };
   } else {
     return {
@@ -8093,29 +9461,59 @@ const bt = () => {
       "X-Stainless-OS": "Unknown",
       "X-Stainless-Arch": "unknown",
       "X-Stainless-Runtime": "unknown",
-      "X-Stainless-Runtime-Version": "unknown"
+      "X-Stainless-Runtime-Version": "unknown",
     };
   }
 };
-const wt = e => e === "x32" ? "x32" : e === "x86_64" || e === "x64" ? "x64" : e === "arm" ? "arm" : e === "aarch64" || e === "arm64" ? "arm64" : e ? `other:${e}` : "unknown";
-const yt = e => (e = e.toLowerCase()).includes("ios") ? "iOS" : e === "android" ? "Android" : e === "darwin" ? "MacOS" : e === "win32" ? "Windows" : e === "freebsd" ? "FreeBSD" : e === "openbsd" ? "OpenBSD" : e === "linux" ? "Linux" : e ? `Other:${e}` : "Unknown";
+const wt = (e) =>
+  e === "x32"
+    ? "x32"
+    : e === "x86_64" || e === "x64"
+      ? "x64"
+      : e === "arm"
+        ? "arm"
+        : e === "aarch64" || e === "arm64"
+          ? "arm64"
+          : e
+            ? `other:${e}`
+            : "unknown";
+const yt = (e) =>
+  (e = e.toLowerCase()).includes("ios")
+    ? "iOS"
+    : e === "android"
+      ? "Android"
+      : e === "darwin"
+        ? "MacOS"
+        : e === "win32"
+          ? "Windows"
+          : e === "freebsd"
+            ? "FreeBSD"
+            : e === "openbsd"
+              ? "OpenBSD"
+              : e === "linux"
+                ? "Linux"
+                : e
+                  ? `Other:${e}`
+                  : "Unknown";
 let _t;
 function vt(...e) {
   const t = globalThis.ReadableStream;
   if (t === undefined) {
-    throw new Error("`ReadableStream` is not defined as a global; You will need to polyfill it, `globalThis.ReadableStream = ReadableStream`");
+    throw new Error(
+      "`ReadableStream` is not defined as a global; You will need to polyfill it, `globalThis.ReadableStream = ReadableStream`",
+    );
   }
   return new t(...e);
 }
 function It(e) {
-  let t = Symbol.asyncIterator in e ? e[Symbol.asyncIterator]() : e[Symbol.iterator]();
+  let t =
+    Symbol.asyncIterator in e
+      ? e[Symbol.asyncIterator]()
+      : e[Symbol.iterator]();
   return vt({
     start() {},
     async pull(e) {
-      const {
-        done: r,
-        value: o
-      } = await t.next();
+      const { done: r, value: o } = await t.next();
       if (r) {
         e.close();
       } else {
@@ -8124,7 +9522,7 @@ function It(e) {
     },
     async cancel() {
       await t.return?.();
-    }
+    },
   });
 }
 function kt(e) {
@@ -8151,32 +9549,33 @@ function kt(e) {
       await e;
       return {
         done: true,
-        value: undefined
+        value: undefined,
       };
     },
     [Symbol.asyncIterator]() {
       return this;
-    }
+    },
   };
 }
-const Tt = ({
-  headers: e,
-  body: t
-}) => ({
+const Tt = ({ headers: e, body: t }) => ({
   bodyHeaders: {
-    "content-type": "application/json"
+    "content-type": "application/json",
   },
-  body: JSON.stringify(t)
+  body: JSON.stringify(t),
 });
 let xt;
 let St;
 function Et(e) {
   let t;
-  return (xt ?? (t = new globalThis.TextEncoder(), xt = t.encode.bind(t)))(e);
+  return (xt ?? ((t = new globalThis.TextEncoder()), (xt = t.encode.bind(t))))(
+    e,
+  );
 }
 function Ct(e) {
   let t;
-  return (St ?? (t = new globalThis.TextDecoder(), St = t.decode.bind(t)))(e);
+  return (St ?? ((t = new globalThis.TextDecoder()), (St = t.decode.bind(t))))(
+    e,
+  );
 }
 var Mt;
 var Dt;
@@ -8191,20 +9590,29 @@ class Rt {
     if (e == null) {
       return [];
     }
-    const t = e instanceof ArrayBuffer ? new Uint8Array(e) : typeof e == "string" ? Et(e) : e;
-    ze(this, Mt, function (e) {
-      let t = 0;
-      for (const a of e) {
-        t += a.length;
-      }
-      const r = new Uint8Array(t);
-      let o = 0;
-      for (const a of e) {
-        r.set(a, o);
-        o += a.length;
-      }
-      return r;
-    }([Xe(this, Mt, "f"), t]));
+    const t =
+      e instanceof ArrayBuffer
+        ? new Uint8Array(e)
+        : typeof e == "string"
+          ? Et(e)
+          : e;
+    ze(
+      this,
+      Mt,
+      (function (e) {
+        let t = 0;
+        for (const a of e) {
+          t += a.length;
+        }
+        const r = new Uint8Array(t);
+        let o = 0;
+        for (const a of e) {
+          r.set(a, o);
+          o += a.length;
+        }
+        return r;
+      })([Xe(this, Mt, "f"), t]),
+    );
     const r = [];
     let o;
     while ((o = At(Xe(this, Mt, "f"), Xe(this, Dt, "f"))) != null) {
@@ -8212,7 +9620,10 @@ class Rt {
         ze(this, Dt, o.index);
         continue;
       }
-      if (Xe(this, Dt, "f") != null && (o.index !== Xe(this, Dt, "f") + 1 || o.carriage)) {
+      if (
+        Xe(this, Dt, "f") != null &&
+        (o.index !== Xe(this, Dt, "f") + 1 || o.carriage)
+      ) {
         r.push(Ct(Xe(this, Mt, "f").subarray(0, Xe(this, Dt, "f") - 1)));
         ze(this, Mt, Xe(this, Mt, "f").subarray(Xe(this, Dt, "f")));
         ze(this, Dt, null);
@@ -8240,14 +9651,14 @@ function At(e, t) {
       return {
         preceding: r,
         index: r + 1,
-        carriage: false
+        carriage: false,
       };
     }
     if (e[r] === 13) {
       return {
         preceding: r,
         index: r + 1,
-        carriage: true
+        carriage: true,
       };
     }
   }
@@ -8261,7 +9672,13 @@ function Pt(e) {
     if (e[t] === 13 && e[t + 1] === 13) {
       return t + 2;
     }
-    if (e[t] === 13 && e[t + 1] === 10 && t + 3 < e.length && e[t + 2] === 13 && e[t + 3] === 10) {
+    if (
+      e[t] === 13 &&
+      e[t + 1] === 10 &&
+      t + 3 < e.length &&
+      e[t + 2] === 13 &&
+      e[t + 3] === 10
+    ) {
       return t + 4;
     }
   }
@@ -8276,7 +9693,7 @@ const Ut = {
   error: 200,
   warn: 300,
   info: 400,
-  debug: 500
+  debug: 500,
 };
 const $t = (e, t, r) => {
   var o;
@@ -8287,7 +9704,9 @@ const $t = (e, t, r) => {
     if (Object.prototype.hasOwnProperty.call(o, a)) {
       return e;
     } else {
-      qt(r).warn(`${t} was set to ${JSON.stringify(e)}, expected one of ${JSON.stringify(Object.keys(Ut))}`);
+      qt(r).warn(
+        `${t} was set to ${JSON.stringify(e)}, expected one of ${JSON.stringify(Object.keys(Ut))}`,
+      );
       return;
     }
   }
@@ -8304,7 +9723,7 @@ const Nt = {
   error: Ot,
   warn: Ot,
   info: Ot,
-  debug: Ot
+  debug: Ot,
 };
 let Lt = new WeakMap();
 function qt(e) {
@@ -8321,19 +9740,32 @@ function qt(e) {
     error: Gt("error", t, r),
     warn: Gt("warn", t, r),
     info: Gt("info", t, r),
-    debug: Gt("debug", t, r)
+    debug: Gt("debug", t, r),
   };
   Lt.set(t, [r, a]);
   return a;
 }
-const Bt = e => {
+const Bt = (e) => {
   if (e.options) {
     e.options = {
-      ...e.options
+      ...e.options,
     };
     delete e.options.headers;
   }
-  e.headers &&= Object.fromEntries((e.headers instanceof Headers ? [...e.headers] : Object.entries(e.headers)).map(([e, t]) => [e, e.toLowerCase() === "x-api-key" || e.toLowerCase() === "authorization" || e.toLowerCase() === "cookie" || e.toLowerCase() === "set-cookie" ? "***" : t]));
+  e.headers &&= Object.fromEntries(
+    (e.headers instanceof Headers
+      ? [...e.headers]
+      : Object.entries(e.headers)
+    ).map(([e, t]) => [
+      e,
+      e.toLowerCase() === "x-api-key" ||
+      e.toLowerCase() === "authorization" ||
+      e.toLowerCase() === "cookie" ||
+      e.toLowerCase() === "set-cookie"
+        ? "***"
+        : t,
+    ]),
+  );
   if ("retryOfRequestLogID" in e) {
     if (e.retryOfRequestLogID) {
       e.retryOf = e.retryOfRequestLogID;
@@ -8355,142 +9787,176 @@ class Ht {
   static fromSSEResponse(e, t, r) {
     let o = false;
     const a = r ? qt(r) : console;
-    return new Ht(async function* () {
-      if (o) {
-        throw new Qe("Cannot iterate over a consumed stream, use `.tee()` to split the stream.");
-      }
-      o = true;
-      let r = false;
-      try {
-        for await (const r of async function* (e, t) {
-          if (!e.body) {
-            t.abort();
-            if (globalThis.navigator !== undefined && globalThis.navigator.product === "ReactNative") {
-              throw new Qe("The default react-native fetch implementation does not support streaming. Please use expo/fetch: https://docs.expo.dev/versions/latest/sdk/expo/#expofetch-api");
-            }
-            throw new Qe("Attempted to iterate over a response with no body");
-          }
-          const r = new Kt();
-          const o = new Rt();
-          const a = kt(e.body);
-          for await (const n of async function* (e) {
-            let t = new Uint8Array();
-            for await (const r of e) {
-              if (r == null) {
-                continue;
+    return new Ht(
+      async function* () {
+        if (o) {
+          throw new Qe(
+            "Cannot iterate over a consumed stream, use `.tee()` to split the stream.",
+          );
+        }
+        o = true;
+        let r = false;
+        try {
+          for await (const r of (async function* (e, t) {
+            if (!e.body) {
+              t.abort();
+              if (
+                globalThis.navigator !== undefined &&
+                globalThis.navigator.product === "ReactNative"
+              ) {
+                throw new Qe(
+                  "The default react-native fetch implementation does not support streaming. Please use expo/fetch: https://docs.expo.dev/versions/latest/sdk/expo/#expofetch-api",
+                );
               }
-              const e = r instanceof ArrayBuffer ? new Uint8Array(r) : typeof r == "string" ? Et(r) : r;
-              let o;
-              let a = new Uint8Array(t.length + e.length);
-              a.set(t);
-              a.set(e, t.length);
-              t = a;
-              while ((o = Pt(t)) !== -1) {
-                yield t.slice(0, o);
-                t = t.slice(o);
+              throw new Qe("Attempted to iterate over a response with no body");
+            }
+            const r = new Kt();
+            const o = new Rt();
+            const a = kt(e.body);
+            for await (const n of (async function* (e) {
+              let t = new Uint8Array();
+              for await (const r of e) {
+                if (r == null) {
+                  continue;
+                }
+                const e =
+                  r instanceof ArrayBuffer
+                    ? new Uint8Array(r)
+                    : typeof r == "string"
+                      ? Et(r)
+                      : r;
+                let o;
+                let a = new Uint8Array(t.length + e.length);
+                a.set(t);
+                a.set(e, t.length);
+                t = a;
+                while ((o = Pt(t)) !== -1) {
+                  yield t.slice(0, o);
+                  t = t.slice(o);
+                }
               }
-            }
-            if (t.length > 0) {
-              yield t;
-            }
-          }(a)) {
-            for (const e of o.decode(n)) {
-              const t = r.decode(e);
-              if (t) {
+              if (t.length > 0) {
                 yield t;
               }
+            })(a)) {
+              for (const e of o.decode(n)) {
+                const t = r.decode(e);
+                if (t) {
+                  yield t;
+                }
+              }
+            }
+            for (const n of o.flush()) {
+              const e = r.decode(n);
+              if (e) {
+                yield e;
+              }
+            }
+          })(e, t)) {
+            if (r.event === "completion") {
+              try {
+                yield JSON.parse(r.data);
+              } catch (n) {
+                a.error("Could not parse message into JSON:", r.data);
+                a.error("From chunk:", r.raw);
+                throw n;
+              }
+            }
+            if (
+              r.event === "message_start" ||
+              r.event === "message_delta" ||
+              r.event === "message_stop" ||
+              r.event === "content_block_start" ||
+              r.event === "content_block_delta" ||
+              r.event === "content_block_stop"
+            ) {
+              try {
+                yield JSON.parse(r.data);
+              } catch (n) {
+                a.error("Could not parse message into JSON:", r.data);
+                a.error("From chunk:", r.raw);
+                throw n;
+              }
+            }
+            if (r.event !== "ping" && r.event === "error") {
+              throw new Ze(
+                undefined,
+                ft(r.data) ?? r.data,
+                undefined,
+                e.headers,
+              );
             }
           }
-          for (const n of o.flush()) {
-            const e = r.decode(n);
-            if (e) {
-              yield e;
-            }
+          r = true;
+        } catch (n) {
+          if (Ye(n)) {
+            return;
           }
-        }(e, t)) {
-          if (r.event === "completion") {
-            try {
-              yield JSON.parse(r.data);
-            } catch (n) {
-              a.error("Could not parse message into JSON:", r.data);
-              a.error("From chunk:", r.raw);
-              throw n;
-            }
-          }
-          if (r.event === "message_start" || r.event === "message_delta" || r.event === "message_stop" || r.event === "content_block_start" || r.event === "content_block_delta" || r.event === "content_block_stop") {
-            try {
-              yield JSON.parse(r.data);
-            } catch (n) {
-              a.error("Could not parse message into JSON:", r.data);
-              a.error("From chunk:", r.raw);
-              throw n;
-            }
-          }
-          if (r.event !== "ping" && r.event === "error") {
-            throw new Ze(undefined, ft(r.data) ?? r.data, undefined, e.headers);
+          throw n;
+        } finally {
+          if (!r) {
+            t.abort();
           }
         }
-        r = true;
-      } catch (n) {
-        if (Ye(n)) {
-          return;
-        }
-        throw n;
-      } finally {
-        if (!r) {
-          t.abort();
-        }
-      }
-    }, t, r);
+      },
+      t,
+      r,
+    );
   }
   static fromReadableStream(e, t, r) {
     let o = false;
-    return new Ht(async function* () {
-      if (o) {
-        throw new Qe("Cannot iterate over a consumed stream, use `.tee()` to split the stream.");
-      }
-      o = true;
-      let r = false;
-      try {
-        for await (const t of async function* () {
-          const t = new Rt();
-          const r = kt(e);
-          for await (const e of r) {
-            for (const r of t.decode(e)) {
-              yield r;
+    return new Ht(
+      async function* () {
+        if (o) {
+          throw new Qe(
+            "Cannot iterate over a consumed stream, use `.tee()` to split the stream.",
+          );
+        }
+        o = true;
+        let r = false;
+        try {
+          for await (const t of (async function* () {
+            const t = new Rt();
+            const r = kt(e);
+            for await (const e of r) {
+              for (const r of t.decode(e)) {
+                yield r;
+              }
+            }
+            for (const e of t.flush()) {
+              yield e;
+            }
+          })()) {
+            if (!r) {
+              if (t) {
+                yield JSON.parse(t);
+              }
             }
           }
-          for (const e of t.flush()) {
-            yield e;
+          r = true;
+        } catch (a) {
+          if (Ye(a)) {
+            return;
           }
-        }()) {
+          throw a;
+        } finally {
           if (!r) {
-            if (t) {
-              yield JSON.parse(t);
-            }
+            t.abort();
           }
         }
-        r = true;
-      } catch (a) {
-        if (Ye(a)) {
-          return;
-        }
-        throw a;
-      } finally {
-        if (!r) {
-          t.abort();
-        }
-      }
-    }, t, r);
+      },
+      t,
+      r,
+    );
   }
-  [(Ft = new WeakMap(), Symbol.asyncIterator)]() {
+  [((Ft = new WeakMap()), Symbol.asyncIterator)]() {
     return this.iterator();
   }
   tee() {
     const e = [];
     const t = [];
     const r = this.iterator();
-    const o = o => ({
+    const o = (o) => ({
       next: () => {
         if (o.length === 0) {
           const o = r.next();
@@ -8498,9 +9964,12 @@ class Ht {
           t.push(o);
         }
         return o.shift();
-      }
+      },
     });
-    return [new Ht(() => o(e), this.controller, Xe(this, Ft, "f")), new Ht(() => o(t), this.controller, Xe(this, Ft, "f"))];
+    return [
+      new Ht(() => o(e), this.controller, Xe(this, Ft, "f")),
+      new Ht(() => o(t), this.controller, Xe(this, Ft, "f")),
+    ];
   }
   toReadableStream() {
     const e = this;
@@ -8511,10 +9980,7 @@ class Ht {
       },
       async pull(e) {
         try {
-          const {
-            value: r,
-            done: o
-          } = await t.next();
+          const { value: r, done: o } = await t.next();
           if (o) {
             return e.close();
           }
@@ -8526,7 +9992,7 @@ class Ht {
       },
       async cancel() {
         await t.return?.();
-      }
+      },
     });
   }
 }
@@ -8547,7 +10013,7 @@ class Kt {
       const e = {
         event: this.event,
         data: this.data.join("\n"),
-        raw: this.chunks
+        raw: this.chunks,
       };
       this.event = null;
       this.data = [];
@@ -8558,13 +10024,13 @@ class Kt {
     if (e.startsWith(":")) {
       return null;
     }
-    let [t, r, o] = function (e, t) {
+    let [t, r, o] = (function (e, t) {
       const r = e.indexOf(t);
       if (r !== -1) {
         return [e.substring(0, r), t, e.substring(r + t.length)];
       }
       return [e, "", ""];
-    }(e, ":");
+    })(e, ":");
     if (o.startsWith(" ")) {
       o = o.substring(1);
     }
@@ -8581,7 +10047,7 @@ async function zt(e, t) {
     response: r,
     requestLogID: o,
     retryOfRequestLogID: a,
-    startTime: n
+    startTime: n,
   } = t;
   const s = await (async () => {
     if (t.options.stream) {
@@ -8605,13 +10071,16 @@ async function zt(e, t) {
     }
     return await r.text();
   })();
-  qt(e).debug(`[${o}] response parsed`, Bt({
-    retryOfRequestLogID: a,
-    url: r.url,
-    status: r.status,
-    body: s,
-    durationMs: Date.now() - n
-  }));
+  qt(e).debug(
+    `[${o}] response parsed`,
+    Bt({
+      retryOfRequestLogID: a,
+      url: r.url,
+      status: r.status,
+      body: s,
+      durationMs: Date.now() - n,
+    }),
+  );
   return s;
 }
 function Xt(e, t) {
@@ -8620,13 +10089,13 @@ function Xt(e, t) {
   } else {
     return Object.defineProperty(e, "_request_id", {
       value: t.headers.get("request-id"),
-      enumerable: false
+      enumerable: false,
     });
   }
 }
 class Vt extends Promise {
   constructor(e, t, r = zt) {
-    super(e => {
+    super((e) => {
       e(null);
     });
     this.responsePromise = t;
@@ -8635,21 +10104,25 @@ class Vt extends Promise {
     ze(this, Wt, e);
   }
   _thenUnwrap(e) {
-    return new Vt(Xe(this, Wt, "f"), this.responsePromise, async (t, r) => Xt(e(await this.parseResponse(t, r), r), r.response));
+    return new Vt(Xe(this, Wt, "f"), this.responsePromise, async (t, r) =>
+      Xt(e(await this.parseResponse(t, r), r), r.response),
+    );
   }
   asResponse() {
-    return this.responsePromise.then(e => e.response);
+    return this.responsePromise.then((e) => e.response);
   }
   async withResponse() {
     const [e, t] = await Promise.all([this.parse(), this.asResponse()]);
     return {
       data: e,
       response: t,
-      request_id: t.headers.get("request-id")
+      request_id: t.headers.get("request-id"),
     };
   }
   parse() {
-    this.parsedPromise ||= this.responsePromise.then(e => this.parseResponse(Xe(this, Wt, "f"), e));
+    this.parsedPromise ||= this.responsePromise.then((e) =>
+      this.parseResponse(Xe(this, Wt, "f"), e),
+    );
     return this.parsedPromise;
   }
   then(e, t) {
@@ -8672,23 +10145,27 @@ class Yt {
     this.body = r;
   }
   hasNextPage() {
-    return !!this.getPaginatedItems().length && this.nextPageRequestOptions() != null;
+    return (
+      !!this.getPaginatedItems().length && this.nextPageRequestOptions() != null
+    );
   }
   async getNextPage() {
     const e = this.nextPageRequestOptions();
     if (!e) {
-      throw new Qe("No next page expected; please check `.hasNextPage()` before calling `.getNextPage()`.");
+      throw new Qe(
+        "No next page expected; please check `.hasNextPage()` before calling `.getNextPage()`.",
+      );
     }
     return await Xe(this, jt, "f").requestAPIList(this.constructor, e);
   }
   async *iterPages() {
     let e = this;
-    for (yield e; e.hasNextPage();) {
+    for (yield e; e.hasNextPage(); ) {
       e = await e.getNextPage();
       yield e;
     }
   }
-  async *[(jt = new WeakMap(), Symbol.asyncIterator)]() {
+  async *[((jt = new WeakMap()), Symbol.asyncIterator)]() {
     for await (const e of this.iterPages()) {
       for (const t of e.getPaginatedItems()) {
         yield t;
@@ -8698,7 +10175,11 @@ class Yt {
 }
 class Jt extends Vt {
   constructor(e, t, r) {
-    super(e, t, async (e, t) => new r(e, t.response, await zt(e, t), t.options));
+    super(
+      e,
+      t,
+      async (e, t) => new r(e, t.response, await zt(e, t), t.options),
+    );
   }
   async *[Symbol.asyncIterator]() {
     const e = await this;
@@ -8729,8 +10210,8 @@ class Qt extends Yt {
           ...this.options,
           query: {
             ...mt(this.options.query),
-            before_id: e
-          }
+            before_id: e,
+          },
         };
       } else {
         return null;
@@ -8742,8 +10223,8 @@ class Qt extends Yt {
         ...this.options,
         query: {
           ...mt(this.options.query),
-          after_id: e
-        }
+          after_id: e,
+        },
       };
     } else {
       return null;
@@ -8770,8 +10251,8 @@ class Zt extends Yt {
         ...this.options,
         query: {
           ...mt(this.options.query),
-          page: e
-        }
+          page: e,
+        },
       };
     } else {
       return null;
@@ -8780,11 +10261,16 @@ class Zt extends Yt {
 }
 const er = () => {
   if (typeof File == "undefined") {
-    const {
-      process: e
-    } = globalThis;
-    const t = typeof e?.versions?.node == "string" && parseInt(e.versions.node.split(".")) < 20;
-    throw new Error("`File` is not defined as a global, which is required for file uploads." + (t ? " Update to Node 20 LTS or newer, or set `globalThis.File` to `import('node:buffer').File`." : ""));
+    const { process: e } = globalThis;
+    const t =
+      typeof e?.versions?.node == "string" &&
+      parseInt(e.versions.node.split(".")) < 20;
+    throw new Error(
+      "`File` is not defined as a global, which is required for file uploads." +
+        (t
+          ? " Update to Node 20 LTS or newer, or set `globalThis.File` to `import('node:buffer').File`."
+          : ""),
+    );
   }
 };
 function tr(e, t, r) {
@@ -8792,39 +10278,54 @@ function tr(e, t, r) {
   return new File(e, t ?? "unknown_file", r);
 }
 function rr(e, t) {
-  const r = typeof e == "object" && e !== null && ("name" in e && e.name && String(e.name) || "url" in e && e.url && String(e.url) || "filename" in e && e.filename && String(e.filename) || "path" in e && e.path && String(e.path)) || "";
+  const r =
+    (typeof e == "object" &&
+      e !== null &&
+      (("name" in e && e.name && String(e.name)) ||
+        ("url" in e && e.url && String(e.url)) ||
+        ("filename" in e && e.filename && String(e.filename)) ||
+        ("path" in e && e.path && String(e.path)))) ||
+    "";
   if (t) {
     return r.split(/[\\/]/).pop() || undefined;
   } else {
     return r;
   }
 }
-const or = e => e != null && typeof e == "object" && typeof e[Symbol.asyncIterator] == "function";
+const or = (e) =>
+  e != null &&
+  typeof e == "object" &&
+  typeof e[Symbol.asyncIterator] == "function";
 const ar = async (e, t, r = true) => ({
   ...e,
-  body: await sr(e.body, t, r)
+  body: await sr(e.body, t, r),
 });
 const nr = new WeakMap();
 const sr = async (e, t, r = true) => {
-  if (!(await function (e) {
-    const t = typeof e == "function" ? e : e.fetch;
-    const r = nr.get(t);
-    if (r) {
-      return r;
-    }
-    const o = (async () => {
-      try {
-        const e = "Response" in t ? t.Response : (await t("data:,")).constructor;
-        const r = new FormData();
-        return r.toString() !== (await new e(r).text());
-      } catch {
-        return true;
+  if (
+    !(await (function (e) {
+      const t = typeof e == "function" ? e : e.fetch;
+      const r = nr.get(t);
+      if (r) {
+        return r;
       }
-    })();
-    nr.set(t, o);
-    return o;
-  }(t))) {
-    throw new TypeError("The provided fetch function does not support file uploads with the current global FormData class.");
+      const o = (async () => {
+        try {
+          const e =
+            "Response" in t ? t.Response : (await t("data:,")).constructor;
+          const r = new FormData();
+          return r.toString() !== (await new e(r).text());
+        } catch {
+          return true;
+        }
+      })();
+      nr.set(t, o);
+      return o;
+    })(t))
+  ) {
+    throw new TypeError(
+      "The provided fetch function does not support file uploads with the current global FormData class.",
+    );
   }
   const o = new FormData();
   await Promise.all(Object.entries(e || {}).map(([e, t]) => ir(o, e, t, r)));
@@ -8833,7 +10334,9 @@ const sr = async (e, t, r = true) => {
 const ir = async (e, t, r, o) => {
   if (r !== undefined) {
     if (r == null) {
-      throw new TypeError(`Received null for "${t}"; to pass null in FormData, you must use the string 'null'`);
+      throw new TypeError(
+        `Received null for "${t}"; to pass null in FormData, you must use the string 'null'`,
+      );
     }
     if (typeof r == "string" || typeof r == "number" || typeof r == "boolean") {
       e.append(t, String(r));
@@ -8842,43 +10345,65 @@ const ir = async (e, t, r, o) => {
       const n = r.headers.get("Content-Type");
       if (n) {
         a = {
-          type: n
+          type: n,
         };
       }
       e.append(t, tr([await r.blob()], rr(r, o), a));
     } else if (or(r)) {
       e.append(t, tr([await new Response(It(r)).blob()], rr(r, o)));
-    } else if ((e => e instanceof Blob && "name" in e)(r)) {
-      e.append(t, tr([r], rr(r, o), {
-        type: r.type
-      }));
+    } else if (((e) => e instanceof Blob && "name" in e)(r)) {
+      e.append(
+        t,
+        tr([r], rr(r, o), {
+          type: r.type,
+        }),
+      );
     } else if (Array.isArray(r)) {
-      await Promise.all(r.map(r => ir(e, t + "[]", r, o)));
+      await Promise.all(r.map((r) => ir(e, t + "[]", r, o)));
     } else {
       if (typeof r != "object") {
-        throw new TypeError(`Invalid value given to form, expected a string, number, boolean, object, Array, File or Blob but got ${r} instead`);
+        throw new TypeError(
+          `Invalid value given to form, expected a string, number, boolean, object, Array, File or Blob but got ${r} instead`,
+        );
       }
-      await Promise.all(Object.entries(r).map(([r, a]) => ir(e, `${t}[${r}]`, a, o)));
+      await Promise.all(
+        Object.entries(r).map(([r, a]) => ir(e, `${t}[${r}]`, a, o)),
+      );
     }
   }
 };
-const cr = e => e != null && typeof e == "object" && typeof e.size == "number" && typeof e.type == "string" && typeof e.text == "function" && typeof e.slice == "function" && typeof e.arrayBuffer == "function";
+const cr = (e) =>
+  e != null &&
+  typeof e == "object" &&
+  typeof e.size == "number" &&
+  typeof e.type == "string" &&
+  typeof e.text == "function" &&
+  typeof e.slice == "function" &&
+  typeof e.arrayBuffer == "function";
 async function lr(e) {
   let t = [];
-  if (typeof e == "string" || ArrayBuffer.isView(e) || e instanceof ArrayBuffer) {
+  if (
+    typeof e == "string" ||
+    ArrayBuffer.isView(e) ||
+    e instanceof ArrayBuffer
+  ) {
     t.push(e);
   } else if (cr(e)) {
     t.push(e instanceof Blob ? e : await e.arrayBuffer());
   } else {
     if (!or(e)) {
       const t = e?.constructor?.name;
-      throw new Error(`Unexpected data type: ${typeof e}${t ? `; constructor: ${t}` : ""}${function (e) {
-        if (typeof e != "object" || e === null) {
-          return "";
-        }
-        const t = Object.getOwnPropertyNames(e);
-        return `; props: [${t.map(e => `"${e}"`).join(", ")}]`;
-      }(e)}`);
+      throw new Error(
+        `Unexpected data type: ${typeof e}${t ? `; constructor: ${t}` : ""}${(function (
+          e,
+        ) {
+          if (typeof e != "object" || e === null) {
+            return "";
+          }
+          const t = Object.getOwnPropertyNames(e);
+          return `; props: [${t.map((e) => `"${e}"`).join(", ")}]`;
+        })(e)}`,
+      );
     }
     for await (const r of e) {
       t.push(...(await lr(r)));
@@ -8897,10 +10422,7 @@ function* hr(e) {
     return;
   }
   if (ur in e) {
-    const {
-      values: t,
-      nulls: r
-    } = e;
+    const { values: t, nulls: r } = e;
     yield* t.entries();
     for (const e of r) {
       yield [e, null];
@@ -8935,7 +10457,7 @@ function* hr(e) {
     }
   }
 }
-const pr = e => {
+const pr = (e) => {
   const t = new Headers();
   const r = new Set();
   for (const o of e) {
@@ -8958,7 +10480,7 @@ const pr = e => {
   return {
     [ur]: true,
     values: t,
-    nulls: r
+    nulls: r,
   };
 };
 const mr = Symbol("anthropic.sdk.stainlessHelper");
@@ -8996,7 +10518,7 @@ function br(e, t) {
     return {};
   } else {
     return {
-      "x-stainless-helper": r.join(", ")
+      "x-stainless-helper": r.join(", "),
     };
   }
 }
@@ -9004,144 +10526,176 @@ function wr(e) {
   return e.replace(/[^A-Za-z0-9\-._~!$&'()*+,;=:@]+/g, encodeURIComponent);
 }
 const yr = Object.freeze(Object.create(null));
-const _r = ((e = wr) => function (t, ...r) {
-  if (t.length === 1) {
-    return t[0];
-  }
-  let o = false;
-  const a = [];
-  const n = t.reduce((t, n, s) => {
-    if (/[?#]/.test(n)) {
-      o = true;
+const _r = ((e = wr) =>
+  function (t, ...r) {
+    if (t.length === 1) {
+      return t[0];
     }
-    const i = r[s];
-    let c = (o ? encodeURIComponent : e)("" + i);
-    if (s !== r.length && (i == null || typeof i == "object" && i.toString === Object.getPrototypeOf(Object.getPrototypeOf(i.hasOwnProperty ?? yr) ?? yr)?.toString)) {
-      c = i + "";
+    let o = false;
+    const a = [];
+    const n = t.reduce((t, n, s) => {
+      if (/[?#]/.test(n)) {
+        o = true;
+      }
+      const i = r[s];
+      let c = (o ? encodeURIComponent : e)("" + i);
+      if (
+        s !== r.length &&
+        (i == null ||
+          (typeof i == "object" &&
+            i.toString ===
+              Object.getPrototypeOf(
+                Object.getPrototypeOf(i.hasOwnProperty ?? yr) ?? yr,
+              )?.toString))
+      ) {
+        c = i + "";
+        a.push({
+          start: t.length + n.length,
+          length: c.length,
+          error: `Value of type ${Object.prototype.toString.call(i).slice(8, -1)} is not a valid path parameter`,
+        });
+      }
+      return t + n + (s === r.length ? "" : c);
+    }, "");
+    const s = n.split(/[?#]/, 1)[0];
+    const i = new RegExp("(?<=^|\\/)(?:\\.|%2e){1,2}(?=\\/|$)", "gi");
+    let c;
+    while ((c = i.exec(s)) !== null) {
       a.push({
-        start: t.length + n.length,
-        length: c.length,
-        error: `Value of type ${Object.prototype.toString.call(i).slice(8, -1)} is not a valid path parameter`
+        start: c.index,
+        length: c[0].length,
+        error: `Value "${c[0]}" can't be safely passed as a path parameter`,
       });
     }
-    return t + n + (s === r.length ? "" : c);
-  }, "");
-  const s = n.split(/[?#]/, 1)[0];
-  const i = new RegExp("(?<=^|\\/)(?:\\.|%2e){1,2}(?=\\/|$)", "gi");
-  let c;
-  while ((c = i.exec(s)) !== null) {
-    a.push({
-      start: c.index,
-      length: c[0].length,
-      error: `Value "${c[0]}" can't be safely passed as a path parameter`
-    });
-  }
-  a.sort((e, t) => e.start - t.start);
-  if (a.length > 0) {
-    let e = 0;
-    const t = a.reduce((t, r) => {
-      const o = " ".repeat(r.start - e);
-      const a = "^".repeat(r.length);
-      e = r.start + r.length;
-      return t + o + a;
-    }, "");
-    throw new Qe(`Path parameters result in path with invalid segments:\n${a.map(e => e.error).join("\n")}\n${n}\n${t}`);
-  }
-  return n;
-})(wr);
+    a.sort((e, t) => e.start - t.start);
+    if (a.length > 0) {
+      let e = 0;
+      const t = a.reduce((t, r) => {
+        const o = " ".repeat(r.start - e);
+        const a = "^".repeat(r.length);
+        e = r.start + r.length;
+        return t + o + a;
+      }, "");
+      throw new Qe(
+        `Path parameters result in path with invalid segments:\n${a.map((e) => e.error).join("\n")}\n${n}\n${t}`,
+      );
+    }
+    return n;
+  })(wr);
 class vr extends dr {
   list(e = {}, t) {
-    const {
-      betas: r,
-      ...o
-    } = e ?? {};
+    const { betas: r, ...o } = e ?? {};
     return this._client.getAPIList("/v1/files", Qt, {
       query: o,
       ...t,
-      headers: pr([{
-        "anthropic-beta": [...(r ?? []), "files-api-2025-04-14"].toString()
-      }, t?.headers])
+      headers: pr([
+        {
+          "anthropic-beta": [...(r ?? []), "files-api-2025-04-14"].toString(),
+        },
+        t?.headers,
+      ]),
     });
   }
   delete(e, t = {}, r) {
-    const {
-      betas: o
-    } = t ?? {};
+    const { betas: o } = t ?? {};
     return this._client.delete(_r`/v1/files/${e}`, {
       ...r,
-      headers: pr([{
-        "anthropic-beta": [...(o ?? []), "files-api-2025-04-14"].toString()
-      }, r?.headers])
+      headers: pr([
+        {
+          "anthropic-beta": [...(o ?? []), "files-api-2025-04-14"].toString(),
+        },
+        r?.headers,
+      ]),
     });
   }
   download(e, t = {}, r) {
-    const {
-      betas: o
-    } = t ?? {};
+    const { betas: o } = t ?? {};
     return this._client.get(_r`/v1/files/${e}/content`, {
       ...r,
-      headers: pr([{
-        "anthropic-beta": [...(o ?? []), "files-api-2025-04-14"].toString(),
-        Accept: "application/binary"
-      }, r?.headers]),
-      __binaryResponse: true
+      headers: pr([
+        {
+          "anthropic-beta": [...(o ?? []), "files-api-2025-04-14"].toString(),
+          Accept: "application/binary",
+        },
+        r?.headers,
+      ]),
+      __binaryResponse: true,
     });
   }
   retrieveMetadata(e, t = {}, r) {
-    const {
-      betas: o
-    } = t ?? {};
+    const { betas: o } = t ?? {};
     return this._client.get(_r`/v1/files/${e}`, {
       ...r,
-      headers: pr([{
-        "anthropic-beta": [...(o ?? []), "files-api-2025-04-14"].toString()
-      }, r?.headers])
+      headers: pr([
+        {
+          "anthropic-beta": [...(o ?? []), "files-api-2025-04-14"].toString(),
+        },
+        r?.headers,
+      ]),
     });
   }
   upload(e, t) {
-    const {
-      betas: r,
-      ...o
-    } = e;
-    return this._client.post("/v1/files", ar({
-      body: o,
-      ...t,
-      headers: pr([{
-        "anthropic-beta": [...(r ?? []), "files-api-2025-04-14"].toString()
-      }, (a = o.file, fr(a) ? {
-        "x-stainless-helper": a[mr]
-      } : {}), t?.headers])
-    }, this._client));
+    const { betas: r, ...o } = e;
+    return this._client.post(
+      "/v1/files",
+      ar(
+        {
+          body: o,
+          ...t,
+          headers: pr([
+            {
+              "anthropic-beta": [
+                ...(r ?? []),
+                "files-api-2025-04-14",
+              ].toString(),
+            },
+            ((a = o.file),
+            fr(a)
+              ? {
+                  "x-stainless-helper": a[mr],
+                }
+              : {}),
+            t?.headers,
+          ]),
+        },
+        this._client,
+      ),
+    );
     var a;
   }
 }
 let Ir = class extends dr {
   retrieve(e, t = {}, r) {
-    const {
-      betas: o
-    } = t ?? {};
+    const { betas: o } = t ?? {};
     return this._client.get(_r`/v1/models/${e}?beta=true`, {
       ...r,
-      headers: pr([{
-        ...(o?.toString() != null ? {
-          "anthropic-beta": o?.toString()
-        } : undefined)
-      }, r?.headers])
+      headers: pr([
+        {
+          ...(o?.toString() != null
+            ? {
+                "anthropic-beta": o?.toString(),
+              }
+            : undefined),
+        },
+        r?.headers,
+      ]),
     });
   }
   list(e = {}, t) {
-    const {
-      betas: r,
-      ...o
-    } = e ?? {};
+    const { betas: r, ...o } = e ?? {};
     return this._client.getAPIList("/v1/models?beta=true", Qt, {
       query: o,
       ...t,
-      headers: pr([{
-        ...(r?.toString() != null ? {
-          "anthropic-beta": r?.toString()
-        } : undefined)
-      }, t?.headers])
+      headers: pr([
+        {
+          ...(r?.toString() != null
+            ? {
+                "anthropic-beta": r?.toString(),
+              }
+            : undefined),
+        },
+        t?.headers,
+      ]),
     });
   }
 };
@@ -9153,7 +10707,7 @@ const kr = {
   "claude-opus-4@20250514": 8192,
   "claude-opus-4-1-20250805": 8192,
   "anthropic.claude-opus-4-1-20250805-v1:0": 8192,
-  "claude-opus-4-1@20250805": 8192
+  "claude-opus-4-1@20250805": 8192,
 };
 function Tr(e) {
   return e?.output_format ?? e?.output_config?.format;
@@ -9165,33 +10719,39 @@ function xr(e, t, r) {
   } else {
     return {
       ...e,
-      content: e.content.map(e => {
+      content: e.content.map((e) => {
         if (e.type === "text") {
-          const t = Object.defineProperty({
-            ...e
-          }, "parsed_output", {
-            value: null,
-            enumerable: false
-          });
+          const t = Object.defineProperty(
+            {
+              ...e,
+            },
+            "parsed_output",
+            {
+              value: null,
+              enumerable: false,
+            },
+          );
           return Object.defineProperty(t, "parsed", {
             get: () => {
-              r.logger.warn("The `parsed` property on `text` blocks is deprecated, please use `parsed_output` instead.");
+              r.logger.warn(
+                "The `parsed` property on `text` blocks is deprecated, please use `parsed_output` instead.",
+              );
               return null;
             },
-            enumerable: false
+            enumerable: false,
           });
         }
         return e;
       }),
-      parsed_output: null
+      parsed_output: null,
     };
   }
 }
 function Sr(e, t, r) {
   let o = null;
-  const a = e.content.map(e => {
+  const a = e.content.map((e) => {
     if (e.type === "text") {
-      const a = function (e, t) {
+      const a = (function (e, t) {
         const r = Tr(e);
         if (r?.type !== "json_schema") {
           return null;
@@ -9205,22 +10765,28 @@ function Sr(e, t, r) {
         } catch (o) {
           throw new Qe(`Failed to parse structured output: ${o}`);
         }
-      }(t, e.text);
+      })(t, e.text);
       if (o === null) {
         o = a;
       }
-      const n = Object.defineProperty({
-        ...e
-      }, "parsed_output", {
-        value: a,
-        enumerable: false
-      });
+      const n = Object.defineProperty(
+        {
+          ...e,
+        },
+        "parsed_output",
+        {
+          value: a,
+          enumerable: false,
+        },
+      );
       return Object.defineProperty(n, "parsed", {
         get: () => {
-          r.logger.warn("The `parsed` property on `text` blocks is deprecated, please use `parsed_output` instead.");
+          r.logger.warn(
+            "The `parsed` property on `text` blocks is deprecated, please use `parsed_output` instead.",
+          );
           return a;
         },
-        enumerable: false
+        enumerable: false,
       });
     }
     return e;
@@ -9228,10 +10794,10 @@ function Sr(e, t, r) {
   return {
     ...e,
     content: a,
-    parsed_output: o
+    parsed_output: o,
   };
 }
-const Er = e => {
+const Er = (e) => {
   if (e.length === 0) {
     return e;
   }
@@ -9263,175 +10829,188 @@ const Er = e => {
   }
   return e;
 };
-const Cr = e => JSON.parse((e => {
-  let t = "";
-  e.map(e => {
-    if (e.type === "string") {
-      t += "\"" + e.value + "\"";
-    } else {
-      t += e.value;
-    }
-  });
-  return t;
-})((e => {
-  let t = [];
-  e.map(e => {
-    if (e.type === "brace") {
-      if (e.value === "{") {
-        t.push("}");
-      } else {
-        t.splice(t.lastIndexOf("}"), 1);
-      }
-    }
-    if (e.type === "paren") {
-      if (e.value === "[") {
-        t.push("]");
-      } else {
-        t.splice(t.lastIndexOf("]"), 1);
-      }
-    }
-  });
-  if (t.length > 0) {
-    t.reverse().map(t => {
-      if (t === "}") {
-        e.push({
-          type: "brace",
-          value: "}"
-        });
-      } else if (t === "]") {
-        e.push({
-          type: "paren",
-          value: "]"
-        });
-      }
-    });
-  }
-  return e;
-})(Er((e => {
-  let t = 0;
-  let r = [];
-  while (t < e.length) {
-    let o = e[t];
-    if (o === "\\") {
-      t++;
-      continue;
-    }
-    if (o === "{") {
-      r.push({
-        type: "brace",
-        value: "{"
-      });
-      t++;
-      continue;
-    }
-    if (o === "}") {
-      r.push({
-        type: "brace",
-        value: "}"
-      });
-      t++;
-      continue;
-    }
-    if (o === "[") {
-      r.push({
-        type: "paren",
-        value: "["
-      });
-      t++;
-      continue;
-    }
-    if (o === "]") {
-      r.push({
-        type: "paren",
-        value: "]"
-      });
-      t++;
-      continue;
-    }
-    if (o === ":") {
-      r.push({
-        type: "separator",
-        value: ":"
-      });
-      t++;
-      continue;
-    }
-    if (o === ",") {
-      r.push({
-        type: "delimiter",
-        value: ","
-      });
-      t++;
-      continue;
-    }
-    if (o === "\"") {
-      let a = "";
-      let n = false;
-      for (o = e[++t]; o !== "\"";) {
-        if (t === e.length) {
-          n = true;
-          break;
-        }
-        if (o === "\\") {
-          t++;
-          if (t === e.length) {
-            n = true;
-            break;
-          }
-          a += o + e[t];
-          o = e[++t];
+const Cr = (e) =>
+  JSON.parse(
+    ((e) => {
+      let t = "";
+      e.map((e) => {
+        if (e.type === "string") {
+          t += '"' + e.value + '"';
         } else {
-          a += o;
-          o = e[++t];
+          t += e.value;
         }
-      }
-      o = e[++t];
-      if (!n) {
-        r.push({
-          type: "string",
-          value: a
+      });
+      return t;
+    })(
+      ((e) => {
+        let t = [];
+        e.map((e) => {
+          if (e.type === "brace") {
+            if (e.value === "{") {
+              t.push("}");
+            } else {
+              t.splice(t.lastIndexOf("}"), 1);
+            }
+          }
+          if (e.type === "paren") {
+            if (e.value === "[") {
+              t.push("]");
+            } else {
+              t.splice(t.lastIndexOf("]"), 1);
+            }
+          }
         });
-      }
-      continue;
-    }
-    if (o && /\s/.test(o)) {
-      t++;
-      continue;
-    }
-    let a = /[0-9]/;
-    if (o && a.test(o) || o === "-" || o === ".") {
-      let n = "";
-      for (o === "-" && (n += o, o = e[++t]); o && a.test(o) || o === ".";) {
-        n += o;
-        o = e[++t];
-      }
-      r.push({
-        type: "number",
-        value: n
-      });
-      continue;
-    }
-    let n = /[a-z]/i;
-    if (o && n.test(o)) {
-      let a = "";
-      while (o && n.test(o) && t !== e.length) {
-        a += o;
-        o = e[++t];
-      }
-      if (a != "true" && a != "false" && a !== "null") {
-        t++;
-        continue;
-      }
-      r.push({
-        type: "name",
-        value: a
-      });
-      continue;
-    }
-    t++;
-  }
-  return r;
-})(e)))));
+        if (t.length > 0) {
+          t.reverse().map((t) => {
+            if (t === "}") {
+              e.push({
+                type: "brace",
+                value: "}",
+              });
+            } else if (t === "]") {
+              e.push({
+                type: "paren",
+                value: "]",
+              });
+            }
+          });
+        }
+        return e;
+      })(
+        Er(
+          ((e) => {
+            let t = 0;
+            let r = [];
+            while (t < e.length) {
+              let o = e[t];
+              if (o === "\\") {
+                t++;
+                continue;
+              }
+              if (o === "{") {
+                r.push({
+                  type: "brace",
+                  value: "{",
+                });
+                t++;
+                continue;
+              }
+              if (o === "}") {
+                r.push({
+                  type: "brace",
+                  value: "}",
+                });
+                t++;
+                continue;
+              }
+              if (o === "[") {
+                r.push({
+                  type: "paren",
+                  value: "[",
+                });
+                t++;
+                continue;
+              }
+              if (o === "]") {
+                r.push({
+                  type: "paren",
+                  value: "]",
+                });
+                t++;
+                continue;
+              }
+              if (o === ":") {
+                r.push({
+                  type: "separator",
+                  value: ":",
+                });
+                t++;
+                continue;
+              }
+              if (o === ",") {
+                r.push({
+                  type: "delimiter",
+                  value: ",",
+                });
+                t++;
+                continue;
+              }
+              if (o === '"') {
+                let a = "";
+                let n = false;
+                for (o = e[++t]; o !== '"'; ) {
+                  if (t === e.length) {
+                    n = true;
+                    break;
+                  }
+                  if (o === "\\") {
+                    t++;
+                    if (t === e.length) {
+                      n = true;
+                      break;
+                    }
+                    a += o + e[t];
+                    o = e[++t];
+                  } else {
+                    a += o;
+                    o = e[++t];
+                  }
+                }
+                o = e[++t];
+                if (!n) {
+                  r.push({
+                    type: "string",
+                    value: a,
+                  });
+                }
+                continue;
+              }
+              if (o && /\s/.test(o)) {
+                t++;
+                continue;
+              }
+              let a = /[0-9]/;
+              if ((o && a.test(o)) || o === "-" || o === ".") {
+                let n = "";
+                for (
+                  o === "-" && ((n += o), (o = e[++t]));
+                  (o && a.test(o)) || o === ".";
+
+                ) {
+                  n += o;
+                  o = e[++t];
+                }
+                r.push({
+                  type: "number",
+                  value: n,
+                });
+                continue;
+              }
+              let n = /[a-z]/i;
+              if (o && n.test(o)) {
+                let a = "";
+                while (o && n.test(o) && t !== e.length) {
+                  a += o;
+                  o = e[++t];
+                }
+                if (a != "true" && a != "false" && a !== "null") {
+                  t++;
+                  continue;
+                }
+                r.push({
+                  type: "name",
+                  value: a,
+                });
+                continue;
+              }
+              t++;
+            }
+            return r;
+          })(e),
+        ),
+      ),
+    ),
+  );
 var Mr;
 var Dr;
 var Rr;
@@ -9458,7 +11037,11 @@ var Jr;
 var Qr;
 const Zr = "__json_buf";
 function eo(e) {
-  return e.type === "tool_use" || e.type === "server_tool_use" || e.type === "mcp_tool_use";
+  return (
+    e.type === "tool_use" ||
+    e.type === "server_tool_use" ||
+    e.type === "mcp_tool_use"
+  );
 }
 class to {
   constructor(e, t) {
@@ -9482,7 +11065,7 @@ class to {
     Wr.set(this, undefined);
     jr.set(this, undefined);
     Hr.set(this, undefined);
-    Xr.set(this, e => {
+    Xr.set(this, (e) => {
       ze(this, qr, true);
       if (Ye(e)) {
         e = new et();
@@ -9501,14 +11084,22 @@ class to {
       }
       return this._emit("error", new Qe(String(e)));
     });
-    ze(this, Ar, new Promise((e, t) => {
-      ze(this, Pr, e);
-      ze(this, Ur, t);
-    }));
-    ze(this, $r, new Promise((e, t) => {
-      ze(this, Or, e);
-      ze(this, Gr, t);
-    }));
+    ze(
+      this,
+      Ar,
+      new Promise((e, t) => {
+        ze(this, Pr, e);
+        ze(this, Ur, t);
+      }),
+    );
+    ze(
+      this,
+      $r,
+      new Promise((e, t) => {
+        ze(this, Or, e);
+        ze(this, Gr, t);
+      }),
+    );
     Xe(this, Ar, "f").catch(() => {});
     Xe(this, $r, "f").catch(() => {});
     ze(this, Rr, e);
@@ -9529,7 +11120,7 @@ class to {
     return {
       data: this,
       response: e,
-      request_id: e.headers.get("request-id")
+      request_id: e.headers.get("request-id"),
     };
   }
   static fromReadableStream(e) {
@@ -9537,36 +11128,43 @@ class to {
     t._run(() => t._fromReadableStream(e));
     return t;
   }
-  static createMessage(e, t, r, {
-    logger: o
-  } = {}) {
+  static createMessage(e, t, r, { logger: o } = {}) {
     const a = new to(t, {
-      logger: o
+      logger: o,
     });
     for (const n of t.messages) {
       a._addMessageParam(n);
     }
     ze(a, Rr, {
       ...t,
-      stream: true
+      stream: true,
     });
-    a._run(() => a._createMessage(e, {
-      ...t,
-      stream: true
-    }, {
-      ...r,
-      headers: {
-        ...r?.headers,
-        "X-Stainless-Helper-Method": "stream"
-      }
-    }));
+    a._run(() =>
+      a._createMessage(
+        e,
+        {
+          ...t,
+          stream: true,
+        },
+        {
+          ...r,
+          headers: {
+            ...r?.headers,
+            "X-Stainless-Helper-Method": "stream",
+          },
+        },
+      ),
+    );
     return a;
   }
   _run(e) {
-    e().then(() => {
-      this._emitFinal();
-      this._emit("end");
-    }, Xe(this, Xr, "f"));
+    e().then(
+      () => {
+        this._emitFinal();
+        this._emit("end");
+      },
+      Xe(this, Xr, "f"),
+    );
   }
   _addMessageParam(e) {
     this.messages.push(e);
@@ -9589,16 +11187,18 @@ class to {
     }
     try {
       Xe(this, Mr, "m", Vr).call(this);
-      const {
-        response: o,
-        data: a
-      } = await e.create({
-        ...t,
-        stream: true
-      }, {
-        ...r,
-        signal: this.controller.signal
-      }).withResponse();
+      const { response: o, data: a } = await e
+        .create(
+          {
+            ...t,
+            stream: true,
+          },
+          {
+            ...r,
+            signal: this.controller.signal,
+          },
+        )
+        .withResponse();
       this._connected(o);
       for await (const e of a) {
         Xe(this, Mr, "m", Yr).call(this, e);
@@ -9635,7 +11235,7 @@ class to {
   }
   on(e, t) {
     (Xe(this, Nr, "f")[e] ||= []).push({
-      listener: t
+      listener: t,
     });
     return this;
   }
@@ -9644,7 +11244,7 @@ class to {
     if (!r) {
       return this;
     }
-    const o = r.findIndex(e => e.listener === t);
+    const o = r.findIndex((e) => e.listener === t);
     if (o >= 0) {
       r.splice(o, 1);
     }
@@ -9653,7 +11253,7 @@ class to {
   once(e, t) {
     (Xe(this, Nr, "f")[e] ||= []).push({
       listener: t,
-      once: true
+      once: true,
     });
     return this;
   }
@@ -9691,10 +11291,8 @@ class to {
     }
     const r = Xe(this, Nr, "f")[e];
     if (r) {
-      Xe(this, Nr, "f")[e] = r.filter(e => !e.once);
-      r.forEach(({
-        listener: e
-      }) => e(...t));
+      Xe(this, Nr, "f")[e] = r.filter((e) => !e.once);
+      r.forEach(({ listener: e }) => e(...t));
     }
     if (e === "abort") {
       const e = t[0];
@@ -9748,70 +11346,102 @@ class to {
       }
     }
   }
-  [(Dr = new WeakMap(), Rr = new WeakMap(), Ar = new WeakMap(), Pr = new WeakMap(), Ur = new WeakMap(), $r = new WeakMap(), Or = new WeakMap(), Gr = new WeakMap(), Nr = new WeakMap(), Lr = new WeakMap(), qr = new WeakMap(), Br = new WeakMap(), Fr = new WeakMap(), Wr = new WeakMap(), jr = new WeakMap(), Hr = new WeakMap(), Xr = new WeakMap(), Mr = new WeakSet(), Kr = function () {
+  [((Dr = new WeakMap()),
+  (Rr = new WeakMap()),
+  (Ar = new WeakMap()),
+  (Pr = new WeakMap()),
+  (Ur = new WeakMap()),
+  ($r = new WeakMap()),
+  (Or = new WeakMap()),
+  (Gr = new WeakMap()),
+  (Nr = new WeakMap()),
+  (Lr = new WeakMap()),
+  (qr = new WeakMap()),
+  (Br = new WeakMap()),
+  (Fr = new WeakMap()),
+  (Wr = new WeakMap()),
+  (jr = new WeakMap()),
+  (Hr = new WeakMap()),
+  (Xr = new WeakMap()),
+  (Mr = new WeakSet()),
+  (Kr = function () {
     if (this.receivedMessages.length === 0) {
-      throw new Qe("stream ended without producing a Message with role=assistant");
+      throw new Qe(
+        "stream ended without producing a Message with role=assistant",
+      );
     }
     return this.receivedMessages.at(-1);
-  }, zr = function () {
+  }),
+  (zr = function () {
     if (this.receivedMessages.length === 0) {
-      throw new Qe("stream ended without producing a Message with role=assistant");
+      throw new Qe(
+        "stream ended without producing a Message with role=assistant",
+      );
     }
-    const e = this.receivedMessages.at(-1).content.filter(e => e.type === "text").map(e => e.text);
+    const e = this.receivedMessages
+      .at(-1)
+      .content.filter((e) => e.type === "text")
+      .map((e) => e.text);
     if (e.length === 0) {
-      throw new Qe("stream ended without producing a content block with type=text");
+      throw new Qe(
+        "stream ended without producing a content block with type=text",
+      );
     }
     return e.join(" ");
-  }, Vr = function () {
+  }),
+  (Vr = function () {
     if (!this.ended) {
       ze(this, Dr, undefined);
     }
-  }, Yr = function (e) {
+  }),
+  (Yr = function (e) {
     if (this.ended) {
       return;
     }
     const t = Xe(this, Mr, "m", Qr).call(this, e);
     this._emit("streamEvent", e, t);
     switch (e.type) {
-      case "content_block_delta":
-        {
-          const r = t.content.at(-1);
-          switch (e.delta.type) {
-            case "text_delta":
-              if (r.type === "text") {
-                this._emit("text", e.delta.text, r.text || "");
-              }
-              break;
-            case "citations_delta":
-              if (r.type === "text") {
-                this._emit("citation", e.delta.citation, r.citations ?? []);
-              }
-              break;
-            case "input_json_delta":
-              if (eo(r) && r.input) {
-                this._emit("inputJson", e.delta.partial_json, r.input);
-              }
-              break;
-            case "thinking_delta":
-              if (r.type === "thinking") {
-                this._emit("thinking", e.delta.thinking, r.thinking);
-              }
-              break;
-            case "signature_delta":
-              if (r.type === "thinking") {
-                this._emit("signature", r.signature);
-              }
-              break;
-            default:
-              e.delta;
-          }
-          break;
+      case "content_block_delta": {
+        const r = t.content.at(-1);
+        switch (e.delta.type) {
+          case "text_delta":
+            if (r.type === "text") {
+              this._emit("text", e.delta.text, r.text || "");
+            }
+            break;
+          case "citations_delta":
+            if (r.type === "text") {
+              this._emit("citation", e.delta.citation, r.citations ?? []);
+            }
+            break;
+          case "input_json_delta":
+            if (eo(r) && r.input) {
+              this._emit("inputJson", e.delta.partial_json, r.input);
+            }
+            break;
+          case "thinking_delta":
+            if (r.type === "thinking") {
+              this._emit("thinking", e.delta.thinking, r.thinking);
+            }
+            break;
+          case "signature_delta":
+            if (r.type === "thinking") {
+              this._emit("signature", r.signature);
+            }
+            break;
+          default:
+            e.delta;
         }
+        break;
+      }
       case "message_stop":
         this._addMessageParam(t);
-        this._addMessage(xr(t, Xe(this, Rr, "f"), {
-          logger: Xe(this, Hr, "f")
-        }), true);
+        this._addMessage(
+          xr(t, Xe(this, Rr, "f"), {
+            logger: Xe(this, Hr, "f"),
+          }),
+          true,
+        );
         break;
       case "content_block_stop":
         this._emit("contentBlock", t.content.at(-1));
@@ -9819,7 +11449,8 @@ class to {
       case "message_start":
         ze(this, Dr, t);
     }
-  }, Jr = function () {
+  }),
+  (Jr = function () {
     if (this.ended) {
       throw new Qe("stream has ended, this shouldn't happen");
     }
@@ -9829,18 +11460,23 @@ class to {
     }
     ze(this, Dr, undefined);
     return xr(e, Xe(this, Rr, "f"), {
-      logger: Xe(this, Hr, "f")
+      logger: Xe(this, Hr, "f"),
     });
-  }, Qr = function (e) {
+  }),
+  (Qr = function (e) {
     let t = Xe(this, Dr, "f");
     if (e.type === "message_start") {
       if (t) {
-        throw new Qe(`Unexpected event order, got ${e.type} before receiving "message_stop"`);
+        throw new Qe(
+          `Unexpected event order, got ${e.type} before receiving "message_stop"`,
+        );
       }
       return e.message;
     }
     if (!t) {
-      throw new Qe(`Unexpected event order, got ${e.type} before "message_start"`);
+      throw new Qe(
+        `Unexpected event order, got ${e.type} before "message_start"`,
+      );
     }
     switch (e.type) {
       case "message_stop":
@@ -9856,7 +11492,8 @@ class to {
           t.usage.input_tokens = e.usage.input_tokens;
         }
         if (e.usage.cache_creation_input_tokens != null) {
-          t.usage.cache_creation_input_tokens = e.usage.cache_creation_input_tokens;
+          t.usage.cache_creation_input_tokens =
+            e.usage.cache_creation_input_tokens;
         }
         if (e.usage.cache_read_input_tokens != null) {
           t.usage.cache_read_input_tokens = e.usage.cache_read_input_tokens;
@@ -9868,76 +11505,78 @@ class to {
       case "content_block_start":
         t.content.push(e.content_block);
         return t;
-      case "content_block_delta":
-        {
-          const o = t.content.at(e.index);
-          switch (e.delta.type) {
-            case "text_delta":
-              if (o?.type === "text") {
-                t.content[e.index] = {
-                  ...o,
-                  text: (o.text || "") + e.delta.text
-                };
-              }
-              break;
-            case "citations_delta":
-              if (o?.type === "text") {
-                t.content[e.index] = {
-                  ...o,
-                  citations: [...(o.citations ?? []), e.delta.citation]
-                };
-              }
-              break;
-            case "input_json_delta":
-              if (o && eo(o)) {
-                let a = o[Zr] || "";
-                a += e.delta.partial_json;
-                const n = {
-                  ...o
-                };
-                Object.defineProperty(n, Zr, {
-                  value: a,
-                  enumerable: false,
-                  writable: true
-                });
-                if (a) {
-                  try {
-                    n.input = Cr(a);
-                  } catch (r) {
-                    const e = new Qe(`Unable to parse tool parameter JSON from model. Please retry your request or adjust your prompt. Error: ${r}. JSON: ${a}`);
-                    Xe(this, Xr, "f").call(this, e);
-                  }
+      case "content_block_delta": {
+        const o = t.content.at(e.index);
+        switch (e.delta.type) {
+          case "text_delta":
+            if (o?.type === "text") {
+              t.content[e.index] = {
+                ...o,
+                text: (o.text || "") + e.delta.text,
+              };
+            }
+            break;
+          case "citations_delta":
+            if (o?.type === "text") {
+              t.content[e.index] = {
+                ...o,
+                citations: [...(o.citations ?? []), e.delta.citation],
+              };
+            }
+            break;
+          case "input_json_delta":
+            if (o && eo(o)) {
+              let a = o[Zr] || "";
+              a += e.delta.partial_json;
+              const n = {
+                ...o,
+              };
+              Object.defineProperty(n, Zr, {
+                value: a,
+                enumerable: false,
+                writable: true,
+              });
+              if (a) {
+                try {
+                  n.input = Cr(a);
+                } catch (r) {
+                  const e = new Qe(
+                    `Unable to parse tool parameter JSON from model. Please retry your request or adjust your prompt. Error: ${r}. JSON: ${a}`,
+                  );
+                  Xe(this, Xr, "f").call(this, e);
                 }
-                t.content[e.index] = n;
               }
-              break;
-            case "thinking_delta":
-              if (o?.type === "thinking") {
-                t.content[e.index] = {
-                  ...o,
-                  thinking: o.thinking + e.delta.thinking
-                };
-              }
-              break;
-            case "signature_delta":
-              if (o?.type === "thinking") {
-                t.content[e.index] = {
-                  ...o,
-                  signature: e.delta.signature
-                };
-              }
-              break;
-            default:
-              e.delta;
-          }
-          return t;
+              t.content[e.index] = n;
+            }
+            break;
+          case "thinking_delta":
+            if (o?.type === "thinking") {
+              t.content[e.index] = {
+                ...o,
+                thinking: o.thinking + e.delta.thinking,
+              };
+            }
+            break;
+          case "signature_delta":
+            if (o?.type === "thinking") {
+              t.content[e.index] = {
+                ...o,
+                signature: e.delta.signature,
+              };
+            }
+            break;
+          default:
+            e.delta;
         }
+        return t;
+      }
     }
-  }, Symbol.asyncIterator)]() {
+  }),
+  Symbol.asyncIterator)]() {
     const e = [];
     const t = [];
     let r = false;
-    this.on("streamEvent", r => {
+    this.on("streamEvent", (r) => {
       const o = t.shift();
       if (o) {
         o.resolve(r);
@@ -9952,14 +11591,14 @@ class to {
       }
       t.length = 0;
     });
-    this.on("abort", e => {
+    this.on("abort", (e) => {
       r = true;
       for (const r of t) {
         r.reject(e);
       }
       t.length = 0;
     });
-    this.on("error", e => {
+    this.on("error", (e) => {
       r = true;
       for (const r of t) {
         r.reject(e);
@@ -9972,42 +11611,55 @@ class to {
           if (r) {
             return {
               value: undefined,
-              done: true
+              done: true,
             };
           } else {
-            return new Promise((e, r) => t.push({
-              resolve: e,
-              reject: r
-            })).then(e => e ? {
-              value: e,
-              done: false
-            } : {
-              value: undefined,
-              done: true
-            });
+            return new Promise((e, r) =>
+              t.push({
+                resolve: e,
+                reject: r,
+              }),
+            ).then((e) =>
+              e
+                ? {
+                    value: e,
+                    done: false,
+                  }
+                : {
+                    value: undefined,
+                    done: true,
+                  },
+            );
           }
         }
         return {
           value: e.shift(),
-          done: false
+          done: false,
         };
       },
       return: async () => {
         this.abort();
         return {
           value: undefined,
-          done: true
+          done: true,
         };
-      }
+      },
     };
   }
   toReadableStream() {
-    return new Ht(this[Symbol.asyncIterator].bind(this), this.controller).toReadableStream();
+    return new Ht(
+      this[Symbol.asyncIterator].bind(this),
+      this.controller,
+    ).toReadableStream();
   }
 }
 class ro extends Error {
   constructor(e) {
-    super(typeof e == "string" ? e : e.map(e => e.type === "text" ? e.text : `[${e.type}]`).join(" "));
+    super(
+      typeof e == "string"
+        ? e
+        : e.map((e) => (e.type === "text" ? e.text : `[${e.type}]`)).join(" "),
+    );
     this.name = "ToolError";
     this.content = e;
   }
@@ -10032,7 +11684,7 @@ function fo() {
       t = o;
     }),
     resolve: e,
-    reject: t
+    reject: t,
   };
 }
 class go {
@@ -10050,19 +11702,31 @@ class go {
     ze(this, so, {
       params: {
         ...t,
-        messages: structuredClone(t.messages)
-      }
+        messages: structuredClone(t.messages),
+      },
     });
     const o = ["BetaToolRunner", ...gr(t.tools, t.messages)].join(", ");
     ze(this, io, {
       ...r,
-      headers: pr([{
-        "x-stainless-helper": o
-      }, r?.headers])
+      headers: pr([
+        {
+          "x-stainless-helper": o,
+        },
+        r?.headers,
+      ]),
     });
     ze(this, uo, fo());
   }
-  async *[(ao = new WeakMap(), no = new WeakMap(), so = new WeakMap(), io = new WeakMap(), co = new WeakMap(), lo = new WeakMap(), uo = new WeakMap(), ho = new WeakMap(), oo = new WeakSet(), po = async function () {
+  async *[((ao = new WeakMap()),
+  (no = new WeakMap()),
+  (so = new WeakMap()),
+  (io = new WeakMap()),
+  (co = new WeakMap()),
+  (lo = new WeakMap()),
+  (uo = new WeakMap()),
+  (ho = new WeakMap()),
+  (oo = new WeakSet()),
+  (po = async function () {
     const e = Xe(this, so, "f").params.compactionControl;
     if (!e || !e.enabled) {
       return false;
@@ -10071,7 +11735,11 @@ class go {
     if (Xe(this, co, "f") !== undefined) {
       try {
         const e = await Xe(this, co, "f");
-        t = e.usage.input_tokens + (e.usage.cache_creation_input_tokens ?? 0) + (e.usage.cache_read_input_tokens ?? 0) + e.usage.output_tokens;
+        t =
+          e.usage.input_tokens +
+          (e.usage.cache_creation_input_tokens ?? 0) +
+          (e.usage.cache_read_input_tokens ?? 0) +
+          e.usage.output_tokens;
       } catch {
         return false;
       }
@@ -10080,12 +11748,14 @@ class go {
       return false;
     }
     const r = e.model ?? Xe(this, so, "f").params.model;
-    const o = e.summaryPrompt ?? "You have been working on the task described above but have not yet completed it. Write a continuation summary that will allow you (or another instance of yourself) to resume work efficiently in a future context window where the conversation history will be replaced with this summary. Your summary should be structured, concise, and actionable. Include:\n1. Task Overview\nThe user's core request and success criteria\nAny clarifications or constraints they specified\n2. Current State\nWhat has been completed so far\nFiles created, modified, or analyzed (with paths if relevant)\nKey outputs or artifacts produced\n3. Important Discoveries\nTechnical constraints or requirements uncovered\nDecisions made and their rationale\nErrors encountered and how they were resolved\nWhat approaches were tried that didn't work (and why)\n4. Next Steps\nSpecific actions needed to complete the task\nAny blockers or open questions to resolve\nPriority order if multiple steps remain\n5. Context to Preserve\nUser preferences or style requirements\nDomain-specific details that aren't obvious\nAny promises made to the user\nBe concise but complete—err on the side of including information that would prevent duplicate work or repeated mistakes. Write in a way that enables immediate resumption of the task.\nWrap your summary in <summary></summary> tags.";
+    const o =
+      e.summaryPrompt ??
+      "You have been working on the task described above but have not yet completed it. Write a continuation summary that will allow you (or another instance of yourself) to resume work efficiently in a future context window where the conversation history will be replaced with this summary. Your summary should be structured, concise, and actionable. Include:\n1. Task Overview\nThe user's core request and success criteria\nAny clarifications or constraints they specified\n2. Current State\nWhat has been completed so far\nFiles created, modified, or analyzed (with paths if relevant)\nKey outputs or artifacts produced\n3. Important Discoveries\nTechnical constraints or requirements uncovered\nDecisions made and their rationale\nErrors encountered and how they were resolved\nWhat approaches were tried that didn't work (and why)\n4. Next Steps\nSpecific actions needed to complete the task\nAny blockers or open questions to resolve\nPriority order if multiple steps remain\n5. Context to Preserve\nUser preferences or style requirements\nDomain-specific details that aren't obvious\nAny promises made to the user\nBe concise but complete—err on the side of including information that would prevent duplicate work or repeated mistakes. Write in a way that enables immediate resumption of the task.\nWrap your summary in <summary></summary> tags.";
     const a = Xe(this, so, "f").params.messages;
     if (a[a.length - 1].role === "assistant") {
       const e = a[a.length - 1];
       if (Array.isArray(e.content)) {
-        const t = e.content.filter(e => e.type !== "tool_use");
+        const t = e.content.filter((e) => e.type !== "tool_use");
         if (t.length === 0) {
           a.pop();
         } else {
@@ -10093,30 +11763,41 @@ class go {
         }
       }
     }
-    const n = await this.client.beta.messages.create({
-      model: r,
-      messages: [...a, {
-        role: "user",
-        content: [{
-          type: "text",
-          text: o
-        }]
-      }],
-      max_tokens: Xe(this, so, "f").params.max_tokens
-    }, {
-      headers: {
-        "x-stainless-helper": "compaction"
-      }
-    });
+    const n = await this.client.beta.messages.create(
+      {
+        model: r,
+        messages: [
+          ...a,
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: o,
+              },
+            ],
+          },
+        ],
+        max_tokens: Xe(this, so, "f").params.max_tokens,
+      },
+      {
+        headers: {
+          "x-stainless-helper": "compaction",
+        },
+      },
+    );
     if (n.content[0]?.type !== "text") {
       throw new Qe("Expected text response for compaction");
     }
-    Xe(this, so, "f").params.messages = [{
-      role: "user",
-      content: n.content
-    }];
+    Xe(this, so, "f").params.messages = [
+      {
+        role: "user",
+        content: n.content,
+      },
+    ];
     return true;
-  }, Symbol.asyncIterator)]() {
+  }),
+  Symbol.asyncIterator)]() {
     var e;
     if (Xe(this, ao, "f")) {
       throw new Qe("Cannot iterate over a consumed stream");
@@ -10128,12 +11809,15 @@ class go {
       while (true) {
         let t;
         try {
-          if (Xe(this, so, "f").params.max_iterations && Xe(this, ho, "f") >= Xe(this, so, "f").params.max_iterations) {
+          if (
+            Xe(this, so, "f").params.max_iterations &&
+            Xe(this, ho, "f") >= Xe(this, so, "f").params.max_iterations
+          ) {
             break;
           }
           ze(this, no, false);
           ze(this, lo, undefined);
-          ze(this, ho, (e = Xe(this, ho, "f"), ++e));
+          ze(this, ho, ((e = Xe(this, ho, "f")), ++e));
           ze(this, co, undefined);
           const {
             max_iterations: r,
@@ -10141,31 +11825,41 @@ class go {
             ...a
           } = Xe(this, so, "f").params;
           if (a.stream) {
-            t = this.client.beta.messages.stream({
-              ...a
-            }, Xe(this, io, "f"));
+            t = this.client.beta.messages.stream(
+              {
+                ...a,
+              },
+              Xe(this, io, "f"),
+            );
             ze(this, co, t.finalMessage());
             Xe(this, co, "f").catch(() => {});
             yield t;
           } else {
-            ze(this, co, this.client.beta.messages.create({
-              ...a,
-              stream: false
-            }, Xe(this, io, "f")));
+            ze(
+              this,
+              co,
+              this.client.beta.messages.create(
+                {
+                  ...a,
+                  stream: false,
+                },
+                Xe(this, io, "f"),
+              ),
+            );
             yield Xe(this, co, "f");
           }
           if (!(await Xe(this, oo, "m", po).call(this))) {
             if (!Xe(this, no, "f")) {
-              const {
-                role: e,
-                content: t
-              } = await Xe(this, co, "f");
+              const { role: e, content: t } = await Xe(this, co, "f");
               Xe(this, so, "f").params.messages.push({
                 role: e,
-                content: t
+                content: t,
               });
             }
-            const e = await Xe(this, oo, "m", mo).call(this, Xe(this, so, "f").params.messages.at(-1));
+            const e = await Xe(this, oo, "m", mo).call(
+              this,
+              Xe(this, so, "f").params.messages.at(-1),
+            );
             if (e) {
               Xe(this, so, "f").params.messages.push(e);
             } else if (!Xe(this, no, "f")) {
@@ -10191,7 +11885,8 @@ class go {
     }
   }
   setMessagesParams(e) {
-    Xe(this, so, "f").params = typeof e == "function" ? e(Xe(this, so, "f").params) : e;
+    Xe(this, so, "f").params =
+      typeof e == "function" ? e(Xe(this, so, "f").params) : e;
     ze(this, no, true);
     ze(this, lo, undefined);
   }
@@ -10216,9 +11911,9 @@ class go {
     return Xe(this, so, "f").params;
   }
   pushMessages(...e) {
-    this.setMessagesParams(t => ({
+    this.setMessagesParams((t) => ({
       ...t,
-      messages: [...t.messages, ...e]
+      messages: [...t.messages, ...e],
     }));
   }
   then(e, t) {
@@ -10227,48 +11922,64 @@ class go {
 }
 mo = async function (e) {
   if (Xe(this, lo, "f") === undefined) {
-    ze(this, lo, async function (e, t = e.messages.at(-1)) {
-      if (!t || t.role !== "assistant" || !t.content || typeof t.content == "string") {
-        return null;
-      }
-      const r = t.content.filter(e => e.type === "tool_use");
-      if (r.length === 0) {
-        return null;
-      }
-      return {
-        role: "user",
-        content: await Promise.all(r.map(async t => {
-          const r = e.tools.find(e => ("name" in e ? e.name : e.mcp_server_name) === t.name);
-          if (!r || !("run" in r)) {
-            return {
-              type: "tool_result",
-              tool_use_id: t.id,
-              content: `Error: Tool '${t.name}' not found`,
-              is_error: true
-            };
-          }
-          try {
-            let e = t.input;
-            if ("parse" in r && r.parse) {
-              e = r.parse(e);
-            }
-            const o = await r.run(e);
-            return {
-              type: "tool_result",
-              tool_use_id: t.id,
-              content: o
-            };
-          } catch (o) {
-            return {
-              type: "tool_result",
-              tool_use_id: t.id,
-              content: o instanceof ro ? o.content : `Error: ${o instanceof Error ? o.message : String(o)}`,
-              is_error: true
-            };
-          }
-        }))
-      };
-    }(Xe(this, so, "f").params, e));
+    ze(
+      this,
+      lo,
+      (async function (e, t = e.messages.at(-1)) {
+        if (
+          !t ||
+          t.role !== "assistant" ||
+          !t.content ||
+          typeof t.content == "string"
+        ) {
+          return null;
+        }
+        const r = t.content.filter((e) => e.type === "tool_use");
+        if (r.length === 0) {
+          return null;
+        }
+        return {
+          role: "user",
+          content: await Promise.all(
+            r.map(async (t) => {
+              const r = e.tools.find(
+                (e) => ("name" in e ? e.name : e.mcp_server_name) === t.name,
+              );
+              if (!r || !("run" in r)) {
+                return {
+                  type: "tool_result",
+                  tool_use_id: t.id,
+                  content: `Error: Tool '${t.name}' not found`,
+                  is_error: true,
+                };
+              }
+              try {
+                let e = t.input;
+                if ("parse" in r && r.parse) {
+                  e = r.parse(e);
+                }
+                const o = await r.run(e);
+                return {
+                  type: "tool_result",
+                  tool_use_id: t.id,
+                  content: o,
+                };
+              } catch (o) {
+                return {
+                  type: "tool_result",
+                  tool_use_id: t.id,
+                  content:
+                    o instanceof ro
+                      ? o.content
+                      : `Error: ${o instanceof Error ? o.message : String(o)}`,
+                  is_error: true,
+                };
+              }
+            }),
+          ),
+        };
+      })(Xe(this, so, "f").params, e),
+    );
   }
   return Xe(this, lo, "f");
 };
@@ -10294,8 +12005,13 @@ class bo {
   static fromResponse(e, t) {
     if (!e.body) {
       t.abort();
-      if (globalThis.navigator !== undefined && globalThis.navigator.product === "ReactNative") {
-        throw new Qe("The default react-native fetch implementation does not support streaming. Please use expo/fetch: https://docs.expo.dev/versions/latest/sdk/expo/#expofetch-api");
+      if (
+        globalThis.navigator !== undefined &&
+        globalThis.navigator.product === "ReactNative"
+      ) {
+        throw new Qe(
+          "The default react-native fetch implementation does not support streaming. Please use expo/fetch: https://docs.expo.dev/versions/latest/sdk/expo/#expofetch-api",
+        );
       }
       throw new Qe("Attempted to iterate over a response with no body");
     }
@@ -10304,81 +12020,107 @@ class bo {
 }
 let wo = class extends dr {
   create(e, t) {
-    const {
-      betas: r,
-      ...o
-    } = e;
+    const { betas: r, ...o } = e;
     return this._client.post("/v1/messages/batches?beta=true", {
       body: o,
       ...t,
-      headers: pr([{
-        "anthropic-beta": [...(r ?? []), "message-batches-2024-09-24"].toString()
-      }, t?.headers])
+      headers: pr([
+        {
+          "anthropic-beta": [
+            ...(r ?? []),
+            "message-batches-2024-09-24",
+          ].toString(),
+        },
+        t?.headers,
+      ]),
     });
   }
   retrieve(e, t = {}, r) {
-    const {
-      betas: o
-    } = t ?? {};
+    const { betas: o } = t ?? {};
     return this._client.get(_r`/v1/messages/batches/${e}?beta=true`, {
       ...r,
-      headers: pr([{
-        "anthropic-beta": [...(o ?? []), "message-batches-2024-09-24"].toString()
-      }, r?.headers])
+      headers: pr([
+        {
+          "anthropic-beta": [
+            ...(o ?? []),
+            "message-batches-2024-09-24",
+          ].toString(),
+        },
+        r?.headers,
+      ]),
     });
   }
   list(e = {}, t) {
-    const {
-      betas: r,
-      ...o
-    } = e ?? {};
+    const { betas: r, ...o } = e ?? {};
     return this._client.getAPIList("/v1/messages/batches?beta=true", Qt, {
       query: o,
       ...t,
-      headers: pr([{
-        "anthropic-beta": [...(r ?? []), "message-batches-2024-09-24"].toString()
-      }, t?.headers])
+      headers: pr([
+        {
+          "anthropic-beta": [
+            ...(r ?? []),
+            "message-batches-2024-09-24",
+          ].toString(),
+        },
+        t?.headers,
+      ]),
     });
   }
   delete(e, t = {}, r) {
-    const {
-      betas: o
-    } = t ?? {};
+    const { betas: o } = t ?? {};
     return this._client.delete(_r`/v1/messages/batches/${e}?beta=true`, {
       ...r,
-      headers: pr([{
-        "anthropic-beta": [...(o ?? []), "message-batches-2024-09-24"].toString()
-      }, r?.headers])
+      headers: pr([
+        {
+          "anthropic-beta": [
+            ...(o ?? []),
+            "message-batches-2024-09-24",
+          ].toString(),
+        },
+        r?.headers,
+      ]),
     });
   }
   cancel(e, t = {}, r) {
-    const {
-      betas: o
-    } = t ?? {};
+    const { betas: o } = t ?? {};
     return this._client.post(_r`/v1/messages/batches/${e}/cancel?beta=true`, {
       ...r,
-      headers: pr([{
-        "anthropic-beta": [...(o ?? []), "message-batches-2024-09-24"].toString()
-      }, r?.headers])
+      headers: pr([
+        {
+          "anthropic-beta": [
+            ...(o ?? []),
+            "message-batches-2024-09-24",
+          ].toString(),
+        },
+        r?.headers,
+      ]),
     });
   }
   async results(e, t = {}, r) {
     const o = await this.retrieve(e);
     if (!o.results_url) {
-      throw new Qe(`No batch \`results_url\`; Has it finished processing? ${o.processing_status} - ${o.id}`);
+      throw new Qe(
+        `No batch \`results_url\`; Has it finished processing? ${o.processing_status} - ${o.id}`,
+      );
     }
-    const {
-      betas: a
-    } = t ?? {};
-    return this._client.get(o.results_url, {
-      ...r,
-      headers: pr([{
-        "anthropic-beta": [...(a ?? []), "message-batches-2024-09-24"].toString(),
-        Accept: "application/binary"
-      }, r?.headers]),
-      stream: true,
-      __binaryResponse: true
-    })._thenUnwrap((e, t) => bo.fromResponse(t.response, t.controller));
+    const { betas: a } = t ?? {};
+    return this._client
+      .get(o.results_url, {
+        ...r,
+        headers: pr([
+          {
+            "anthropic-beta": [
+              ...(a ?? []),
+              "message-batches-2024-09-24",
+            ].toString(),
+            Accept: "application/binary",
+          },
+          r?.headers,
+        ]),
+        stream: true,
+        __binaryResponse: true,
+      })
+      ._thenUnwrap((e, t) => bo.fromResponse(t.response, t.controller));
   }
 };
 let yo = class extends dr {
@@ -10388,10 +12130,7 @@ let yo = class extends dr {
   }
   create(e, t) {
     const r = _o(e);
-    const {
-      betas: o,
-      ...a
-    } = r;
+    const { betas: o, ...a } = r;
     a.model;
     let n = this._client._options.timeout;
     if (!a.stream && n == null) {
@@ -10403,40 +12142,57 @@ let yo = class extends dr {
       body: a,
       timeout: n ?? 600000,
       ...t,
-      headers: pr([{
-        ...(o?.toString() != null ? {
-          "anthropic-beta": o?.toString()
-        } : undefined)
-      }, s, t?.headers]),
-      stream: r.stream ?? false
+      headers: pr([
+        {
+          ...(o?.toString() != null
+            ? {
+                "anthropic-beta": o?.toString(),
+              }
+            : undefined),
+        },
+        s,
+        t?.headers,
+      ]),
+      stream: r.stream ?? false,
     });
   }
   parse(e, t) {
     t = {
       ...t,
-      headers: pr([{
-        "anthropic-beta": [...(e.betas ?? []), "structured-outputs-2025-12-15"].toString()
-      }, t?.headers])
+      headers: pr([
+        {
+          "anthropic-beta": [
+            ...(e.betas ?? []),
+            "structured-outputs-2025-12-15",
+          ].toString(),
+        },
+        t?.headers,
+      ]),
     };
-    return this.create(e, t).then(t => Sr(t, e, {
-      logger: this._client.logger ?? console
-    }));
+    return this.create(e, t).then((t) =>
+      Sr(t, e, {
+        logger: this._client.logger ?? console,
+      }),
+    );
   }
   stream(e, t) {
     return to.createMessage(this, e, t);
   }
   countTokens(e, t) {
     const r = _o(e);
-    const {
-      betas: o,
-      ...a
-    } = r;
+    const { betas: o, ...a } = r;
     return this._client.post("/v1/messages/count_tokens?beta=true", {
       body: a,
       ...t,
-      headers: pr([{
-        "anthropic-beta": [...(o ?? []), "token-counting-2024-11-01"].toString()
-      }, t?.headers])
+      headers: pr([
+        {
+          "anthropic-beta": [
+            ...(o ?? []),
+            "token-counting-2024-11-01",
+          ].toString(),
+        },
+        t?.headers,
+      ]),
     });
   }
   toolRunner(e, t) {
@@ -10448,18 +12204,17 @@ function _o(e) {
     return e;
   }
   if (e.output_config?.format) {
-    throw new Qe("Both output_format and output_config.format were provided. Please use only output_config.format (output_format is deprecated).");
+    throw new Qe(
+      "Both output_format and output_config.format were provided. Please use only output_config.format (output_format is deprecated).",
+    );
   }
-  const {
-    output_format: t,
-    ...r
-  } = e;
+  const { output_format: t, ...r } = e;
   return {
     ...r,
     output_config: {
       ...e.output_config,
-      format: t
-    }
+      format: t,
+    },
   };
 }
 yo.Batches = wo;
@@ -10467,53 +12222,59 @@ yo.BetaToolRunner = go;
 yo.ToolError = ro;
 class vo extends dr {
   create(e, t = {}, r) {
-    const {
-      betas: o,
-      ...a
-    } = t ?? {};
-    return this._client.post(_r`/v1/skills/${e}/versions?beta=true`, ar({
-      body: a,
-      ...r,
-      headers: pr([{
-        "anthropic-beta": [...(o ?? []), "skills-2025-10-02"].toString()
-      }, r?.headers])
-    }, this._client));
+    const { betas: o, ...a } = t ?? {};
+    return this._client.post(
+      _r`/v1/skills/${e}/versions?beta=true`,
+      ar(
+        {
+          body: a,
+          ...r,
+          headers: pr([
+            {
+              "anthropic-beta": [...(o ?? []), "skills-2025-10-02"].toString(),
+            },
+            r?.headers,
+          ]),
+        },
+        this._client,
+      ),
+    );
   }
   retrieve(e, t, r) {
-    const {
-      skill_id: o,
-      betas: a
-    } = t;
+    const { skill_id: o, betas: a } = t;
     return this._client.get(_r`/v1/skills/${o}/versions/${e}?beta=true`, {
       ...r,
-      headers: pr([{
-        "anthropic-beta": [...(a ?? []), "skills-2025-10-02"].toString()
-      }, r?.headers])
+      headers: pr([
+        {
+          "anthropic-beta": [...(a ?? []), "skills-2025-10-02"].toString(),
+        },
+        r?.headers,
+      ]),
     });
   }
   list(e, t = {}, r) {
-    const {
-      betas: o,
-      ...a
-    } = t ?? {};
+    const { betas: o, ...a } = t ?? {};
     return this._client.getAPIList(_r`/v1/skills/${e}/versions?beta=true`, Zt, {
       query: a,
       ...r,
-      headers: pr([{
-        "anthropic-beta": [...(o ?? []), "skills-2025-10-02"].toString()
-      }, r?.headers])
+      headers: pr([
+        {
+          "anthropic-beta": [...(o ?? []), "skills-2025-10-02"].toString(),
+        },
+        r?.headers,
+      ]),
     });
   }
   delete(e, t, r) {
-    const {
-      skill_id: o,
-      betas: a
-    } = t;
+    const { skill_id: o, betas: a } = t;
     return this._client.delete(_r`/v1/skills/${o}/versions/${e}?beta=true`, {
       ...r,
-      headers: pr([{
-        "anthropic-beta": [...(a ?? []), "skills-2025-10-02"].toString()
-      }, r?.headers])
+      headers: pr([
+        {
+          "anthropic-beta": [...(a ?? []), "skills-2025-10-02"].toString(),
+        },
+        r?.headers,
+      ]),
     });
   }
 }
@@ -10523,51 +12284,60 @@ class Io extends dr {
     this.versions = new vo(this._client);
   }
   create(e = {}, t) {
-    const {
-      betas: r,
-      ...o
-    } = e ?? {};
-    return this._client.post("/v1/skills?beta=true", ar({
-      body: o,
-      ...t,
-      headers: pr([{
-        "anthropic-beta": [...(r ?? []), "skills-2025-10-02"].toString()
-      }, t?.headers])
-    }, this._client, false));
+    const { betas: r, ...o } = e ?? {};
+    return this._client.post(
+      "/v1/skills?beta=true",
+      ar(
+        {
+          body: o,
+          ...t,
+          headers: pr([
+            {
+              "anthropic-beta": [...(r ?? []), "skills-2025-10-02"].toString(),
+            },
+            t?.headers,
+          ]),
+        },
+        this._client,
+        false,
+      ),
+    );
   }
   retrieve(e, t = {}, r) {
-    const {
-      betas: o
-    } = t ?? {};
+    const { betas: o } = t ?? {};
     return this._client.get(_r`/v1/skills/${e}?beta=true`, {
       ...r,
-      headers: pr([{
-        "anthropic-beta": [...(o ?? []), "skills-2025-10-02"].toString()
-      }, r?.headers])
+      headers: pr([
+        {
+          "anthropic-beta": [...(o ?? []), "skills-2025-10-02"].toString(),
+        },
+        r?.headers,
+      ]),
     });
   }
   list(e = {}, t) {
-    const {
-      betas: r,
-      ...o
-    } = e ?? {};
+    const { betas: r, ...o } = e ?? {};
     return this._client.getAPIList("/v1/skills?beta=true", Zt, {
       query: o,
       ...t,
-      headers: pr([{
-        "anthropic-beta": [...(r ?? []), "skills-2025-10-02"].toString()
-      }, t?.headers])
+      headers: pr([
+        {
+          "anthropic-beta": [...(r ?? []), "skills-2025-10-02"].toString(),
+        },
+        t?.headers,
+      ]),
     });
   }
   delete(e, t = {}, r) {
-    const {
-      betas: o
-    } = t ?? {};
+    const { betas: o } = t ?? {};
     return this._client.delete(_r`/v1/skills/${e}?beta=true`, {
       ...r,
-      headers: pr([{
-        "anthropic-beta": [...(o ?? []), "skills-2025-10-02"].toString()
-      }, r?.headers])
+      headers: pr([
+        {
+          "anthropic-beta": [...(o ?? []), "skills-2025-10-02"].toString(),
+        },
+        r?.headers,
+      ]),
     });
   }
 }
@@ -10587,20 +12357,22 @@ ko.Files = vr;
 ko.Skills = Io;
 class To extends dr {
   create(e, t) {
-    const {
-      betas: r,
-      ...o
-    } = e;
+    const { betas: r, ...o } = e;
     return this._client.post("/v1/complete", {
       body: o,
       timeout: this._client._options.timeout ?? 600000,
       ...t,
-      headers: pr([{
-        ...(r?.toString() != null ? {
-          "anthropic-beta": r?.toString()
-        } : undefined)
-      }, t?.headers]),
-      stream: e.stream ?? false
+      headers: pr([
+        {
+          ...(r?.toString() != null
+            ? {
+                "anthropic-beta": r?.toString(),
+              }
+            : undefined),
+        },
+        t?.headers,
+      ]),
+      stream: e.stream ?? false,
     });
   }
 }
@@ -10614,26 +12386,30 @@ function So(e, t, r) {
   } else {
     return {
       ...e,
-      content: e.content.map(e => {
+      content: e.content.map((e) => {
         if (e.type === "text") {
-          return Object.defineProperty({
-            ...e
-          }, "parsed_output", {
-            value: null,
-            enumerable: false
-          });
+          return Object.defineProperty(
+            {
+              ...e,
+            },
+            "parsed_output",
+            {
+              value: null,
+              enumerable: false,
+            },
+          );
         }
         return e;
       }),
-      parsed_output: null
+      parsed_output: null,
     };
   }
 }
 function Eo(e, t, r) {
   let o = null;
-  const a = e.content.map(e => {
+  const a = e.content.map((e) => {
     if (e.type === "text") {
-      const r = function (e, t) {
+      const r = (function (e, t) {
         const r = xo(e);
         if (r?.type !== "json_schema") {
           return null;
@@ -10647,23 +12423,27 @@ function Eo(e, t, r) {
         } catch (o) {
           throw new Qe(`Failed to parse structured output: ${o}`);
         }
-      }(t, e.text);
+      })(t, e.text);
       if (o === null) {
         o = r;
       }
-      return Object.defineProperty({
-        ...e
-      }, "parsed_output", {
-        value: r,
-        enumerable: false
-      });
+      return Object.defineProperty(
+        {
+          ...e,
+        },
+        "parsed_output",
+        {
+          value: r,
+          enumerable: false,
+        },
+      );
     }
     return e;
   });
   return {
     ...e,
     content: a,
-    parsed_output: o
+    parsed_output: o,
   };
 }
 var Co;
@@ -10716,7 +12496,7 @@ class ea {
     Fo.set(this, undefined);
     Wo.set(this, undefined);
     jo.set(this, undefined);
-    zo.set(this, e => {
+    zo.set(this, (e) => {
       ze(this, Lo, true);
       if (Ye(e)) {
         e = new et();
@@ -10735,14 +12515,22 @@ class ea {
       }
       return this._emit("error", new Qe(String(e)));
     });
-    ze(this, Ro, new Promise((e, t) => {
-      ze(this, Ao, e);
-      ze(this, Po, t);
-    }));
-    ze(this, Uo, new Promise((e, t) => {
-      ze(this, $o, e);
-      ze(this, Oo, t);
-    }));
+    ze(
+      this,
+      Ro,
+      new Promise((e, t) => {
+        ze(this, Ao, e);
+        ze(this, Po, t);
+      }),
+    );
+    ze(
+      this,
+      Uo,
+      new Promise((e, t) => {
+        ze(this, $o, e);
+        ze(this, Oo, t);
+      }),
+    );
     Xe(this, Ro, "f").catch(() => {});
     Xe(this, Uo, "f").catch(() => {});
     ze(this, Do, e);
@@ -10763,7 +12551,7 @@ class ea {
     return {
       data: this,
       response: e,
-      request_id: e.headers.get("request-id")
+      request_id: e.headers.get("request-id"),
     };
   }
   static fromReadableStream(e) {
@@ -10771,36 +12559,43 @@ class ea {
     t._run(() => t._fromReadableStream(e));
     return t;
   }
-  static createMessage(e, t, r, {
-    logger: o
-  } = {}) {
+  static createMessage(e, t, r, { logger: o } = {}) {
     const a = new ea(t, {
-      logger: o
+      logger: o,
     });
     for (const n of t.messages) {
       a._addMessageParam(n);
     }
     ze(a, Do, {
       ...t,
-      stream: true
+      stream: true,
     });
-    a._run(() => a._createMessage(e, {
-      ...t,
-      stream: true
-    }, {
-      ...r,
-      headers: {
-        ...r?.headers,
-        "X-Stainless-Helper-Method": "stream"
-      }
-    }));
+    a._run(() =>
+      a._createMessage(
+        e,
+        {
+          ...t,
+          stream: true,
+        },
+        {
+          ...r,
+          headers: {
+            ...r?.headers,
+            "X-Stainless-Helper-Method": "stream",
+          },
+        },
+      ),
+    );
     return a;
   }
   _run(e) {
-    e().then(() => {
-      this._emitFinal();
-      this._emit("end");
-    }, Xe(this, zo, "f"));
+    e().then(
+      () => {
+        this._emitFinal();
+        this._emit("end");
+      },
+      Xe(this, zo, "f"),
+    );
   }
   _addMessageParam(e) {
     this.messages.push(e);
@@ -10823,16 +12618,18 @@ class ea {
     }
     try {
       Xe(this, Co, "m", Xo).call(this);
-      const {
-        response: o,
-        data: a
-      } = await e.create({
-        ...t,
-        stream: true
-      }, {
-        ...r,
-        signal: this.controller.signal
-      }).withResponse();
+      const { response: o, data: a } = await e
+        .create(
+          {
+            ...t,
+            stream: true,
+          },
+          {
+            ...r,
+            signal: this.controller.signal,
+          },
+        )
+        .withResponse();
       this._connected(o);
       for await (const e of a) {
         Xe(this, Co, "m", Vo).call(this, e);
@@ -10869,7 +12666,7 @@ class ea {
   }
   on(e, t) {
     (Xe(this, Go, "f")[e] ||= []).push({
-      listener: t
+      listener: t,
     });
     return this;
   }
@@ -10878,7 +12675,7 @@ class ea {
     if (!r) {
       return this;
     }
-    const o = r.findIndex(e => e.listener === t);
+    const o = r.findIndex((e) => e.listener === t);
     if (o >= 0) {
       r.splice(o, 1);
     }
@@ -10887,7 +12684,7 @@ class ea {
   once(e, t) {
     (Xe(this, Go, "f")[e] ||= []).push({
       listener: t,
-      once: true
+      once: true,
     });
     return this;
   }
@@ -10925,10 +12722,8 @@ class ea {
     }
     const r = Xe(this, Go, "f")[e];
     if (r) {
-      Xe(this, Go, "f")[e] = r.filter(e => !e.once);
-      r.forEach(({
-        listener: e
-      }) => e(...t));
+      Xe(this, Go, "f")[e] = r.filter((e) => !e.once);
+      r.forEach(({ listener: e }) => e(...t));
     }
     if (e === "abort") {
       const e = t[0];
@@ -10982,65 +12777,94 @@ class ea {
       }
     }
   }
-  [(Mo = new WeakMap(), Do = new WeakMap(), Ro = new WeakMap(), Ao = new WeakMap(), Po = new WeakMap(), Uo = new WeakMap(), $o = new WeakMap(), Oo = new WeakMap(), Go = new WeakMap(), No = new WeakMap(), Lo = new WeakMap(), qo = new WeakMap(), Bo = new WeakMap(), Fo = new WeakMap(), Wo = new WeakMap(), jo = new WeakMap(), zo = new WeakMap(), Co = new WeakSet(), Ho = function () {
+  [((Mo = new WeakMap()),
+  (Do = new WeakMap()),
+  (Ro = new WeakMap()),
+  (Ao = new WeakMap()),
+  (Po = new WeakMap()),
+  (Uo = new WeakMap()),
+  ($o = new WeakMap()),
+  (Oo = new WeakMap()),
+  (Go = new WeakMap()),
+  (No = new WeakMap()),
+  (Lo = new WeakMap()),
+  (qo = new WeakMap()),
+  (Bo = new WeakMap()),
+  (Fo = new WeakMap()),
+  (Wo = new WeakMap()),
+  (jo = new WeakMap()),
+  (zo = new WeakMap()),
+  (Co = new WeakSet()),
+  (Ho = function () {
     if (this.receivedMessages.length === 0) {
-      throw new Qe("stream ended without producing a Message with role=assistant");
+      throw new Qe(
+        "stream ended without producing a Message with role=assistant",
+      );
     }
     return this.receivedMessages.at(-1);
-  }, Ko = function () {
+  }),
+  (Ko = function () {
     if (this.receivedMessages.length === 0) {
-      throw new Qe("stream ended without producing a Message with role=assistant");
+      throw new Qe(
+        "stream ended without producing a Message with role=assistant",
+      );
     }
-    const e = this.receivedMessages.at(-1).content.filter(e => e.type === "text").map(e => e.text);
+    const e = this.receivedMessages
+      .at(-1)
+      .content.filter((e) => e.type === "text")
+      .map((e) => e.text);
     if (e.length === 0) {
-      throw new Qe("stream ended without producing a content block with type=text");
+      throw new Qe(
+        "stream ended without producing a content block with type=text",
+      );
     }
     return e.join(" ");
-  }, Xo = function () {
+  }),
+  (Xo = function () {
     if (!this.ended) {
       ze(this, Mo, undefined);
     }
-  }, Vo = function (e) {
+  }),
+  (Vo = function (e) {
     if (this.ended) {
       return;
     }
     const t = Xe(this, Co, "m", Jo).call(this, e);
     this._emit("streamEvent", e, t);
     switch (e.type) {
-      case "content_block_delta":
-        {
-          const r = t.content.at(-1);
-          switch (e.delta.type) {
-            case "text_delta":
-              if (r.type === "text") {
-                this._emit("text", e.delta.text, r.text || "");
-              }
-              break;
-            case "citations_delta":
-              if (r.type === "text") {
-                this._emit("citation", e.delta.citation, r.citations ?? []);
-              }
-              break;
-            case "input_json_delta":
-              if (Zo(r) && r.input) {
-                this._emit("inputJson", e.delta.partial_json, r.input);
-              }
-              break;
-            case "thinking_delta":
-              if (r.type === "thinking") {
-                this._emit("thinking", e.delta.thinking, r.thinking);
-              }
-              break;
-            case "signature_delta":
-              if (r.type === "thinking") {
-                this._emit("signature", r.signature);
-              }
-              break;
-            default:
-              e.delta;
-          }
-          break;
+      case "content_block_delta": {
+        const r = t.content.at(-1);
+        switch (e.delta.type) {
+          case "text_delta":
+            if (r.type === "text") {
+              this._emit("text", e.delta.text, r.text || "");
+            }
+            break;
+          case "citations_delta":
+            if (r.type === "text") {
+              this._emit("citation", e.delta.citation, r.citations ?? []);
+            }
+            break;
+          case "input_json_delta":
+            if (Zo(r) && r.input) {
+              this._emit("inputJson", e.delta.partial_json, r.input);
+            }
+            break;
+          case "thinking_delta":
+            if (r.type === "thinking") {
+              this._emit("thinking", e.delta.thinking, r.thinking);
+            }
+            break;
+          case "signature_delta":
+            if (r.type === "thinking") {
+              this._emit("signature", r.signature);
+            }
+            break;
+          default:
+            e.delta;
         }
+        break;
+      }
       case "message_stop":
         this._addMessageParam(t);
         this._addMessage(So(t, Xe(this, Do, "f"), Xe(this, jo, "f")), true);
@@ -11051,7 +12875,8 @@ class ea {
       case "message_start":
         ze(this, Mo, t);
     }
-  }, Yo = function () {
+  }),
+  (Yo = function () {
     if (this.ended) {
       throw new Qe("stream has ended, this shouldn't happen");
     }
@@ -11061,16 +12886,21 @@ class ea {
     }
     ze(this, Mo, undefined);
     return So(e, Xe(this, Do, "f"), Xe(this, jo, "f"));
-  }, Jo = function (e) {
+  }),
+  (Jo = function (e) {
     let t = Xe(this, Mo, "f");
     if (e.type === "message_start") {
       if (t) {
-        throw new Qe(`Unexpected event order, got ${e.type} before receiving "message_stop"`);
+        throw new Qe(
+          `Unexpected event order, got ${e.type} before receiving "message_stop"`,
+        );
       }
       return e.message;
     }
     if (!t) {
-      throw new Qe(`Unexpected event order, got ${e.type} before "message_start"`);
+      throw new Qe(
+        `Unexpected event order, got ${e.type} before "message_start"`,
+      );
     }
     switch (e.type) {
       case "message_stop":
@@ -11084,7 +12914,8 @@ class ea {
           t.usage.input_tokens = e.usage.input_tokens;
         }
         if (e.usage.cache_creation_input_tokens != null) {
-          t.usage.cache_creation_input_tokens = e.usage.cache_creation_input_tokens;
+          t.usage.cache_creation_input_tokens =
+            e.usage.cache_creation_input_tokens;
         }
         if (e.usage.cache_read_input_tokens != null) {
           t.usage.cache_read_input_tokens = e.usage.cache_read_input_tokens;
@@ -11095,74 +12926,74 @@ class ea {
         return t;
       case "content_block_start":
         t.content.push({
-          ...e.content_block
+          ...e.content_block,
         });
         return t;
-      case "content_block_delta":
-        {
-          const r = t.content.at(e.index);
-          switch (e.delta.type) {
-            case "text_delta":
-              if (r?.type === "text") {
-                t.content[e.index] = {
-                  ...r,
-                  text: (r.text || "") + e.delta.text
-                };
+      case "content_block_delta": {
+        const r = t.content.at(e.index);
+        switch (e.delta.type) {
+          case "text_delta":
+            if (r?.type === "text") {
+              t.content[e.index] = {
+                ...r,
+                text: (r.text || "") + e.delta.text,
+              };
+            }
+            break;
+          case "citations_delta":
+            if (r?.type === "text") {
+              t.content[e.index] = {
+                ...r,
+                citations: [...(r.citations ?? []), e.delta.citation],
+              };
+            }
+            break;
+          case "input_json_delta":
+            if (r && Zo(r)) {
+              let o = r[Qo] || "";
+              o += e.delta.partial_json;
+              const a = {
+                ...r,
+              };
+              Object.defineProperty(a, Qo, {
+                value: o,
+                enumerable: false,
+                writable: true,
+              });
+              if (o) {
+                a.input = Cr(o);
               }
-              break;
-            case "citations_delta":
-              if (r?.type === "text") {
-                t.content[e.index] = {
-                  ...r,
-                  citations: [...(r.citations ?? []), e.delta.citation]
-                };
-              }
-              break;
-            case "input_json_delta":
-              if (r && Zo(r)) {
-                let o = r[Qo] || "";
-                o += e.delta.partial_json;
-                const a = {
-                  ...r
-                };
-                Object.defineProperty(a, Qo, {
-                  value: o,
-                  enumerable: false,
-                  writable: true
-                });
-                if (o) {
-                  a.input = Cr(o);
-                }
-                t.content[e.index] = a;
-              }
-              break;
-            case "thinking_delta":
-              if (r?.type === "thinking") {
-                t.content[e.index] = {
-                  ...r,
-                  thinking: r.thinking + e.delta.thinking
-                };
-              }
-              break;
-            case "signature_delta":
-              if (r?.type === "thinking") {
-                t.content[e.index] = {
-                  ...r,
-                  signature: e.delta.signature
-                };
-              }
-              break;
-            default:
-              e.delta;
-          }
-          return t;
+              t.content[e.index] = a;
+            }
+            break;
+          case "thinking_delta":
+            if (r?.type === "thinking") {
+              t.content[e.index] = {
+                ...r,
+                thinking: r.thinking + e.delta.thinking,
+              };
+            }
+            break;
+          case "signature_delta":
+            if (r?.type === "thinking") {
+              t.content[e.index] = {
+                ...r,
+                signature: e.delta.signature,
+              };
+            }
+            break;
+          default:
+            e.delta;
         }
+        return t;
+      }
     }
-  }, Symbol.asyncIterator)]() {
+  }),
+  Symbol.asyncIterator)]() {
     const e = [];
     const t = [];
     let r = false;
-    this.on("streamEvent", r => {
+    this.on("streamEvent", (r) => {
       const o = t.shift();
       if (o) {
         o.resolve(r);
@@ -11177,14 +13008,14 @@ class ea {
       }
       t.length = 0;
     });
-    this.on("abort", e => {
+    this.on("abort", (e) => {
       r = true;
       for (const r of t) {
         r.reject(e);
       }
       t.length = 0;
     });
-    this.on("error", e => {
+    this.on("error", (e) => {
       r = true;
       for (const r of t) {
         r.reject(e);
@@ -11197,44 +13028,53 @@ class ea {
           if (r) {
             return {
               value: undefined,
-              done: true
+              done: true,
             };
           } else {
-            return new Promise((e, r) => t.push({
-              resolve: e,
-              reject: r
-            })).then(e => e ? {
-              value: e,
-              done: false
-            } : {
-              value: undefined,
-              done: true
-            });
+            return new Promise((e, r) =>
+              t.push({
+                resolve: e,
+                reject: r,
+              }),
+            ).then((e) =>
+              e
+                ? {
+                    value: e,
+                    done: false,
+                  }
+                : {
+                    value: undefined,
+                    done: true,
+                  },
+            );
           }
         }
         return {
           value: e.shift(),
-          done: false
+          done: false,
         };
       },
       return: async () => {
         this.abort();
         return {
           value: undefined,
-          done: true
+          done: true,
         };
-      }
+      },
     };
   }
   toReadableStream() {
-    return new Ht(this[Symbol.asyncIterator].bind(this), this.controller).toReadableStream();
+    return new Ht(
+      this[Symbol.asyncIterator].bind(this),
+      this.controller,
+    ).toReadableStream();
   }
 }
 class ta extends dr {
   create(e, t) {
     return this._client.post("/v1/messages/batches", {
       body: e,
-      ...t
+      ...t,
     });
   }
   retrieve(e, t) {
@@ -11243,7 +13083,7 @@ class ta extends dr {
   list(e = {}, t) {
     return this._client.getAPIList("/v1/messages/batches", Qt, {
       query: e,
-      ...t
+      ...t,
     });
   }
   delete(e, t) {
@@ -11255,16 +13095,23 @@ class ta extends dr {
   async results(e, t) {
     const r = await this.retrieve(e);
     if (!r.results_url) {
-      throw new Qe(`No batch \`results_url\`; Has it finished processing? ${r.processing_status} - ${r.id}`);
+      throw new Qe(
+        `No batch \`results_url\`; Has it finished processing? ${r.processing_status} - ${r.id}`,
+      );
     }
-    return this._client.get(r.results_url, {
-      ...t,
-      headers: pr([{
-        Accept: "application/binary"
-      }, t?.headers]),
-      stream: true,
-      __binaryResponse: true
-    })._thenUnwrap((e, t) => bo.fromResponse(t.response, t.controller));
+    return this._client
+      .get(r.results_url, {
+        ...t,
+        headers: pr([
+          {
+            Accept: "application/binary",
+          },
+          t?.headers,
+        ]),
+        stream: true,
+        __binaryResponse: true,
+      })
+      ._thenUnwrap((e, t) => bo.fromResponse(t.response, t.controller));
   }
 }
 class ra extends dr {
@@ -11285,57 +13132,69 @@ class ra extends dr {
       timeout: r ?? 600000,
       ...t,
       headers: pr([o, t?.headers]),
-      stream: e.stream ?? false
+      stream: e.stream ?? false,
     });
   }
   parse(e, t) {
-    return this.create(e, t).then(t => Eo(t, e, this._client.logger ?? console));
+    return this.create(e, t).then((t) =>
+      Eo(t, e, this._client.logger ?? console),
+    );
   }
   stream(e, t) {
     return ea.createMessage(this, e, t, {
-      logger: this._client.logger ?? console
+      logger: this._client.logger ?? console,
     });
   }
   countTokens(e, t) {
     return this._client.post("/v1/messages/count_tokens", {
       body: e,
-      ...t
+      ...t,
     });
   }
 }
 ra.Batches = ta;
 class oa extends dr {
   retrieve(e, t = {}, r) {
-    const {
-      betas: o
-    } = t ?? {};
+    const { betas: o } = t ?? {};
     return this._client.get(_r`/v1/models/${e}`, {
       ...r,
-      headers: pr([{
-        ...(o?.toString() != null ? {
-          "anthropic-beta": o?.toString()
-        } : undefined)
-      }, r?.headers])
+      headers: pr([
+        {
+          ...(o?.toString() != null
+            ? {
+                "anthropic-beta": o?.toString(),
+              }
+            : undefined),
+        },
+        r?.headers,
+      ]),
     });
   }
   list(e = {}, t) {
-    const {
-      betas: r,
-      ...o
-    } = e ?? {};
+    const { betas: r, ...o } = e ?? {};
     return this._client.getAPIList("/v1/models", Qt, {
       query: o,
       ...t,
-      headers: pr([{
-        ...(r?.toString() != null ? {
-          "anthropic-beta": r?.toString()
-        } : undefined)
-      }, t?.headers])
+      headers: pr([
+        {
+          ...(r?.toString() != null
+            ? {
+                "anthropic-beta": r?.toString(),
+              }
+            : undefined),
+        },
+        t?.headers,
+      ]),
     });
   }
 }
 var aa = {};
-const na = e => globalThis.process !== undefined ? aa?.[e]?.trim() ?? undefined : globalThis.Deno !== undefined ? globalThis.Deno.env?.get?.(e)?.trim() : undefined;
+const na = (e) =>
+  globalThis.process !== undefined
+    ? (aa?.[e]?.trim() ?? undefined)
+    : globalThis.Deno !== undefined
+      ? globalThis.Deno.env?.get?.(e)?.trim()
+      : undefined;
 var sa;
 var ia;
 var ca;
@@ -11353,25 +13212,39 @@ class da {
       apiKey: t,
       authToken: r,
       ...o,
-      baseURL: e || "https://api.anthropic.com"
+      baseURL: e || "https://api.anthropic.com",
     };
-    if (!a.dangerouslyAllowBrowser && typeof window != "undefined" && window.document !== undefined && typeof navigator != "undefined") {
-      throw new Qe("It looks like you're running in a browser-like environment.\n\nThis is disabled by default, as it risks exposing your secret API credentials to attackers.\nIf you understand the risks and have appropriate mitigations in place,\nyou can set the `dangerouslyAllowBrowser` option to `true`, e.g.,\n\nnew Anthropic({ apiKey, dangerouslyAllowBrowser: true });\n");
+    if (
+      !a.dangerouslyAllowBrowser &&
+      typeof window != "undefined" &&
+      window.document !== undefined &&
+      typeof navigator != "undefined"
+    ) {
+      throw new Qe(
+        "It looks like you're running in a browser-like environment.\n\nThis is disabled by default, as it risks exposing your secret API credentials to attackers.\nIf you understand the risks and have appropriate mitigations in place,\nyou can set the `dangerouslyAllowBrowser` option to `true`, e.g.,\n\nnew Anthropic({ apiKey, dangerouslyAllowBrowser: true });\n",
+      );
     }
     this.baseURL = a.baseURL;
     this.timeout = a.timeout ?? ia.DEFAULT_TIMEOUT;
     this.logger = a.logger ?? console;
     const n = "warn";
     this.logLevel = n;
-    this.logLevel = $t(a.logLevel, "ClientOptions.logLevel", this) ?? $t(na("ANTHROPIC_LOG"), "process.env['ANTHROPIC_LOG']", this) ?? n;
+    this.logLevel =
+      $t(a.logLevel, "ClientOptions.logLevel", this) ??
+      $t(na("ANTHROPIC_LOG"), "process.env['ANTHROPIC_LOG']", this) ??
+      n;
     this.fetchOptions = a.fetchOptions;
     this.maxRetries = a.maxRetries ?? 2;
-    this.fetch = a.fetch ?? function () {
-      if (typeof fetch != "undefined") {
-        return fetch;
-      }
-      throw new Error("`fetch` is not defined as a global; Either pass `fetch` to the client, `new Anthropic({ fetch })` or polyfill the global, `globalThis.fetch = fetch`");
-    }();
+    this.fetch =
+      a.fetch ??
+      (function () {
+        if (typeof fetch != "undefined") {
+          return fetch;
+        }
+        throw new Error(
+          "`fetch` is not defined as a global; Either pass `fetch` to the client, `new Anthropic({ fetch })` or polyfill the global, `globalThis.fetch = fetch`",
+        );
+      })();
     ze(this, ca, Tt);
     this._options = a;
     this.apiKey = typeof t == "string" ? t : null;
@@ -11389,18 +13262,24 @@ class da {
       fetchOptions: this.fetchOptions,
       apiKey: this.apiKey,
       authToken: this.authToken,
-      ...e
+      ...e,
     });
   }
   defaultQuery() {
     return this._options.defaultQuery;
   }
-  validateHeaders({
-    values: e,
-    nulls: t
-  }) {
-    if (!e.get("x-api-key") && !e.get("authorization") && (!this.apiKey || !e.get("x-api-key")) && !t.has("x-api-key") && (!this.authToken || !e.get("authorization")) && !t.has("authorization")) {
-      throw new Error("Could not resolve authentication method. Expected either apiKey or authToken to be set. Or for one of the \"X-Api-Key\" or \"Authorization\" headers to be explicitly omitted");
+  validateHeaders({ values: e, nulls: t }) {
+    if (
+      !e.get("x-api-key") &&
+      !e.get("authorization") &&
+      (!this.apiKey || !e.get("x-api-key")) &&
+      !t.has("x-api-key") &&
+      (!this.authToken || !e.get("authorization")) &&
+      !t.has("authorization")
+    ) {
+      throw new Error(
+        'Could not resolve authentication method. Expected either apiKey or authToken to be set. Or for one of the "X-Api-Key" or "Authorization" headers to be explicitly omitted',
+      );
     }
   }
   async authHeaders(e) {
@@ -11408,28 +13287,41 @@ class da {
   }
   async apiKeyAuth(e) {
     if (this.apiKey != null) {
-      return pr([{
-        "X-Api-Key": this.apiKey
-      }]);
+      return pr([
+        {
+          "X-Api-Key": this.apiKey,
+        },
+      ]);
     }
   }
   async bearerAuth(e) {
     if (this.authToken != null) {
-      return pr([{
-        Authorization: `Bearer ${this.authToken}`
-      }]);
+      return pr([
+        {
+          Authorization: `Bearer ${this.authToken}`,
+        },
+      ]);
     }
   }
   stringifyQuery(e) {
-    return Object.entries(e).filter(([e, t]) => t !== undefined).map(([e, t]) => {
-      if (typeof t == "string" || typeof t == "number" || typeof t == "boolean") {
-        return `${encodeURIComponent(e)}=${encodeURIComponent(t)}`;
-      }
-      if (t === null) {
-        return `${encodeURIComponent(e)}=`;
-      }
-      throw new Qe(`Cannot stringify type ${typeof t}; Expected string, number, boolean, or null. If you need to pass nested query parameters, you can manually encode them, e.g. { query: { 'foo[key1]': value1, 'foo[key2]': value2 } }, and please open a GitHub issue requesting better support for your use case.`);
-    }).join("&");
+    return Object.entries(e)
+      .filter(([e, t]) => t !== undefined)
+      .map(([e, t]) => {
+        if (
+          typeof t == "string" ||
+          typeof t == "number" ||
+          typeof t == "boolean"
+        ) {
+          return `${encodeURIComponent(e)}=${encodeURIComponent(t)}`;
+        }
+        if (t === null) {
+          return `${encodeURIComponent(e)}=`;
+        }
+        throw new Qe(
+          `Cannot stringify type ${typeof t}; Expected string, number, boolean, or null. If you need to pass nested query parameters, you can manually encode them, e.g. { query: { 'foo[key1]': value1, 'foo[key2]': value2 } }, and please open a GitHub issue requesting better support for your use case.`,
+        );
+      })
+      .join("&");
   }
   getUserAgent() {
     return `${this.constructor.name}/JS ${gt}`;
@@ -11441,21 +13333,25 @@ class da {
     return Ze.generate(e, t, r, o);
   }
   buildURL(e, t, r) {
-    const o = !Xe(this, sa, "m", la).call(this) && r || this.baseURL;
-    const a = (e => ut.test(e))(e) ? new URL(e) : new URL(o + (o.endsWith("/") && e.startsWith("/") ? e.slice(1) : e));
+    const o = (!Xe(this, sa, "m", la).call(this) && r) || this.baseURL;
+    const a = ((e) => ut.test(e))(e)
+      ? new URL(e)
+      : new URL(o + (o.endsWith("/") && e.startsWith("/") ? e.slice(1) : e));
     const n = this.defaultQuery();
-    if (!function (e) {
-      if (!e) {
+    if (
+      !(function (e) {
+        if (!e) {
+          return true;
+        }
+        for (const t in e) {
+          return false;
+        }
         return true;
-      }
-      for (const t in e) {
-        return false;
-      }
-      return true;
-    }(n)) {
+      })(n)
+    ) {
       t = {
         ...n,
-        ...t
+        ...t,
       };
     }
     if (typeof t == "object" && t && !Array.isArray(t)) {
@@ -11464,16 +13360,15 @@ class da {
     return a.toString();
   }
   _calculateNonstreamingTimeout(e) {
-    if (e * 3600 / 128000 > 600) {
-      throw new Qe("Streaming is required for operations that may take longer than 10 minutes. See https://github.com/anthropics/anthropic-sdk-typescript#streaming-responses for more details");
+    if ((e * 3600) / 128000 > 600) {
+      throw new Qe(
+        "Streaming is required for operations that may take longer than 10 minutes. See https://github.com/anthropics/anthropic-sdk-typescript#streaming-responses for more details",
+      );
     }
     return 600000;
   }
   async prepareOptions(e) {}
-  async prepareRequest(e, {
-    url: t,
-    options: r
-  }) {}
+  async prepareRequest(e, { url: t, options: r }) {}
   get(e, t) {
     return this.methodRequest("get", e, t);
   }
@@ -11490,11 +13385,13 @@ class da {
     return this.methodRequest("delete", e, t);
   }
   methodRequest(e, t, r) {
-    return this.request(Promise.resolve(r).then(r => ({
-      method: e,
-      path: t,
-      ...r
-    })));
+    return this.request(
+      Promise.resolve(r).then((r) => ({
+        method: e,
+        path: t,
+        ...r,
+      })),
+    );
   }
   request(e, t = null) {
     return new Vt(this, this.makeRequest(e, t, undefined));
@@ -11509,24 +13406,28 @@ class da {
     const {
       req: n,
       url: s,
-      timeout: i
+      timeout: i,
     } = await this.buildRequest(o, {
-      retryCount: a - t
+      retryCount: a - t,
     });
     await this.prepareRequest(n, {
       url: s,
-      options: o
+      options: o,
     });
-    const c = "log_" + (Math.random() * 16777216 | 0).toString(16).padStart(6, "0");
+    const c =
+      "log_" + ((Math.random() * 16777216) | 0).toString(16).padStart(6, "0");
     const l = r === undefined ? "" : `, retryOf: ${r}`;
     const d = Date.now();
-    qt(this).debug(`[${c}] sending request`, Bt({
-      retryOfRequestLogID: r,
-      method: o.method,
-      url: s,
-      options: o,
-      headers: n.headers
-    }));
+    qt(this).debug(
+      `[${c}] sending request`,
+      Bt({
+        retryOfRequestLogID: r,
+        method: o.method,
+        url: s,
+        options: o,
+        headers: n.headers,
+      }),
+    );
     if (o.signal?.aborted) {
       throw new et();
     }
@@ -11538,37 +13439,52 @@ class da {
       if (o.signal?.aborted) {
         throw new et();
       }
-      const a = Ye(h) || /timed? ?out/i.test(String(h) + ("cause" in h ? String(h.cause) : ""));
+      const a =
+        Ye(h) ||
+        /timed? ?out/i.test(String(h) + ("cause" in h ? String(h.cause) : ""));
       if (t) {
         qt(this).info(`[${c}] connection ${a ? "timed out" : "failed"} - ${e}`);
-        qt(this).debug(`[${c}] connection ${a ? "timed out" : "failed"} (${e})`, Bt({
+        qt(this).debug(
+          `[${c}] connection ${a ? "timed out" : "failed"} (${e})`,
+          Bt({
+            retryOfRequestLogID: r,
+            url: s,
+            durationMs: p - d,
+            message: h.message,
+          }),
+        );
+        return this.retryRequest(o, t, r ?? c);
+      }
+      qt(this).info(
+        `[${c}] connection ${a ? "timed out" : "failed"} - error; no more retries left`,
+      );
+      qt(this).debug(
+        `[${c}] connection ${a ? "timed out" : "failed"} (error; no more retries left)`,
+        Bt({
           retryOfRequestLogID: r,
           url: s,
           durationMs: p - d,
-          message: h.message
-        }));
-        return this.retryRequest(o, t, r ?? c);
-      }
-      qt(this).info(`[${c}] connection ${a ? "timed out" : "failed"} - error; no more retries left`);
-      qt(this).debug(`[${c}] connection ${a ? "timed out" : "failed"} (error; no more retries left)`, Bt({
-        retryOfRequestLogID: r,
-        url: s,
-        durationMs: p - d,
-        message: h.message
-      }));
+          message: h.message,
+        }),
+      );
       if (a) {
         throw new rt();
       }
       throw new tt({
-        cause: h
+        cause: h,
       });
     }
-    const m = `[${c}${l}${[...h.headers.entries()].filter(([e]) => e === "request-id").map(([e, t]) => ", " + e + ": " + JSON.stringify(t)).join("")}] ${n.method} ${s} ${h.ok ? "succeeded" : "failed"} with status ${h.status} in ${p - d}ms`;
+    const m = `[${c}${l}${[...h.headers.entries()]
+      .filter(([e]) => e === "request-id")
+      .map(([e, t]) => ", " + e + ": " + JSON.stringify(t))
+      .join(
+        "",
+      )}] ${n.method} ${s} ${h.ok ? "succeeded" : "failed"} with status ${h.status} in ${p - d}ms`;
     if (!h.ok) {
       const e = await this.shouldRetry(h);
       if (t && e) {
         const e = `retrying, ${t} attempts remaining`;
-        await async function (e) {
+        await (async function (e) {
           if (e === null || typeof e != "object") {
             return;
           }
@@ -11580,54 +13496,63 @@ class da {
           const r = t.cancel();
           t.releaseLock();
           await r;
-        }(h.body);
+        })(h.body);
         qt(this).info(`${m} - ${e}`);
-        qt(this).debug(`[${c}] response error (${e})`, Bt({
-          retryOfRequestLogID: r,
-          url: h.url,
-          status: h.status,
-          headers: h.headers,
-          durationMs: p - d
-        }));
+        qt(this).debug(
+          `[${c}] response error (${e})`,
+          Bt({
+            retryOfRequestLogID: r,
+            url: h.url,
+            status: h.status,
+            headers: h.headers,
+            durationMs: p - d,
+          }),
+        );
         return this.retryRequest(o, t, r ?? c, h.headers);
       }
       const a = e ? "error; no more retries left" : "error; not retryable";
       qt(this).info(`${m} - ${a}`);
-      const n = await h.text().catch(e => Je(e).message);
+      const n = await h.text().catch((e) => Je(e).message);
       const s = ft(n);
       const i = s ? undefined : n;
-      qt(this).debug(`[${c}] response error (${a})`, Bt({
+      qt(this).debug(
+        `[${c}] response error (${a})`,
+        Bt({
+          retryOfRequestLogID: r,
+          url: h.url,
+          status: h.status,
+          headers: h.headers,
+          message: i,
+          durationMs: Date.now() - d,
+        }),
+      );
+      throw this.makeStatusError(h.status, s, i, h.headers);
+    }
+    qt(this).info(m);
+    qt(this).debug(
+      `[${c}] response start`,
+      Bt({
         retryOfRequestLogID: r,
         url: h.url,
         status: h.status,
         headers: h.headers,
-        message: i,
-        durationMs: Date.now() - d
-      }));
-      throw this.makeStatusError(h.status, s, i, h.headers);
-    }
-    qt(this).info(m);
-    qt(this).debug(`[${c}] response start`, Bt({
-      retryOfRequestLogID: r,
-      url: h.url,
-      status: h.status,
-      headers: h.headers,
-      durationMs: p - d
-    }));
+        durationMs: p - d,
+      }),
+    );
     return {
       response: h,
       options: o,
       controller: u,
       requestLogID: c,
       retryOfRequestLogID: r,
-      startTime: d
+      startTime: d,
     };
   }
   getAPIList(e, t, r) {
     return this.requestAPIList(t, {
       method: "get",
       path: e,
-      ...r
+      ...r,
     });
   }
   requestAPIList(e, t) {
@@ -11635,23 +13560,26 @@ class da {
     return new Jt(this, r, e);
   }
   async fetchWithTimeout(e, t, r, o) {
-    const {
-      signal: a,
-      method: n,
-      ...s
-    } = t || {};
+    const { signal: a, method: n, ...s } = t || {};
     if (a) {
       a.addEventListener("abort", () => o.abort());
     }
     const i = setTimeout(() => o.abort(), r);
-    const c = globalThis.ReadableStream && s.body instanceof globalThis.ReadableStream || typeof s.body == "object" && s.body !== null && Symbol.asyncIterator in s.body;
+    const c =
+      (globalThis.ReadableStream &&
+        s.body instanceof globalThis.ReadableStream) ||
+      (typeof s.body == "object" &&
+        s.body !== null &&
+        Symbol.asyncIterator in s.body);
     const l = {
       signal: o.signal,
-      ...(c ? {
-        duplex: "half"
-      } : {}),
+      ...(c
+        ? {
+            duplex: "half",
+          }
+        : {}),
       method: "GET",
-      ...s
+      ...s,
     };
     if (n) {
       l.method = n.toUpperCase();
@@ -11664,7 +13592,14 @@ class da {
   }
   async shouldRetry(e) {
     const t = e.headers.get("x-should-retry");
-    return t === "true" || t !== "false" && (e.status === 408 || e.status === 409 || e.status === 429 || e.status >= 500);
+    return (
+      t === "true" ||
+      (t !== "false" &&
+        (e.status === 408 ||
+          e.status === 409 ||
+          e.status === 429 ||
+          e.status >= 500))
+    );
   }
   async retryRequest(e, t, r, o) {
     let a;
@@ -11685,32 +13620,29 @@ class da {
       a = this.calculateDefaultRetryTimeoutMillis(t, r);
     }
     var i;
-    await (i = a, new Promise(e => setTimeout(e, i)));
+    await ((i = a), new Promise((e) => setTimeout(e, i)));
     return this.makeRequest(e, t - 1, r);
   }
   calculateDefaultRetryTimeoutMillis(e, t) {
     const r = t - e;
-    return Math.min(Math.pow(2, r) * 0.5, 8) * (1 - Math.random() * 0.25) * 1000;
+    return (
+      Math.min(Math.pow(2, r) * 0.5, 8) * (1 - Math.random() * 0.25) * 1000
+    );
   }
   calculateNonstreamingTimeout(e, t) {
     const r = 600000;
-    if (e * 3600000 / 128000 > r || t != null && e > t) {
-      throw new Qe("Streaming is required for operations that may take longer than 10 minutes. See https://github.com/anthropics/anthropic-sdk-typescript#long-requests for more details");
+    if ((e * 3600000) / 128000 > r || (t != null && e > t)) {
+      throw new Qe(
+        "Streaming is required for operations that may take longer than 10 minutes. See https://github.com/anthropics/anthropic-sdk-typescript#long-requests for more details",
+      );
     }
     return r;
   }
-  async buildRequest(e, {
-    retryCount: t = 0
-  } = {}) {
+  async buildRequest(e, { retryCount: t = 0 } = {}) {
     const r = {
-      ...e
+      ...e,
     };
-    const {
-      method: o,
-      path: a,
-      query: n,
-      defaultBaseURL: s
-    } = r;
+    const { method: o, path: a, query: n, defaultBaseURL: s } = r;
     const i = this.buildURL(a, n, s);
     if ("timeout" in r) {
       ((e, t) => {
@@ -11723,11 +13655,8 @@ class da {
       })("timeout", r.timeout);
     }
     r.timeout = r.timeout ?? this.timeout;
-    const {
-      bodyHeaders: c,
-      body: l
-    } = this.buildBody({
-      options: r
+    const { bodyHeaders: c, body: l } = this.buildBody({
+      options: r,
     });
     return {
       req: {
@@ -11736,78 +13665,93 @@ class da {
           options: e,
           method: o,
           bodyHeaders: c,
-          retryCount: t
+          retryCount: t,
         }),
         ...(r.signal && {
-          signal: r.signal
+          signal: r.signal,
         }),
-        ...(globalThis.ReadableStream && l instanceof globalThis.ReadableStream && {
-          duplex: "half"
-        }),
+        ...(globalThis.ReadableStream &&
+          l instanceof globalThis.ReadableStream && {
+            duplex: "half",
+          }),
         ...(l && {
-          body: l
+          body: l,
         }),
         ...(this.fetchOptions ?? {}),
-        ...(r.fetchOptions ?? {})
+        ...(r.fetchOptions ?? {}),
       },
       url: i,
-      timeout: r.timeout
+      timeout: r.timeout,
     };
   }
-  async buildHeaders({
-    options: e,
-    method: t,
-    bodyHeaders: r,
-    retryCount: o
-  }) {
+  async buildHeaders({ options: e, method: t, bodyHeaders: r, retryCount: o }) {
     let a = {};
     if (this.idempotencyHeader && t !== "get") {
       e.idempotencyKey ||= this.defaultIdempotencyKey();
       a[this.idempotencyHeader] = e.idempotencyKey;
     }
-    const n = pr([a, {
-      Accept: "application/json",
-      "User-Agent": this.getUserAgent(),
-      "X-Stainless-Retry-Count": String(o),
-      ...(e.timeout ? {
-        "X-Stainless-Timeout": String(Math.trunc(e.timeout / 1000))
-      } : {}),
-      ...(_t ??= bt()),
-      ...(this._options.dangerouslyAllowBrowser ? {
-        "anthropic-dangerous-direct-browser-access": "true"
-      } : undefined),
-      "anthropic-version": "2023-06-01"
-    }, await this.authHeaders(e), this._options.defaultHeaders, r, e.headers]);
+    const n = pr([
+      a,
+      {
+        Accept: "application/json",
+        "User-Agent": this.getUserAgent(),
+        "X-Stainless-Retry-Count": String(o),
+        ...(e.timeout
+          ? {
+              "X-Stainless-Timeout": String(Math.trunc(e.timeout / 1000)),
+            }
+          : {}),
+        ...(_t ??= bt()),
+        ...(this._options.dangerouslyAllowBrowser
+          ? {
+              "anthropic-dangerous-direct-browser-access": "true",
+            }
+          : undefined),
+        "anthropic-version": "2023-06-01",
+      },
+      await this.authHeaders(e),
+      this._options.defaultHeaders,
+      r,
+      e.headers,
+    ]);
     this.validateHeaders(n);
     return n.values;
   }
-  buildBody({
-    options: {
-      body: e,
-      headers: t
-    }
-  }) {
+  buildBody({ options: { body: e, headers: t } }) {
     if (!e) {
       return {
         bodyHeaders: undefined,
-        body: undefined
+        body: undefined,
       };
     }
     const r = pr([t]);
-    if (ArrayBuffer.isView(e) || e instanceof ArrayBuffer || e instanceof DataView || typeof e == "string" && r.values.has("content-type") || globalThis.Blob && e instanceof globalThis.Blob || e instanceof FormData || e instanceof URLSearchParams || globalThis.ReadableStream && e instanceof globalThis.ReadableStream) {
+    if (
+      ArrayBuffer.isView(e) ||
+      e instanceof ArrayBuffer ||
+      e instanceof DataView ||
+      (typeof e == "string" && r.values.has("content-type")) ||
+      (globalThis.Blob && e instanceof globalThis.Blob) ||
+      e instanceof FormData ||
+      e instanceof URLSearchParams ||
+      (globalThis.ReadableStream && e instanceof globalThis.ReadableStream)
+    ) {
       return {
         bodyHeaders: undefined,
-        body: e
+        body: e,
       };
-    } else if (typeof e == "object" && (Symbol.asyncIterator in e || Symbol.iterator in e && "next" in e && typeof e.next == "function")) {
+    } else if (
+      typeof e == "object" &&
+      (Symbol.asyncIterator in e ||
+        (Symbol.iterator in e && "next" in e && typeof e.next == "function"))
+    ) {
       return {
         bodyHeaders: undefined,
-        body: It(e)
+        body: It(e),
       };
     } else {
       return Xe(this, ca, "f").call(this, {
         body: e,
-        headers: r
+        headers: r,
       });
     }
   }
@@ -11839,29 +13783,42 @@ da.toFile = async function (e, t, r) {
   er();
   e = await e;
   t ||= rr(e, true);
-  if ((e => e != null && typeof e == "object" && typeof e.name == "string" && typeof e.lastModified == "number" && cr(e))(e)) {
+  if (
+    ((e) =>
+      e != null &&
+      typeof e == "object" &&
+      typeof e.name == "string" &&
+      typeof e.lastModified == "number" &&
+      cr(e))(e)
+  ) {
     if (e instanceof File && t == null && r == null) {
       return e;
     } else {
       return tr([await e.arrayBuffer()], t ?? e.name, {
         type: e.type,
         lastModified: e.lastModified,
-        ...r
+        ...r,
       });
     }
   }
-  if ((e => e != null && typeof e == "object" && typeof e.url == "string" && typeof e.blob == "function")(e)) {
+  if (
+    ((e) =>
+      e != null &&
+      typeof e == "object" &&
+      typeof e.url == "string" &&
+      typeof e.blob == "function")(e)
+  ) {
     const o = await e.blob();
     t ||= new URL(e.url).pathname.split(/[\\/]/).pop();
     return tr(await lr(o), t, r);
   }
   const o = await lr(e);
   if (!r?.type) {
-    const e = o.find(e => typeof e == "object" && "type" in e && e.type);
+    const e = o.find((e) => typeof e == "object" && "type" in e && e.type);
     if (typeof e == "string") {
       r = {
         ...r,
-        type: e
+        type: e,
       };
     }
   }
@@ -11890,19 +13847,23 @@ ua.Completions = To;
 ua.Messages = ra;
 ua.Models = oa;
 ua.Beta = ko;
-const ma = [{
-  domain: "docs.google.com",
-  pathPrefix: "/document/",
-  app: "google_docs"
-}, {
-  domain: "docs.google.com",
-  pathPrefix: "/spreadsheets/",
-  app: "google_sheets"
-}, {
-  domain: "docs.google.com",
-  pathPrefix: "/presentation/",
-  app: "google_slides"
-}];
+const ma = [
+  {
+    domain: "docs.google.com",
+    pathPrefix: "/document/",
+    app: "google_docs",
+  },
+  {
+    domain: "docs.google.com",
+    pathPrefix: "/spreadsheets/",
+    app: "google_sheets",
+  },
+  {
+    domain: "docs.google.com",
+    pathPrefix: "/presentation/",
+    app: "google_slides",
+  },
+];
 function fa(e) {
   try {
     const t = new URL(e);
@@ -11926,10 +13887,69 @@ let ka = null;
 const Ta = Date.now();
 let xa;
 async function Sa() {
-  return (await chrome.storage.local.get("bridgeDisplayName")).bridgeDisplayName;
+  return (await chrome.storage.local.get(__cpMcpBridgeDisplayNameStorageKey))[
+    __cpMcpBridgeDisplayNameStorageKey
+  ];
 }
 const Ea = "bridge-keepalive";
+/*
+ * 第一轮解混淆计划（background / MCP permission promise 子链）：
+ * 1. 固定 bridge permission_request -> permission_response 的 requestId 账本。
+ * 2. 固定 storage prompt -> popup -> runtime MCP_PERMISSION_RESPONSE -> timeout 的 background 主链。
+ * 3. 固定 requestId / toolUseId / tabId 的职责边界，并明确 pairing_dismissed 属于配对链 no-op，不参与 permission promise 解析。
+ */
 const Ca = new Map();
+// 语义锚点：bridge permission_request 待回包账本（key=requestId -> { resolve }）。
+const __cpMcpBridgePendingPermissionResponseLedger = Ca;
+// 语义锚点：MCP Bridge keepalive alarm 名称（用于 service worker 侧保活）
+const __cpMcpBridgeKeepaliveAlarmName = Ea;
+const __cpMcpBridgeKeepalivePingIntervalMs = 20000;
+const __cpMcpBridgeRefreshProbeIntervalMs = 1800000;
+const __cpMcpBridgeAlarmPeriodMinutes = 0.5;
+
+// 语义锚点：MCP Bridge storage key（配对/设备信息）
+const __cpMcpBridgeDisplayNameStorageKey = "bridgeDisplayName";
+const __cpMcpBridgeDeviceIdStorageKey = "bridgeDeviceId";
+
+// 语义锚点：MCP Bridge WebSocket URL 前缀（桌面端桥接）
+const __cpMcpBridgeWebSocketUrlPrefix =
+  "wss://bridge.claudeusercontent.com/chrome/";
+const __cpMcpBridgeSocketMessageTypeConnect = "connect";
+const __cpMcpBridgeSocketMessageTypePaired = "paired";
+const __cpMcpBridgeSocketMessageTypeWaiting = "waiting";
+const __cpMcpBridgeSocketMessageTypePing = "ping";
+const __cpMcpBridgeSocketMessageTypePong = "pong";
+const __cpMcpBridgeSocketMessageTypePeerConnected = "peer_connected";
+const __cpMcpBridgeSocketMessageTypePeerDisconnected = "peer_disconnected";
+const __cpMcpBridgeSocketMessageTypeNotification = "notification";
+const __cpMcpBridgeSocketMessageTypePermissionRequest = "permission_request";
+const __cpMcpBridgeSocketMessageTypePairingResponse = "pairing_response";
+const __cpMcpBridgeSocketMessageTypeError = "error";
+const __cpMcpBridgeSocketFieldClientType = "client_type";
+const __cpMcpBridgeSocketFieldTargetDeviceId = "target_device_id";
+const __cpMcpBridgeSocketFieldDeviceId = "device_id";
+const __cpMcpBridgeSocketFieldDisplayName = "display_name";
+const __cpMcpBridgeSocketFieldCurrentName = "current_name";
+const __cpMcpBridgeSocketFieldRequestId = "request_id";
+const __cpMcpBridgeSocketFieldToolUseId = "tool_use_id";
+const __cpMcpBridgeSocketFieldTool = "tool";
+const __cpMcpBridgeSocketFieldArgs = "args";
+const __cpMcpBridgeSocketFieldPermissionMode = "permission_mode";
+const __cpMcpBridgeSocketFieldAllowedDomains = "allowed_domains";
+const __cpMcpBridgeSocketFieldHandlePermissionPrompts =
+  "handle_permission_prompts";
+const __cpMcpBridgeSocketFieldSessionScope = "session_scope";
+const __cpMcpBridgeSocketFieldAllowed = "allowed";
+const __cpMcpBridgeSocketFieldToolType = "tool_type";
+const __cpMcpBridgeSocketFieldUrl = "url";
+const __cpMcpBridgeSocketFieldActionData = "action_data";
+const __cpMcpBridgeSocketFieldMethod = "method";
+const __cpMcpBridgeSocketFieldParams = "params";
+const __cpMcpBridgeToolArgsFieldTabId = "tabId";
+const __cpMcpBridgeToolResultTextContentType = "text";
+const __cpMcpBridgeClientTypeChromeExtension = "chrome-extension";
+const __cpMcpBridgeDefaultPeerClientType = "desktop";
+const __cpMcpToolExecutionSourceBridge = "bridge";
 function Ma() {
   try {
     const e = navigator.userAgentData;
@@ -11942,14 +13962,14 @@ async function Da() {
   if (va) {
     return va;
   }
-  const e = await chrome.storage.local.get("bridgeDeviceId");
-  if (e.bridgeDeviceId) {
-    va = e.bridgeDeviceId;
+  const e = await chrome.storage.local.get(__cpMcpBridgeDeviceIdStorageKey);
+  if (e[__cpMcpBridgeDeviceIdStorageKey]) {
+    va = e[__cpMcpBridgeDeviceIdStorageKey];
     return va;
   } else {
     va = crypto.randomUUID();
     await chrome.storage.local.set({
-      bridgeDeviceId: va
+      [__cpMcpBridgeDeviceIdStorageKey]: va,
     });
     return va;
   }
@@ -11958,11 +13978,13 @@ function Ra() {
   Aa();
   _a = setInterval(() => {
     if (ga?.readyState === WebSocket.OPEN) {
-      ga.send(JSON.stringify({
-        type: "ping"
-      }));
+      ga.send(
+        JSON.stringify({
+          type: __cpMcpBridgeSocketMessageTypePing,
+        }),
+      );
     }
-  }, 20000);
+  }, __cpMcpBridgeKeepalivePingIntervalMs);
 }
 function Aa() {
   if (_a) {
@@ -12005,108 +14027,163 @@ async function Pa() {
       if (ga !== i) {
         return;
       }
+      // 语义锚点：bridge 连接握手 payload（connect / client_type / device_id / display_name）
       const t = {
-        type: "connect",
-        client_type: "chrome-extension",
-        device_id: a,
+        type: __cpMcpBridgeSocketMessageTypeConnect,
+        [__cpMcpBridgeSocketFieldClientType]:
+          __cpMcpBridgeClientTypeChromeExtension,
+        [__cpMcpBridgeSocketFieldDeviceId]: a,
         os_platform: Ma(),
         extension_version: chrome.runtime.getManifest().version,
         ...(n && {
-          display_name: n
-        })
+          [__cpMcpBridgeSocketFieldDisplayName]: n,
+        }),
       };
       if (!e) {
         t.oauth_token = o;
       }
       i.send(JSON.stringify(t));
     };
-    i.onmessage = async e => {
+    i.onmessage = async (e) => {
       if (ga === i) {
         try {
           const t = JSON.parse(e.data);
-          await async function (e) {
+          // 语义锚点：bridge 入站消息分发（paired/waiting/ping/tool_call/pairing_request/permission_response）
+          await (async function (e) {
             switch (e.type) {
-              case "paired":
-                m("claude_chrome.bridge.connected", {
-                  status: "paired",
-                  sw_uptime_ms: Date.now() - Ta,
-                  previous_close_code: xa ?? null,
-                  reconnect_attempt: ya
-                });
+              case __cpMcpBridgeSocketMessageTypePaired:
+                {
+                  const e = {
+                    status: "paired",
+                    sw_uptime_ms: Date.now() - Ta,
+                    previous_close_code: xa ?? null,
+                    reconnect_attempt: ya,
+                  };
+                  m("claude_chrome.bridge.connected", e);
+                  __cpBackgroundDebugTrack("claude_chrome.bridge.connected", e);
+                }
                 Ra();
                 ba = false;
                 ya = 0;
                 break;
-              case "waiting":
-                m("claude_chrome.bridge.connected", {
-                  status: "waiting",
-                  sw_uptime_ms: Date.now() - Ta,
-                  previous_close_code: xa ?? null,
-                  reconnect_attempt: ya
-                });
+              case __cpMcpBridgeSocketMessageTypeWaiting:
+                {
+                  const e = {
+                    status: "waiting",
+                    sw_uptime_ms: Date.now() - Ta,
+                    previous_close_code: xa ?? null,
+                    reconnect_attempt: ya,
+                  };
+                  m("claude_chrome.bridge.connected", e);
+                  __cpBackgroundDebugTrack("claude_chrome.bridge.connected", e);
+                }
                 Ra();
                 ba = false;
                 ya = 0;
                 break;
-              case "ping":
+              case __cpMcpBridgeSocketMessageTypePing:
                 La({
-                  type: "pong"
+                  type: __cpMcpBridgeSocketMessageTypePong,
                 });
                 break;
-              case "pong":
+              case __cpMcpBridgeSocketMessageTypePong:
                 break;
-              case "peer_connected":
+              case __cpMcpBridgeSocketMessageTypePeerConnected:
                 m("claude_chrome.bridge.peer_connected");
+                __cpBackgroundDebugTrack("claude_chrome.bridge.peer_connected");
                 break;
-              case "peer_disconnected":
+              case __cpMcpBridgeSocketMessageTypePeerDisconnected:
                 m("claude_chrome.bridge.peer_disconnected");
+                __cpBackgroundDebugTrack(
+                  "claude_chrome.bridge.peer_disconnected",
+                );
                 break;
-              case "tool_call":
-                await async function (e) {
-                  const t = e.target_device_id;
+              case __cpMcpBridgeSocketMessageTypeToolCall:
+                await (async function (e) {
+                  // 语义锚点：bridge tool_call -> tool executor -> tool_result 总链。
+                  // 外层 socket message 用 toolUseId 对账，真正的执行细节再交给 MCP tool executor。
+                  // 语义锚点：bridge 入站 tool_call 分发主链：
+                  // 先校验 target_device/tool/toolUseId，再从 args 里拆执行参数，最后把 toolUseId 透传给 tool executor -> tool_result。
+                  // requestId 不参与这里的分发；它只会出现在后续 permission_request/permission_response 对账链。
+                  const t = e[__cpMcpBridgeSocketFieldTargetDeviceId];
                   if (t && t !== ka) {
                     return;
                   }
-                  const o = e.tool_use_id;
-                  const a = e.tool;
-                  const n = e.client_type || "desktop";
-                  const s = e.args ?? {};
-                  const i = e.permission_mode;
-                  const c = e.allowed_domains;
-                  const l = e.handle_permission_prompts === true;
-                  const d = e.session_scope;
+                  const o = e[__cpMcpBridgeSocketFieldToolUseId];
+                  const a = e[__cpMcpBridgeSocketFieldTool];
+                  const n =
+                    e[__cpMcpBridgeSocketFieldClientType] ||
+                    __cpMcpBridgeDefaultPeerClientType;
+                  const s = e[__cpMcpBridgeSocketFieldArgs] ?? {};
+                  const i = e[__cpMcpBridgeSocketFieldPermissionMode];
+                  const c = e[__cpMcpBridgeSocketFieldAllowedDomains];
+                  const l =
+                    e[__cpMcpBridgeSocketFieldHandlePermissionPrompts] === true;
+                  const d = e[__cpMcpBridgeSocketFieldSessionScope];
                   if (!o || !a) {
                     return;
                   }
                   m("claude_chrome.bridge.tool_received", {
                     tool_name: a,
                     client_type: n,
-                    tool_use_id: o
+                    tool_use_id: o,
                   });
+                  __cpBackgroundDebugTrack(
+                    "claude_chrome.bridge.tool_received",
+                    {
+                      tool_name: a,
+                      client_type: n,
+                      tool_use_id: o,
+                      handle_permission_prompts: l,
+                      tab_id:
+                        typeof s[__cpMcpBridgeToolArgsFieldTabId] == "number"
+                          ? s[__cpMcpBridgeToolArgsFieldTabId]
+                          : null,
+                      session_id: d?.sessionId || "",
+                    },
+                  );
                   const u = {
                     tool_name: a,
                     client_type: n,
-                    tool_use_id: o
+                    tool_use_id: o,
                   };
-                  if ((await g(r.LAST_AUTH_FAILURE_REASON)) === "session_expired") {
+                  if (
+                    (await g(r.LAST_AUTH_FAILURE_REASON)) === "session_expired"
+                  ) {
                     m("claude_chrome.bridge.tool_call", {
                       ...u,
                       success: false,
-                      error: "session_expired"
+                      error: "session_expired",
                     });
+                    __cpBackgroundDebugTrack(
+                      "claude_chrome.bridge.tool_call",
+                      {
+                        ...u,
+                        success: false,
+                        error: "session_expired",
+                      },
+                      "warn",
+                    );
                     La({
-                      type: "tool_result",
-                      tool_use_id: o,
+                      type: __cpMcpBridgeSocketMessageTypeToolResult,
+                      [__cpMcpBridgeSocketFieldToolUseId]: o,
                       error: {
-                        content: [{
-                          type: "text",
-                          text: "Authentication failed. Please check your custom provider settings in Claw in Chrome."
-                        }]
-                      }
+                        content: [
+                          {
+                            type: __cpMcpBridgeToolResultTextContentType,
+                            text: "Authentication failed. Please check your custom provider settings in Claw in Chrome.",
+                          },
+                        ],
+                      },
                     });
                     return;
                   }
-                  const h = typeof s.tabId == "number" ? s.tabId : undefined;
+                  // 语义锚点：tabId 是实际执行目标键，只从 tool args 进入后台工具链；
+                  // toolUseId 继续负责外层 tool_call/tool_result 归属，requestId 仍留给权限握手。
+                  const h =
+                    typeof s[__cpMcpBridgeToolArgsFieldTabId] == "number"
+                      ? s[__cpMcpBridgeToolArgsFieldTabId]
+                      : undefined;
                   if (h !== undefined) {
                     try {
                       await chrome.tabs.get(h);
@@ -12115,67 +14192,105 @@ async function Pa() {
                         m("claude_chrome.bridge.tool_call", {
                           ...u,
                           success: false,
-                          error: "tab_not_found"
+                          error: "tab_not_found",
                         });
+                        __cpBackgroundDebugTrack(
+                          "claude_chrome.bridge.tool_call",
+                          {
+                            ...u,
+                            success: false,
+                            error: "tab_not_found",
+                            tab_id: h,
+                          },
+                          "warn",
+                        );
                         La({
-                          type: "tool_result",
-                          tool_use_id: o,
+                          type: __cpMcpBridgeSocketMessageTypeToolResult,
+                          [__cpMcpBridgeSocketFieldToolUseId]: o,
                           error: {
-                            content: [{
-                              type: "text",
-                              text: `Tab ${h} no longer exists. Call tabs_context_mcp to get current tabs.`
-                            }]
-                          }
+                            content: [
+                              {
+                                type: __cpMcpBridgeToolResultTextContentType,
+                                text: `Tab ${h} no longer exists. Call tabs_context_mcp to get current tabs.`,
+                              },
+                            ],
+                          },
                         });
                       }
                       return;
                     }
                   }
                   try {
+                    // 语义锚点：tool_call 外层只负责解析 bridge payload、补齐执行上下文，再把实际执行交给 wn。
+                    // 语义锚点：bridge tool_call -> tool executor 交接点：
+                    // 这里把 tabId/tabGroupId/sessionScope 作为执行上下文传给 wn，而 toolUseId 保留给最终 tool_result 对账。
                     const e = await wn({
                       toolName: a,
                       args: s,
                       tabId: h,
                       tabGroupId: s.tabGroupId,
                       clientId: n,
-                      source: "bridge",
+                      source: __cpMcpToolExecutionSourceBridge,
                       permissionMode: i,
                       allowedDomains: c,
                       toolUseId: o,
                       handlePermissionPrompts: l,
-                      sessionScope: d
+                      sessionScope: d,
                     });
                     m("claude_chrome.bridge.tool_call", {
                       ...u,
-                      success: true
+                      success: true,
                     });
+                    __cpBackgroundDebugTrack("claude_chrome.bridge.tool_call", {
+                      ...u,
+                      success: true,
+                      tab_id: h ?? null,
+                      session_id: d?.sessionId || "",
+                    });
+                    // 语义锚点：tool_result 外层回包会复用原始 toolUseId；
+                    // 内层 tool_use id 只在 provider/processToolResults 这一跳里使用。
                     La({
                       ...e,
-                      type: "tool_result",
-                      tool_use_id: o
+                      type: __cpMcpBridgeSocketMessageTypeToolResult,
+                      [__cpMcpBridgeSocketFieldToolUseId]: o,
                     });
                   } catch (p) {
+                    // 语义锚点：bridge tool_call 异常收口为标准 error tool_result；
+                    // 失败时仍沿用同一个 toolUseId，避免把 permission/request 级别的 requestId 混入结果层。
                     m("claude_chrome.bridge.tool_call", {
                       ...u,
                       success: false,
-                      error: p instanceof Error ? p.message : String(p)
+                      error: p instanceof Error ? p.message : String(p),
                     });
+                    __cpBackgroundDebugTrack(
+                      "claude_chrome.bridge.tool_call",
+                      {
+                        ...u,
+                        success: false,
+                        error: p instanceof Error ? p.message : String(p),
+                        tab_id: h ?? null,
+                        session_id: d?.sessionId || "",
+                      },
+                      "error",
+                    );
                     La({
-                      type: "tool_result",
-                      tool_use_id: o,
+                      type: __cpMcpBridgeSocketMessageTypeToolResult,
+                      [__cpMcpBridgeSocketFieldToolUseId]: o,
                       error: {
-                        content: [{
-                          type: "text",
-                          text: p instanceof Error ? p.message : String(p)
-                        }]
-                      }
+                        content: [
+                          {
+                            type: __cpMcpBridgeToolResultTextContentType,
+                            text: p instanceof Error ? p.message : String(p),
+                          },
+                        ],
+                      },
                     });
                   }
-                }(e);
+                })(e);
                 break;
-              case "pairing_request":
-                await async function (e) {
-                  const t = e.request_id;
+              case __cpMcpBridgeSocketMessageTypePairingRequest:
+                await (async function (e) {
+                  const t = e[__cpMcpBridgeSocketFieldRequestId];
                   if (!t) {
                     return;
                   }
@@ -12183,54 +14298,70 @@ async function Pa() {
                     return;
                   }
                   qa = t;
-                  const r = e.client_type || "desktop";
+                  const r =
+                    e[__cpMcpBridgeSocketFieldClientType] ||
+                    __cpMcpBridgeDefaultPeerClientType;
                   const o = await Sa();
                   try {
                     const e = await chrome.runtime.sendMessage({
-                      type: "show_pairing_prompt",
-                      request_id: t,
-                      client_type: r,
-                      current_name: o
+                      type: __cpMcpBridgeRuntimeMessageTypeShowPairingPrompt,
+                      [__cpMcpBridgeSocketFieldRequestId]: t,
+                      [__cpMcpBridgeSocketFieldClientType]: r,
+                      [__cpMcpBridgeSocketFieldCurrentName]: o,
                     });
                     if (e?.handled) {
                       return;
                     }
                   } catch {}
-                  const a = chrome.runtime.getURL(`pairing.html?request_id=${encodeURIComponent(t)}&client_type=${encodeURIComponent(r)}&current_name=${encodeURIComponent(o || "")}`);
+                  const a = chrome.runtime.getURL(
+                    `pairing.html?${__cpMcpBridgePairingQueryKeyRequestId}=${encodeURIComponent(t)}&${__cpMcpBridgePairingQueryKeyClientType}=${encodeURIComponent(r)}&${__cpMcpBridgePairingQueryKeyCurrentName}=${encodeURIComponent(o || "")}`,
+                  );
                   chrome.tabs.create({
-                    url: a
+                    url: a,
                   });
-                }(e);
+                })(e);
                 break;
-              case "permission_response":
+              case __cpMcpBridgeSocketMessageTypePermissionResponse:
                 (function (e) {
-                  const t = e.request_id;
+                  const t = e[__cpMcpBridgeSocketFieldRequestId];
                   if (!t) {
                     return;
                   }
-                  const r = Ca.get(t);
+                  const r = __cpMcpBridgePendingPermissionResponseLedger.get(t);
                   if (!r) {
                     return;
                   }
-                  Ca.delete(t);
-                  r.resolve(e.allowed ?? false);
+                  // 语义锚点：requestId 是 bridge permission_request/permission_response 的对账键；
+                  // toolUseId 只负责外层 tool_call/tool_result 归属，tabId 也不参与这一步 resolve。
+                  __cpMcpBridgePendingPermissionResponseLedger.delete(t);
+                  r.resolve(e[__cpMcpBridgeSocketFieldAllowed] ?? false);
                 })(e);
                 break;
-              case "error":
+              case __cpMcpBridgeSocketMessageTypeError:
                 ba = false;
             }
-          }(t);
+          })(t);
         } catch (t) {}
       }
     };
-    i.onclose = e => {
+    i.onclose = (e) => {
       xa = e.code;
-      m("claude_chrome.bridge.disconnected", {
+      const t = {
         code: e.code,
         reason: e.reason,
         reconnect_attempt: ya,
-        sw_uptime_ms: Date.now() - Ta
-      });
+        sw_uptime_ms: Date.now() - Ta,
+      };
+      m("claude_chrome.bridge.disconnected", t);
+      __cpBackgroundDebugTrack(
+        "claude_chrome.bridge.disconnected",
+        {
+          ...t,
+          pending_permission_count:
+            __cpMcpBridgePendingPermissionResponseLedger.size,
+        },
+        "warn",
+      );
       if (ga === i) {
         Aa();
         ba = false;
@@ -12239,10 +14370,12 @@ async function Pa() {
         Na();
       }
     };
-    i.onerror = e => {
-      m("claude_chrome.bridge.error", {
-        error: String(e)
-      });
+    i.onerror = (e) => {
+      const t = {
+        error: String(e),
+      };
+      m("claude_chrome.bridge.error", t);
+      __cpBackgroundDebugTrack("claude_chrome.bridge.error", t, "error");
       if (ga === i) {
         ba = false;
       }
@@ -12273,17 +14406,33 @@ function $a() {
   return ga?.readyState === WebSocket.OPEN;
 }
 function Oa(e, t) {
-  return !!$a() && (La({
-    type: "notification",
-    method: e,
-    params: t || {}
-  }), true);
+  return (
+    !!$a() &&
+    (La({
+      type: __cpMcpBridgeSocketMessageTypeNotification,
+      [__cpMcpBridgeSocketFieldMethod]: e,
+      [__cpMcpBridgeSocketFieldParams]: t || {},
+    }),
+    true)
+  );
 }
 function Ga() {
-  for (const [, e] of Ca) {
+  // 语义锚点：bridge 断连/重连时，未完成的 permission_request 一律按拒绝收口，避免 requestId 账本泄漏。
+  const e = __cpMcpBridgePendingPermissionResponseLedger.size;
+  if (e > 0) {
+    __cpBackgroundDebugTrack(
+      "claude_chrome.permission.pending_cleared",
+      {
+        reason: "bridge_disconnected",
+        pending_count: e,
+      },
+      "warn",
+    );
+  }
+  for (const [, e] of __cpMcpBridgePendingPermissionResponseLedger) {
     e.resolve(false);
   }
-  Ca.clear();
+  __cpMcpBridgePendingPermissionResponseLedger.clear();
 }
 function Na() {
   if (wa) {
@@ -12300,61 +14449,213 @@ function La(e) {
   if (ga?.readyState === WebSocket.OPEN) {
     ga.send(JSON.stringify(e));
   }
-  if (e.type === "tool_result" && e.tool_use_id) {
-    m("claude_chrome.bridge.result_sent", {
-      tool_use_id: e.tool_use_id,
+  if (
+    e.type === __cpMcpBridgeSocketMessageTypeToolResult &&
+    e[__cpMcpBridgeSocketFieldToolUseId]
+  ) {
+    const t = {
+      tool_use_id: e[__cpMcpBridgeSocketFieldToolUseId],
       socket_state: ga?.readyState ?? -1,
       buffered_amount: ga?.bufferedAmount ?? -1,
-      is_error: Boolean(e.error)
-    });
+      is_error: Boolean(e.error),
+    };
+    m("claude_chrome.bridge.result_sent", t);
+    __cpBackgroundDebugTrack(
+      "claude_chrome.bridge.result_sent",
+      t,
+      t.is_error ? "warn" : "info",
+    );
   }
 }
+// 语义锚点：MCP Bridge 连接与消息发送入口（供后续定位/外提逻辑时搜索）
+const __cpMcpBridgeEnsureConnected = Pa;
+const __cpMcpBridgeSend = La;
+const __cpMcpBridgeIsConnected = $a;
+const __cpMcpBridgeNotify = Oa;
+const __cpMcpBridgeScheduleReconnect = Na;
+const __cpMcpBridgeClearPendingPermissionRequests = Ga;
+
+// 语义锚点：bridge 与扩展页面之间的消息类型
+const __cpMcpBridgeContractMessages =
+  globalThis.__CP_CONTRACT__?.messages || {};
+const __cpMcpBridgeContract = globalThis.__CP_CONTRACT__?.mcpBridge || {};
+const __cpPermissionManagerContract =
+  globalThis.__CP_CONTRACT__?.permissionManager || {};
+const __cpMcpPermissionPopupProtocol =
+  globalThis.__CP_MCP_PERMISSION_POPUP_PROTOCOL__ || {};
+const __cpMcpBridgeRuntimeMessageFields =
+  __cpMcpPermissionPopupProtocol.RESPONSE_FIELDS ||
+  __cpMcpBridgeContract.RUNTIME_MESSAGE_FIELDS ||
+  {};
+const __cpMcpPermissionPromptStorageFields =
+  __cpMcpPermissionPopupProtocol.STORAGE_FIELDS ||
+  __cpMcpBridgeContract.PERMISSION_PROMPT_STORAGE_FIELDS ||
+  {};
+const __cpMcpPermissionPopupQueryKeys =
+  __cpMcpPermissionPopupProtocol.QUERY_KEYS ||
+  __cpMcpBridgeContract.PERMISSION_POPUP_QUERY_KEYS ||
+  {};
+const __cpPairingContract = globalThis.__CP_CONTRACT__?.pairing || {};
+const __cpPairingQueryKeys = __cpPairingContract.QUERY_KEYS || {};
+const __cpAgentIndicatorContract =
+  globalThis.__CP_CONTRACT__?.agentIndicator || {};
+const __cpAgentIndicatorRuntimeMessageTypes =
+  __cpAgentIndicatorContract.RUNTIME_MESSAGE_TYPES || {};
+const __cpMcpBridgeRuntimeMessageTypePairingConfirmed =
+  __cpMcpBridgeContractMessages.pairing_confirmed || "pairing_confirmed";
+const __cpMcpBridgeRuntimeMessageTypePairingDismissed =
+  __cpMcpBridgeContractMessages.pairing_dismissed || "pairing_dismissed";
+const __cpMcpBridgeRuntimeMessageTypeShowPairingPrompt =
+  __cpMcpBridgeContractMessages.show_pairing_prompt || "show_pairing_prompt";
+const __cpSidepanelRuntimeMessageTypeExecuteTask =
+  __cpMcpBridgeContractMessages.EXECUTE_TASK || "EXECUTE_TASK";
+const __cpMcpBridgeRuntimeMessageTypeMcpPermissionResponse =
+  __cpMcpBridgeContractMessages.MCP_PERMISSION_RESPONSE ||
+  "MCP_PERMISSION_RESPONSE";
+const __cpMcpBridgeRuntimeMessageFieldRequestId =
+  __cpMcpBridgeRuntimeMessageFields.REQUEST_ID || "requestId";
+const __cpMcpBridgeRuntimeMessageFieldAllowed =
+  __cpMcpBridgeRuntimeMessageFields.ALLOWED || "allowed";
+const __cpAutoApproveAllPermissionRequestsStorageKey =
+  __cpPermissionManagerContract.AUTO_APPROVE_ALL_REQUESTS_STORAGE_KEY ||
+  "autoApprovePermissionRequests";
+const __cpShortcutsExecuteQueryKeyMode = "mode";
+const __cpShortcutsExecuteQueryValueWindow = "window";
+const __cpShortcutsExecuteQueryKeySessionId = "sessionId";
+const __cpShortcutsExecuteQueryKeySkipPermissions = "skipPermissions";
+const __cpShortcutsExecuteQueryKeyModel = "model";
+const __cpShortcutsExecuteWindowTypePopup = "popup";
+const __cpShortcutsExecuteWindowWidth = 500;
+const __cpShortcutsExecuteWindowHeight = 768;
+const __cpShortcutsExecuteWindowLeft = 100;
+const __cpShortcutsExecuteWindowTop = 100;
+const __cpShortcutsExecuteSendDelayMs = 3000;
+const __cpShortcutsExecuteLoadPollIntervalMs = 500;
+const __cpShortcutsExecuteLoadTimeoutMs = 30000;
+const __cpMcpPermissionPromptStorageKeyPrefix =
+  __cpMcpPermissionPopupProtocol.STORAGE_KEY_PREFIX ||
+  __cpMcpBridgeContract.PERMISSION_PROMPT_STORAGE_KEY_PREFIX ||
+  "mcp_prompt_";
+const __cpMcpPermissionPromptStorageFieldPrompt =
+  __cpMcpPermissionPromptStorageFields.PROMPT || "prompt";
+const __cpMcpPermissionPromptStorageFieldTabId =
+  __cpMcpPermissionPromptStorageFields.TAB_ID || "tabId";
+const __cpMcpPermissionPromptStorageFieldTimestamp =
+  __cpMcpPermissionPromptStorageFields.TIMESTAMP || "timestamp";
+const __cpMcpPermissionPopupBuildStorageKey =
+  __cpMcpPermissionPopupProtocol.buildPromptStorageKey ||
+  ((e) => `${__cpMcpPermissionPromptStorageKeyPrefix}${e}`);
+const __cpMcpPermissionPopupCreateStorageEntry =
+  __cpMcpPermissionPopupProtocol.createPromptStorageEntry ||
+  ((e, t, r = Date.now()) => ({
+    [__cpMcpPermissionPromptStorageFieldPrompt]: e,
+    [__cpMcpPermissionPromptStorageFieldTabId]: t,
+    [__cpMcpPermissionPromptStorageFieldTimestamp]: r,
+  }));
+const __cpMcpBridgePairingQueryKeyRequestId =
+  __cpPairingQueryKeys.REQUEST_ID || "request_id";
+const __cpMcpBridgePairingQueryKeyClientType =
+  __cpPairingQueryKeys.CLIENT_TYPE || "client_type";
+const __cpMcpBridgePairingQueryKeyCurrentName =
+  __cpPairingQueryKeys.CURRENT_NAME || "current_name";
+const __cpMcpPermissionPopupQueryKeyTabId =
+  __cpMcpPermissionPopupQueryKeys.TAB_ID || "tabId";
+const __cpMcpPermissionPopupQueryKeyPermissionOnly =
+  __cpMcpPermissionPopupQueryKeys.PERMISSION_ONLY || "mcpPermissionOnly";
+const __cpMcpPermissionPopupQueryKeyRequestId =
+  __cpMcpPermissionPopupQueryKeys.REQUEST_ID || "requestId";
+const __cpMcpPermissionPopupCreateUrl =
+  __cpMcpPermissionPopupProtocol.buildPopupUrl ||
+  ((e, t) =>
+    e(
+      `sidepanel.html?${__cpMcpPermissionPopupQueryKeyTabId}=${t.tabId}&${__cpMcpPermissionPopupQueryKeyPermissionOnly}=true&${__cpMcpPermissionPopupQueryKeyRequestId}=${t.requestId}`,
+    ));
+const __cpMcpPermissionPopupCreateWindowOptions =
+  __cpMcpPermissionPopupProtocol.createPopupWindowOptions ||
+  ((e, t) => ({
+    url: __cpMcpPermissionPopupCreateUrl(e, t),
+    type: __cpShortcutsExecuteWindowTypePopup,
+    width: 600,
+    height: 600,
+    focused: true,
+  }));
+const __cpMcpPermissionPopupResponseTimeoutMs =
+  __cpMcpPermissionPopupProtocol.RESPONSE_TIMEOUT_MS ||
+  __cpMcpBridgeContract.PERMISSION_POPUP_RESPONSE_TIMEOUT_MS ||
+  30000;
+// 语义锚点：agent indicator 内容脚本显隐消息类型（bridge / sidepanel 都会跨 tab 发送）
+const __cpAgentIndicatorRuntimeMessageTypeShowAgentIndicators =
+  __cpAgentIndicatorRuntimeMessageTypes.SHOW_AGENT_INDICATORS ||
+  "SHOW_AGENT_INDICATORS";
+const __cpAgentIndicatorRuntimeMessageTypeHideAgentIndicators =
+  __cpAgentIndicatorRuntimeMessageTypes.HIDE_AGENT_INDICATORS ||
+  "HIDE_AGENT_INDICATORS";
+const __cpAgentIndicatorRuntimeMessageTypeHideForToolUse =
+  __cpAgentIndicatorRuntimeMessageTypes.HIDE_FOR_TOOL_USE ||
+  "HIDE_FOR_TOOL_USE";
+const __cpAgentIndicatorRuntimeMessageTypeShowAfterToolUse =
+  __cpAgentIndicatorRuntimeMessageTypes.SHOW_AFTER_TOOL_USE ||
+  "SHOW_AFTER_TOOL_USE";
+const __cpAgentIndicatorRuntimeMessageTypeShowStaticIndicator =
+  __cpAgentIndicatorRuntimeMessageTypes.SHOW_STATIC_INDICATOR ||
+  "SHOW_STATIC_INDICATOR";
+const __cpAgentIndicatorRuntimeMessageTypeHideStaticIndicator =
+  __cpAgentIndicatorRuntimeMessageTypes.HIDE_STATIC_INDICATOR ||
+  "HIDE_STATIC_INDICATOR";
+
+// 语义锚点：bridge WebSocket 消息类型（tool / permission / pairing）
+const __cpMcpBridgeSocketMessageTypeToolCall =
+  __cpMcpBridgeContractMessages.tool_call || "tool_call";
+const __cpMcpBridgeSocketMessageTypeToolResult =
+  __cpMcpBridgeContractMessages.tool_result || "tool_result";
+const __cpMcpBridgeSocketMessageTypePairingRequest =
+  __cpMcpBridgeContractMessages.pairing_request || "pairing_request";
+const __cpMcpBridgeSocketMessageTypePermissionResponse =
+  __cpMcpBridgeContractMessages.permission_response || "permission_response";
 let qa;
 let Ba = false;
 function Fa() {
   if ("ServiceWorkerGlobalScope" in globalThis) {
     if (!Ba) {
       Ba = true;
-      chrome.alarms.create(Ea, {
-        periodInMinutes: 0.5
+      chrome.alarms.create(__cpMcpBridgeKeepaliveAlarmName, {
+        periodInMinutes: __cpMcpBridgeAlarmPeriodMinutes,
       });
-      chrome.alarms.onAlarm.addListener(e => {
-        if (e.name === Ea) {
+      chrome.alarms.onAlarm.addListener((e) => {
+        if (e.name === __cpMcpBridgeKeepaliveAlarmName) {
           Pa();
           if (ga?.readyState === WebSocket.OPEN) {
-            ga.send(JSON.stringify({
-              type: "ping"
-            }));
+            ga.send(
+              JSON.stringify({
+                type: __cpMcpBridgeSocketMessageTypePing,
+              }),
+            );
           }
-          if (Date.now() - Ia >= 1800000) {
+          if (Date.now() - Ia >= __cpMcpBridgeRefreshProbeIntervalMs) {
             Ia = Date.now();
-            f().then(({
-              isRefreshed: e
-            }) => {});
+            f().then(({ isRefreshed: e }) => {});
           }
         }
       });
       chrome.runtime.onMessage.addListener((e, t, r) => {
-        if (e.type === "pairing_confirmed") {
-          const {
-            request_id: t,
-            name: o
-          } = e;
+        // 语义锚点：bridge runtime listener 当前只显式消费 pairing_confirmed；pairing_dismissed 未在此处回 bridge，表现为用户取消配对的协议级 no-op。
+        if (e.type === __cpMcpBridgeRuntimeMessageTypePairingConfirmed) {
+          const { [__cpMcpBridgeSocketFieldRequestId]: t, name: o } = e;
           (async function (e) {
             await chrome.storage.local.set({
-              bridgeDisplayName: e
+              [__cpMcpBridgeDisplayNameStorageKey]: e,
             });
           })(o);
-          Da().then(e => {
+          Da().then((e) => {
             La({
-              type: "pairing_response",
-              request_id: t,
-              device_id: e,
-              name: o
+              type: __cpMcpBridgeSocketMessageTypePairingResponse,
+              [__cpMcpBridgeSocketFieldRequestId]: t,
+              [__cpMcpBridgeSocketFieldDeviceId]: e,
+              name: o,
             });
           });
           r({
-            ok: true
+            ok: true,
           });
         }
         return false;
@@ -12363,56 +14664,51 @@ function Fa() {
   }
 }
 async function Wa(e) {
-  const {
-    tabId: t,
-    prompt: o,
-    taskName: a,
-    skipPermissions: n,
-    model: s
-  } = e;
+  // 语义锚点：shortcuts_execute 独立窗口启动链（先写 targetTab，再打开 sidepanel window，再投递 EXECUTE_TASK）。
+  const { tabId: t, prompt: o, taskName: a, skipPermissions: n, model: s } = e;
   const i = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
   const c = `shortcut_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+  // 语义锚点：shortcuts_execute 的 tabId 只是独立 sidepanel 窗口后续要执行的目标 tab；
+  // 它不会变成 bridge permission_request 的 requestId，也不会替代 toolUseId。
   await b(r.TARGET_TAB_ID, t);
-  await async function (e) {
-    const {
-      sessionId: t,
-      skipPermissions: r,
-      model: o
-    } = e;
-    const a = chrome.runtime.getURL(`sidepanel.html?mode=window&sessionId=${t}${r ? "&skipPermissions=true" : ""}${o ? `&model=${encodeURIComponent(o)}` : ""}`);
+  await (async function (e) {
+    const { sessionId: t, skipPermissions: r, model: o } = e;
+    const a = chrome.runtime.getURL(
+      `sidepanel.html?${__cpShortcutsExecuteQueryKeyMode}=${__cpShortcutsExecuteQueryValueWindow}&${__cpShortcutsExecuteQueryKeySessionId}=${t}${r ? `&${__cpShortcutsExecuteQueryKeySkipPermissions}=true` : ""}${o ? `&${__cpShortcutsExecuteQueryKeyModel}=${encodeURIComponent(o)}` : ""}`,
+    );
     const n = await chrome.windows.create({
       url: a,
-      type: "popup",
-      width: 500,
-      height: 768,
-      left: 100,
-      top: 100,
-      focused: true
+      type: __cpShortcutsExecuteWindowTypePopup,
+      width: __cpShortcutsExecuteWindowWidth,
+      height: __cpShortcutsExecuteWindowHeight,
+      left: __cpShortcutsExecuteWindowLeft,
+      top: __cpShortcutsExecuteWindowTop,
+      focused: true,
     });
     if (!n) {
       throw new Error("Failed to create sidepanel window");
     }
     return n;
-  }({
+  })({
     sessionId: i,
     skipPermissions: n,
-    model: s
+    model: s,
   });
-  await async function (e) {
+  await (async function (e) {
     const {
       tabId: t,
       prompt: r,
       taskName: o,
       runLogId: a,
       sessionId: n,
-      isScheduledTask: s
+      isScheduledTask: s,
     } = e;
     return new Promise((e, i) => {
       const c = Date.now();
       let l = false;
       const d = async () => {
         try {
-          if (Date.now() - c > 30000) {
+          if (Date.now() - c > __cpShortcutsExecuteLoadTimeoutMs) {
             i(new Error("Timeout waiting for tab to load for task execution"));
             return;
           }
@@ -12420,25 +14716,32 @@ async function Wa(e) {
             setTimeout(() => {
               if (!l) {
                 l = true;
-                chrome.runtime.sendMessage({
-                  type: "EXECUTE_TASK",
-                  prompt: r,
-                  taskName: o,
-                  runLogId: a,
-                  windowSessionId: n,
-                  isScheduledTask: s
-                }, t => {
-                  const r = chrome.runtime.lastError?.message;
-                  if (r || !t?.success) {
-                    i(new Error(`Failed to send prompt: ${r ?? "side panel not ready"}`));
-                  } else {
-                    e();
-                  }
-                });
+                chrome.runtime.sendMessage(
+                  {
+                    type: __cpSidepanelRuntimeMessageTypeExecuteTask,
+                    prompt: r,
+                    taskName: o,
+                    runLogId: a,
+                    windowSessionId: n,
+                    isScheduledTask: s,
+                  },
+                  (t) => {
+                    const r = chrome.runtime.lastError?.message;
+                    if (r || !t?.success) {
+                      i(
+                        new Error(
+                          `Failed to send prompt: ${r ?? "side panel not ready"}`,
+                        ),
+                      );
+                    } else {
+                      e();
+                    }
+                  },
+                );
               }
-            }, 3000);
+            }, __cpShortcutsExecuteSendDelayMs);
           } else {
-            setTimeout(d, 500);
+            setTimeout(d, __cpShortcutsExecuteLoadPollIntervalMs);
           }
         } catch (u) {
           i(u);
@@ -12446,23 +14749,25 @@ async function Wa(e) {
       };
       setTimeout(d, 1000);
     });
-  }({
+  })({
     tabId: t,
     prompt: o,
     taskName: a,
     runLogId: c,
     sessionId: i,
-    isScheduledTask: false
+    isScheduledTask: false,
   });
   return {
-    success: true
+    success: true,
   };
 }
+// 语义锚点：shortcuts_execute 通过新 sidepanel 窗口发送 EXECUTE_TASK 启动任务
+const __cpShortcutsExecuteStartInPopupWindow = Wa;
 let ja;
 async function Ha(e) {
   ja ??= new y(() => false);
   const t = await ja.checkPermission(e, undefined, {
-    readonly: true
+    readonly: true,
   });
   return t.permission?.action;
 }
@@ -12475,665 +14780,817 @@ async function Ka(e) {
     }
   }
 }
-const za = [Pe, _e, ve, pe, De, Ie, $e, {
-  name: "tabs_context_mcp",
-  description: "Get context information about the current MCP tab group. Returns all tab IDs inside the group if it exists. CRITICAL: You must get the context at least once before using other browser automation tools so you know what tabs exist. Each new conversation should create its own new tab (using tabs_create) rather than reusing existing tabs, unless the user explicitly asks to use an existing tab.",
-  parameters: {
-    createIfEmpty: {
-      type: "boolean",
-      description: "Creates a new MCP tab group if none exists, creates a new Window with a new tab group containing an empty tab (which can be used for this conversation). If a MCP tab group already exists, this parameter has no effect."
-    }
-  },
-  execute: async (e, t) => {
-    try {
-      const {
-        createIfEmpty: r,
-        includePermissionState: o,
-        checkUrls: a
-      } = e || {};
-      const n = a && a.length > 0 ? await async function (e) {
-        const t = [];
-        for (const r of e) {
-          let e;
-          try {
-            e = await Ha(r);
-          } catch {}
-          t.push({
-            url: r,
-            storageDecision: e
+// 语义锚点：MCP 浏览器自动化工具注册表。
+// tabs_context_mcp / tabs_create_mcp / tabs_close_mcp 是最底层的 tab 编排工具，其他页面读写工具默认依赖这组上下文。
+const za = [
+  Pe,
+  _e,
+  ve,
+  pe,
+  De,
+  Ie,
+  $e,
+  {
+    name: "tabs_context_mcp",
+    description:
+      "Get context information about the current MCP tab group. Returns all tab IDs inside the group if it exists. CRITICAL: You must get the context at least once before using other browser automation tools so you know what tabs exist. Each new conversation should create its own new tab (using tabs_create) rather than reusing existing tabs, unless the user explicitly asks to use an existing tab.",
+    parameters: {
+      createIfEmpty: {
+        type: "boolean",
+        description:
+          "Creates a new MCP tab group if none exists, creates a new Window with a new tab group containing an empty tab (which can be used for this conversation). If a MCP tab group already exists, this parameter has no effect.",
+      },
+    },
+    execute: async (e, t) => {
+      try {
+        // 语义锚点：tabs_context_mcp 是浏览器自动化工具簇的上下文根工具。
+        // 先决定当前 session/legacy client 应该绑定哪个 tab group，再把可操作 tab 列表暴露给后续工具。
+        const {
+          createIfEmpty: r,
+          includePermissionState: o,
+          checkUrls: a,
+        } = e || {};
+        const n =
+          a && a.length > 0
+            ? await (async function (e) {
+                const t = [];
+                for (const r of e) {
+                  let e;
+                  try {
+                    e = await Ha(r);
+                  } catch {}
+                  t.push({
+                    url: r,
+                    storageDecision: e,
+                  });
+                }
+                return t;
+              })(a)
+            : undefined;
+        await F.initialize();
+        // 语义锚点：tabs_context_mcp 会先探测/建立 tab group，再把 availableTabs 固定成后续工具可引用的上下文快照。
+        if (t?.sessionScope) {
+          // 语义锚点：session scope 模式下，优先解析“当前会话专属”的 MCP tab group；
+          // createIfEmpty 也只会创建这次 session 自己的工作组，而不是回退到共享组。
+          const e = (function () {
+            let e = 0;
+            for (const t of hn.values()) {
+              if (t.tabGroupId !== undefined) {
+                e++;
+              }
+            }
+            return e;
+          })();
+          const a = await F.getOrCreateSessionTabContext(t.tabGroupId, {
+            createIfEmpty: r ?? false,
+            displayName: t.sessionScope.displayName,
+            colorIndex: e,
           });
-        }
-        return t;
-      }(a) : undefined;
-      await F.initialize();
-      if (t?.sessionScope) {
-        const e = function () {
-          let e = 0;
-          for (const t of hn.values()) {
-            if (t.tabGroupId !== undefined) {
-              e++;
+          if (!a) {
+            if (n) {
+              return {
+                output: J([], undefined, undefined, n),
+              };
+            } else {
+              return {
+                output:
+                  "No tab group exists for this session. Use createIfEmpty: true to create one.",
+              };
             }
           }
-          return e;
-        }();
-        const a = await F.getOrCreateSessionTabContext(t.tabGroupId, {
-          createIfEmpty: r ?? false,
-          displayName: t.sessionScope.displayName,
-          colorIndex: e
-        });
-        if (!a) {
-          if (n) {
-            return {
-              output: J([], undefined, undefined, n)
-            };
-          } else {
-            return {
-              output: "No tab group exists for this session. Use createIfEmpty: true to create one."
-            };
+          if (a.tabGroupId !== undefined) {
+            (function (e, t) {
+              const r = pn(e);
+              hn.set(r, {
+                tabGroupId: t,
+                lastActiveAt: Date.now(),
+              });
+            })(t.sessionScope, a.tabGroupId);
           }
-        }
-        if (a.tabGroupId !== undefined) {
-          (function (e, t) {
-            const r = pn(e);
-            hn.set(r, {
-              tabGroupId: t,
-              lastActiveAt: Date.now()
-            });
-          })(t.sessionScope, a.tabGroupId);
-        }
-        if (o) {
-          await Ka(a.availableTabs);
-        }
-        return {
-          output: J(a.availableTabs, a.tabGroupId, undefined, n),
-          tabContext: a
-        };
-      }
-      const s = await F.getOrCreateMcpTabContext({
-        createIfEmpty: r
-      });
-      if (!s) {
-        return {
-          output: "No MCP tab groups found. Use createIfEmpty: true to create one."
-        };
-      }
-      const i = s.tabGroupId;
-      const c = s.availableTabs;
-      if (o) {
-        await Ka(c);
-      }
-      return {
-        output: J(c, i, undefined, n),
-        tabContext: {
-          ...s,
-          tabGroupId: i
-        }
-      };
-    } catch (r) {
-      return {
-        error: `Failed to query tabs: ${r instanceof Error ? r.message : "Unknown error"}`
-      };
-    }
-  },
-  toAnthropicSchema: async () => ({
-    name: "tabs_context_mcp",
-    description: "Get context information about the current MCP tab group. Returns all tab IDs inside the group if it exists. CRITICAL: You must get the context at least once before using other browser automation tools so you know what tabs exist. Each new conversation should create its own new tab (using tabs_create) rather than reusing existing tabs, unless the user explicitly asks to use an existing tab.",
-    input_schema: {
-      type: "object",
-      properties: {
-        createIfEmpty: {
-          type: "boolean",
-          description: "Creates a new MCP tab group if none exists, creates a new Window with a new tab group containing an empty tab (which can be used for this conversation). If a MCP tab group already exists, this parameter has no effect."
-        }
-      },
-      required: []
-    }
-  })
-}, Oe, {
-  name: "tabs_create_mcp",
-  description: "Creates a new empty tab in the MCP tab group.",
-  parameters: {},
-  execute: async (e, t) => {
-    try {
-      let e;
-      await F.initialize();
-      if (t?.sessionScope) {
-        if (t.tabGroupId === undefined) {
+          if (o) {
+            await Ka(a.availableTabs);
+          }
           return {
-            error: "No tab group exists for this session yet. Call tabs_context_mcp with createIfEmpty: true first — that creates this session's group and returns its tab IDs."
+            // 语义锚点：tabs_context_mcp 返回的 tabContext 是后续普通浏览器工具的输入快照。
+            // 后面的 tools 不再重新“发明”候选 tab 集合，而是复用这里暴露出的 availableTabs/tabGroupId。
+            output: J(a.availableTabs, a.tabGroupId, undefined, n),
+            tabContext: a,
           };
         }
-        try {
-          await chrome.tabGroups.get(t.tabGroupId);
-          e = t.tabGroupId;
-        } catch {
-          return {
-            error: "This session's tab group no longer exists (tabs were closed). Call tabs_context_mcp with createIfEmpty: true to create a new one."
-          };
-        }
-      } else {
-        const t = await F.getOrCreateMcpTabContext({
-          createIfEmpty: false
+        // 语义锚点：没有 sessionScope 时，退回 legacy/shared MCP group 读法；
+        // 这层主要服务旧 bridge/client，不参与新 session 专属隔离。
+        const s = await F.getOrCreateMcpTabContext({
+          createIfEmpty: r,
         });
-        if (!t?.tabGroupId) {
+        if (!s) {
           return {
-            error: "No MCP tab group exists. Use tabs_context_mcp with createIfEmpty: true first to create one."
+            output:
+              "No MCP tab groups found. Use createIfEmpty: true to create one.",
           };
         }
-        e = t.tabGroupId;
-      }
-      const r = await chrome.tabs.create({
-        url: "chrome://newtab",
-        active: false
-      });
-      if (!r.id) {
-        throw new Error("Failed to create tab - no tab ID returned");
-      }
-      await chrome.tabs.group({
-        tabIds: r.id,
-        groupId: e
-      });
-      const o = (await chrome.tabs.query({
-        groupId: e
-      })).filter(e => e.id !== undefined).map(e => ({
-        id: e.id,
-        title: e.title || "",
-        url: e.url || ""
-      }));
-      return {
-        output: `Created new tab. Tab ID: ${r.id}`,
-        tabContext: {
-          currentTabId: r.id,
-          executedOnTabId: r.id,
-          availableTabs: o,
-          tabCount: o.length,
-          tabGroupId: e
+        const i = s.tabGroupId;
+        const c = s.availableTabs;
+        if (o) {
+          await Ka(c);
         }
-      };
-    } catch (r) {
-      return {
-        error: `Failed to create tab: ${r instanceof Error ? r.message : "Unknown error"}`
-      };
-    }
-  },
-  toAnthropicSchema: async () => ({
-    name: "tabs_create_mcp",
-    description: "Creates a new empty tab in the MCP tab group.",
-    input_schema: {
-      type: "object",
-      properties: {},
-      required: []
-    }
-  })
-}, {
-  name: "tabs_close_mcp",
-  description: "Close a tab in the MCP tab group by its tab ID. Only tabs within the current session's group (or the shared MCP group for legacy clients) can be closed. Call tabs_context_mcp first to get valid tab IDs. If the closed tab is the last one in the group, Chrome auto-removes the group.",
-  parameters: {
-    type: "object",
-    properties: {
-      tabId: {
-        type: "integer",
-        description: "The ID of the tab to close. Must be a tab in this session's MCP tab group. Get valid IDs from tabs_context_mcp."
+        return {
+          output: J(c, i, undefined, n),
+          tabContext: {
+            ...s,
+            tabGroupId: i,
+          },
+        };
+      } catch (r) {
+        return {
+          error: `Failed to query tabs: ${r instanceof Error ? r.message : "Unknown error"}`,
+        };
       }
     },
-    required: ["tabId"]
+    toAnthropicSchema: async () => ({
+      name: "tabs_context_mcp",
+      description:
+        "Get context information about the current MCP tab group. Returns all tab IDs inside the group if it exists. CRITICAL: You must get the context at least once before using other browser automation tools so you know what tabs exist. Each new conversation should create its own new tab (using tabs_create) rather than reusing existing tabs, unless the user explicitly asks to use an existing tab.",
+      input_schema: {
+        type: "object",
+        properties: {
+          createIfEmpty: {
+            type: "boolean",
+            description:
+              "Creates a new MCP tab group if none exists, creates a new Window with a new tab group containing an empty tab (which can be used for this conversation). If a MCP tab group already exists, this parameter has no effect.",
+          },
+        },
+        required: [],
+      },
+    }),
   },
-  execute: async (e, t) => {
-    try {
-      const r = function (e) {
-        if (typeof e != "object" || e === null) {
-          return "Expected an object with tabId";
-        }
-        const t = e;
-        if (typeof t.tabId == "number" && Number.isInteger(t.tabId)) {
-          return {
-            tabId: t.tabId
-          };
-        } else {
-          return "tabId must be an integer";
-        }
-      }(e);
-      if (typeof r == "string") {
-        return {
-          error: r
-        };
-      }
-      const {
-        tabId: o
-      } = r;
-      let a;
-      let n;
-      await F.initialize();
-      if (t?.sessionScope) {
-        if (t.tabGroupId === undefined) {
-          return {
-            error: "No tab group exists for this session yet. Nothing to close. Call tabs_context_mcp first if you need a working tab."
-          };
-        }
-        try {
-          await chrome.tabGroups.get(t.tabGroupId);
-          a = t.tabGroupId;
-        } catch {
-          return {
-            error: "This session's tab group no longer exists. Call tabs_context_mcp first to re-establish context."
-          };
-        }
-      } else {
-        const e = await F.getOrCreateMcpTabContext({
-          createIfEmpty: false
-        });
-        a = e?.tabGroupId;
-        if (a === undefined) {
-          return {
-            error: "No MCP tab group exists. Nothing to close. Call tabs_context_mcp with createIfEmpty: true if you need a working tab."
-          };
-        }
-      }
+  Oe,
+  {
+    name: "tabs_create_mcp",
+    description: "Creates a new empty tab in the MCP tab group.",
+    parameters: {},
+    execute: async (e, t) => {
       try {
-        n = await chrome.tabs.get(o);
-      } catch {
-        return {
-          error: `Tab ${o} does not exist (may have already been closed). Call tabs_context_mcp to see current tabs.`
-        };
-      }
-      if (n.groupId !== a) {
-        return {
-          error: `Tab ${o} is not in this session's tab group. Only tabs visible to this session can be closed. Call tabs_context_mcp to see closable tabs.`
-        };
-      }
-      await chrome.tabs.remove(o);
-      const s = (await chrome.tabs.query({
-        groupId: a
-      })).filter(e => e.id !== undefined).map(e => ({
-        id: e.id,
-        title: e.title || "",
-        url: e.url || ""
-      }));
-      return {
-        output: s.length > 0 ? `Closed tab ${o}. ${s.length} tab(s) remain.` : `Closed tab ${o}. Group is now empty (auto-removed).`,
-        tabContext: {
-          currentTabId: s[0]?.id,
-          availableTabs: s,
-          tabCount: s.length,
-          tabGroupId: s.length > 0 ? a : undefined
+        // 语义锚点：tabs_create_mcp 只负责在“当前 session 可见的 MCP group”里追加新 tab，
+        // 不负责自己决定 group；group 解析前置依赖 tabs_context_mcp。
+        let e;
+        await F.initialize();
+        if (t?.sessionScope) {
+          // 语义锚点：session scope 模式下，必须先有 tabs_context_mcp 建好的 group；
+          // 否则 create 不能凭空猜一个目标组。
+          if (t.tabGroupId === undefined) {
+            return {
+              error:
+                "No tab group exists for this session yet. Call tabs_context_mcp with createIfEmpty: true first — that creates this session's group and returns its tab IDs.",
+            };
+          }
+          try {
+            await chrome.tabGroups.get(t.tabGroupId);
+            e = t.tabGroupId;
+          } catch {
+            return {
+              error:
+                "This session's tab group no longer exists (tabs were closed). Call tabs_context_mcp with createIfEmpty: true to create a new one.",
+            };
+          }
+        } else {
+          // 语义锚点：legacy/shared 模式下，tabs_create_mcp 才会回退到共享 MCP group。
+          const t = await F.getOrCreateMcpTabContext({
+            createIfEmpty: false,
+          });
+          if (!t?.tabGroupId) {
+            return {
+              error:
+                "No MCP tab group exists. Use tabs_context_mcp with createIfEmpty: true first to create one.",
+            };
+          }
+          e = t.tabGroupId;
         }
-      };
-    } catch (r) {
-      return {
-        error: `Failed to close tab: ${r instanceof Error ? r.message : "Unknown error"}`
-      };
-    }
+        const r = await chrome.tabs.create({
+          url: "chrome://newtab",
+          active: false,
+        });
+        if (!r.id) {
+          throw new Error("Failed to create tab - no tab ID returned");
+        }
+        // 语义锚点：新 tab 先创建，再显式并入目标 group；
+        // 返回值里的 tabContext 会把这个新 tab 设成 executedOn/currentTabId，供后续工具直接接力。
+        await chrome.tabs.group({
+          tabIds: r.id,
+          groupId: e,
+        });
+        const o = (
+          await chrome.tabs.query({
+            groupId: e,
+          })
+        )
+          .filter((e) => e.id !== undefined)
+          .map((e) => ({
+            id: e.id,
+            title: e.title || "",
+            url: e.url || "",
+          }));
+        return {
+          output: `Created new tab. Tab ID: ${r.id}`,
+          tabContext: {
+            // 语义锚点：create 后立刻把新 tab 写成当前执行 tab，并带上最新 availableTabs 快照。
+            currentTabId: r.id,
+            executedOnTabId: r.id,
+            availableTabs: o,
+            tabCount: o.length,
+            tabGroupId: e,
+          },
+        };
+      } catch (r) {
+        return {
+          error: `Failed to create tab: ${r instanceof Error ? r.message : "Unknown error"}`,
+        };
+      }
+    },
+    toAnthropicSchema: async () => ({
+      name: "tabs_create_mcp",
+      description: "Creates a new empty tab in the MCP tab group.",
+      input_schema: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
+    }),
   },
-  toAnthropicSchema: async () => ({
+  {
     name: "tabs_close_mcp",
-    description: "Close a tab in the MCP tab group by its tab ID. Use when you're done with a tab to keep the browser tidy. Only tabs in this session's group can be closed.",
-    input_schema: {
+    description:
+      "Close a tab in the MCP tab group by its tab ID. Only tabs within the current session's group (or the shared MCP group for legacy clients) can be closed. Call tabs_context_mcp first to get valid tab IDs. If the closed tab is the last one in the group, Chrome auto-removes the group.",
+    parameters: {
       type: "object",
       properties: {
         tabId: {
           type: "integer",
-          description: "The ID of the tab to close. Must be in this session's tab group — call tabs_context_mcp first to see valid IDs."
-        }
-      },
-      required: ["tabId"]
-    }
-  })
-}, je, He, ye, Re, Ae, Ue, Ee, Ne, we, {
-  name: "shortcuts_list",
-  description: "List all available shortcuts and workflows (shortcuts and workflows are interchangeable). Returns shortcuts with their commands, descriptions, and whether they are workflows. Use shortcuts_execute to run a shortcut or workflow.",
-  parameters: {},
-  execute: async () => {
-    try {
-      const e = (await w.getAllPrompts()).map(e => ({
-        id: e.id,
-        ...(e.command && {
-          command: e.command
-        })
-      }));
-      if (e.length === 0) {
-        return {
-          output: JSON.stringify({
-            message: "No shortcuts found",
-            shortcuts: []
-          }, null, 2)
-        };
-      } else {
-        return {
-          output: JSON.stringify({
-            message: `Found ${e.length} shortcut(s)`,
-            shortcuts: e
-          }, null, 2)
-        };
-      }
-    } catch (e) {
-      return {
-        error: `Failed to list shortcuts: ${e instanceof Error ? e.message : "Unknown error"}`
-      };
-    }
-  },
-  toAnthropicSchema: async () => ({
-    name: "shortcuts_list",
-    description: "List all available shortcuts and workflows (shortcuts and workflows are interchangeable). Returns shortcuts with their commands, descriptions, and whether they are workflows. Use shortcuts_execute to run a shortcut or workflow.",
-    input_schema: {
-      type: "object",
-      properties: {},
-      required: []
-    }
-  })
-}, {
-  name: "shortcuts_execute",
-  description: "Execute a shortcut or workflow by running it in a new sidepanel window using the current tab (shortcuts and workflows are interchangeable). Use shortcuts_list first to see available shortcuts. This starts the execution and returns immediately - it does not wait for completion.",
-  parameters: {
-    shortcutId: {
-      type: "string",
-      description: "The ID of the shortcut to execute"
-    },
-    command: {
-      type: "string",
-      description: "The command name of the shortcut to execute (e.g., 'debug', 'summarize'). Do not include the leading slash."
-    }
-  },
-  execute: async (e, t) => {
-    try {
-      const {
-        shortcutId: r,
-        command: o
-      } = e;
-      if (!r && !o) {
-        return {
-          error: "Either shortcutId or command is required. Use shortcuts_list to see available shortcuts."
-        };
-      }
-      const a = t?.tabId;
-      if (!a) {
-        return {
-          error: "No tab context available. Cannot execute shortcut without a target tab."
-        };
-      }
-      let n;
-      if (r) {
-        n = await w.getPromptById(r);
-      } else if (o) {
-        const e = o.startsWith("/") ? o.slice(1) : o;
-        n = await w.getPromptByCommand(e);
-      }
-      if (!n) {
-        return {
-          error: `Shortcut not found. ${r ? `No shortcut with ID "${r}"` : `No shortcut with command "/${o}"`}. Use shortcuts_list to see available shortcuts.`
-        };
-      }
-      await w.recordPromptUsage(n.id);
-      const s = n.command || n.id;
-      const i = `[[shortcut:${n.id}:${s}]]`;
-      const c = await Wa({
-        tabId: a,
-        tabGroupId: t?.tabGroupId,
-        prompt: i,
-        taskName: n.command || n.id,
-        skipPermissions: n.skipPermissions,
-        model: n.model
-      });
-      if (c.success) {
-        return {
-          output: JSON.stringify({
-            success: true,
-            message: `Shortcut "${n.command || n.id}" started. Execution is running in a separate sidepanel window.`,
-            shortcut: {
-              id: n.id,
-              command: n.command
-            }
-          }, null, 2)
-        };
-      } else {
-        return {
-          error: c.error || "Shortcut execution failed"
-        };
-      }
-    } catch (r) {
-      return {
-        error: `Failed to execute shortcut: ${r instanceof Error ? r.message : "Unknown error"}`
-      };
-    }
-  },
-  toAnthropicSchema: async () => ({
-    name: "shortcuts_execute",
-    description: "Execute a shortcut or workflow by running it in a new sidepanel window using the current tab (shortcuts and workflows are interchangeable). Use shortcuts_list first to see available shortcuts. This starts the execution and returns immediately - it does not wait for completion.",
-    input_schema: {
-      type: "object",
-      properties: {
-        shortcutId: {
-          type: "string",
-          description: "The ID of the shortcut to execute"
+          description:
+            "The ID of the tab to close. Must be a tab in this session's MCP tab group. Get valid IDs from tabs_context_mcp.",
         },
-        command: {
-          type: "string",
-          description: "The command name of the shortcut to execute (e.g., 'debug', 'summarize'). Do not include the leading slash."
-        }
       },
-      required: []
-    }
-  })
-}];
+      required: ["tabId"],
+    },
+    execute: async (e, t) => {
+      try {
+        // 语义锚点：tabs_close_mcp 的职责边界：
+        // 只允许关闭当前 session/group 可见的 tab，不允许跨组关闭任意 tab。
+        const r = (function (e) {
+          if (typeof e != "object" || e === null) {
+            return "Expected an object with tabId";
+          }
+          const t = e;
+          if (typeof t.tabId == "number" && Number.isInteger(t.tabId)) {
+            return {
+              tabId: t.tabId,
+            };
+          } else {
+            return "tabId must be an integer";
+          }
+        })(e);
+        if (typeof r == "string") {
+          return {
+            error: r,
+          };
+        }
+        const { tabId: o } = r;
+        let a;
+        let n;
+        await F.initialize();
+        // 语义锚点：tabs_close_mcp 复用 tabs_context_mcp 暴露出的同一组边界。
+        // 先确认目标 group 仍存在，再验证 tabId 属于该组，避免跨组误关。
+        if (t?.sessionScope) {
+          if (t.tabGroupId === undefined) {
+            return {
+              error:
+                "No tab group exists for this session yet. Nothing to close. Call tabs_context_mcp first if you need a working tab.",
+            };
+          }
+          try {
+            await chrome.tabGroups.get(t.tabGroupId);
+            a = t.tabGroupId;
+          } catch {
+            return {
+              error:
+                "This session's tab group no longer exists. Call tabs_context_mcp first to re-establish context.",
+            };
+          }
+        } else {
+          const e = await F.getOrCreateMcpTabContext({
+            createIfEmpty: false,
+          });
+          a = e?.tabGroupId;
+          if (a === undefined) {
+            return {
+              error:
+                "No MCP tab group exists. Nothing to close. Call tabs_context_mcp with createIfEmpty: true if you need a working tab.",
+            };
+          }
+        }
+        try {
+          n = await chrome.tabs.get(o);
+        } catch {
+          return {
+            error: `Tab ${o} does not exist (may have already been closed). Call tabs_context_mcp to see current tabs.`,
+          };
+        }
+        if (n.groupId !== a) {
+          return {
+            error: `Tab ${o} is not in this session's tab group. Only tabs visible to this session can be closed. Call tabs_context_mcp to see closable tabs.`,
+          };
+        }
+        await chrome.tabs.remove(o);
+        // 语义锚点：关闭后立即重拍 group 快照；若最后一个 tab 被关掉，Chrome 会自动移除 group，因此 tabGroupId 会降成 undefined。
+        const s = (
+          await chrome.tabs.query({
+            groupId: a,
+          })
+        )
+          .filter((e) => e.id !== undefined)
+          .map((e) => ({
+            id: e.id,
+            title: e.title || "",
+            url: e.url || "",
+          }));
+        return {
+          output:
+            s.length > 0
+              ? `Closed tab ${o}. ${s.length} tab(s) remain.`
+              : `Closed tab ${o}. Group is now empty (auto-removed).`,
+          tabContext: {
+            // 语义锚点：close 后同样回传刷新后的 tab 快照，让下一跳工具继续沿用同一份上下文。
+            currentTabId: s[0]?.id,
+            availableTabs: s,
+            tabCount: s.length,
+            tabGroupId: s.length > 0 ? a : undefined,
+          },
+        };
+      } catch (r) {
+        return {
+          error: `Failed to close tab: ${r instanceof Error ? r.message : "Unknown error"}`,
+        };
+      }
+    },
+    toAnthropicSchema: async () => ({
+      name: "tabs_close_mcp",
+      description:
+        "Close a tab in the MCP tab group by its tab ID. Use when you're done with a tab to keep the browser tidy. Only tabs in this session's group can be closed.",
+      input_schema: {
+        type: "object",
+        properties: {
+          tabId: {
+            type: "integer",
+            description:
+              "The ID of the tab to close. Must be in this session's tab group — call tabs_context_mcp first to see valid IDs.",
+          },
+        },
+        required: ["tabId"],
+      },
+    }),
+  },
+  je,
+  He,
+  ye,
+  Re,
+  Ae,
+  Ue,
+  Ee,
+  Ne,
+  we,
+  {
+    name: "shortcuts_list",
+    description:
+      "List all available shortcuts and workflows (shortcuts and workflows are interchangeable). Returns shortcuts with their commands, descriptions, and whether they are workflows. Use shortcuts_execute to run a shortcut or workflow.",
+    parameters: {},
+    execute: async () => {
+      try {
+        const e = (await w.getAllPrompts()).map((e) => ({
+          id: e.id,
+          ...(e.command && {
+            command: e.command,
+          }),
+        }));
+        if (e.length === 0) {
+          return {
+            output: JSON.stringify(
+              {
+                message: "No shortcuts found",
+                shortcuts: [],
+              },
+              null,
+              2,
+            ),
+          };
+        } else {
+          return {
+            output: JSON.stringify(
+              {
+                message: `Found ${e.length} shortcut(s)`,
+                shortcuts: e,
+              },
+              null,
+              2,
+            ),
+          };
+        }
+      } catch (e) {
+        return {
+          error: `Failed to list shortcuts: ${e instanceof Error ? e.message : "Unknown error"}`,
+        };
+      }
+    },
+    toAnthropicSchema: async () => ({
+      name: "shortcuts_list",
+      description:
+        "List all available shortcuts and workflows (shortcuts and workflows are interchangeable). Returns shortcuts with their commands, descriptions, and whether they are workflows. Use shortcuts_execute to run a shortcut or workflow.",
+      input_schema: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
+    }),
+  },
+  {
+    name: "shortcuts_execute",
+    description:
+      "Execute a shortcut or workflow by running it in a new sidepanel window using the current tab (shortcuts and workflows are interchangeable). Use shortcuts_list first to see available shortcuts. This starts the execution and returns immediately - it does not wait for completion.",
+    parameters: {
+      shortcutId: {
+        type: "string",
+        description: "The ID of the shortcut to execute",
+      },
+      command: {
+        type: "string",
+        description:
+          "The command name of the shortcut to execute (e.g., 'debug', 'summarize'). Do not include the leading slash.",
+      },
+    },
+    execute: async (e, t) => {
+      try {
+        const { shortcutId: r, command: o } = e;
+        if (!r && !o) {
+          return {
+            error:
+              "Either shortcutId or command is required. Use shortcuts_list to see available shortcuts.",
+          };
+        }
+        const a = t?.tabId;
+        if (!a) {
+          return {
+            error:
+              "No tab context available. Cannot execute shortcut without a target tab.",
+          };
+        }
+        let n;
+        if (r) {
+          n = await w.getPromptById(r);
+        } else if (o) {
+          const e = o.startsWith("/") ? o.slice(1) : o;
+          n = await w.getPromptByCommand(e);
+        }
+        if (!n) {
+          return {
+            error: `Shortcut not found. ${r ? `No shortcut with ID "${r}"` : `No shortcut with command "/${o}"`}. Use shortcuts_list to see available shortcuts.`,
+          };
+        }
+        await w.recordPromptUsage(n.id);
+        const s = n.command || n.id;
+        const i = `[[shortcut:${n.id}:${s}]]`;
+        const c = await Wa({
+          tabId: a,
+          tabGroupId: t?.tabGroupId,
+          prompt: i,
+          taskName: n.command || n.id,
+          skipPermissions: n.skipPermissions,
+          model: n.model,
+        });
+        if (c.success) {
+          return {
+            output: JSON.stringify(
+              {
+                success: true,
+                message: `Shortcut "${n.command || n.id}" started. Execution is running in a separate sidepanel window.`,
+                shortcut: {
+                  id: n.id,
+                  command: n.command,
+                },
+              },
+              null,
+              2,
+            ),
+          };
+        } else {
+          return {
+            error: c.error || "Shortcut execution failed",
+          };
+        }
+      } catch (r) {
+        return {
+          error: `Failed to execute shortcut: ${r instanceof Error ? r.message : "Unknown error"}`,
+        };
+      }
+    },
+    toAnthropicSchema: async () => ({
+      name: "shortcuts_execute",
+      description:
+        "Execute a shortcut or workflow by running it in a new sidepanel window using the current tab (shortcuts and workflows are interchangeable). Use shortcuts_list first to see available shortcuts. This starts the execution and returns immediately - it does not wait for completion.",
+      input_schema: {
+        type: "object",
+        properties: {
+          shortcutId: {
+            type: "string",
+            description: "The ID of the shortcut to execute",
+          },
+          command: {
+            type: "string",
+            description:
+              "The command name of the shortcut to execute (e.g., 'debug', 'summarize'). Do not include the leading slash.",
+          },
+        },
+        required: [],
+      },
+    }),
+  },
+];
+// 语义锚点：浏览器 tab 编排工具簇。
+// 这三个工具负责建立/刷新/收缩执行上下文，所以在 tool executor 里被允许“先于普通 tab 工具”运行。
 const Xa = ["tabs_context_mcp", "tabs_create_mcp", "tabs_close_mcp"];
+// 语义锚点：tabs 工具簇白名单别名。
+// class Va 的 no-tab 例外、以及后续阅读时“上下文工具 vs 普通执行工具”的边界，都以这份名单为准。
+const __cpMcpTabManagementToolNames = Xa;
+// 语义锚点：tab-less MCP 工具白名单。
+// update_plan / turn_answer_start / shortcuts_list 只负责计划审批、回合阶段控制或快捷指令枚举，不应该被真实浏览器 tab 上下文卡住。
+const __cpMcpTablessToolNames = [
+  "update_plan",
+  "turn_answer_start",
+  "shortcuts_list",
+];
+function __cpMcpResolvePermissionNetlocFromUrl(e) {
+  try {
+    const t = new URL(e);
+    if (t.host) {
+      return t.host;
+    }
+    if (t.protocol) {
+      return t.protocol === "file:" ? "file://" : t.protocol;
+    }
+  } catch {}
+  return "";
+}
+// 语义锚点：后台 tool executor 运行时（tool_call -> tool.execute -> permission_required/tool_result）。
 class Va {
   constructor(e) {
     this.context = e;
   }
   async handleToolCall(e, t, r, o, a, n, s, i) {
     const c = t.action;
-    return await _(`tool_execution_${e}${c ? "_" + c : ""}`, async n => {
-      if (!this.context.tabId && !Xa.includes(e)) {
-        throw new Error("No tab available");
-      }
-      n.setAttribute("session_id", this.context.sessionId);
-      n.setAttribute("tool_name", e);
-      if (o) {
-        n.setAttribute("permissions", o);
-      }
-      if (c) {
-        n.setAttribute("action", c);
-      }
-      if (e === "navigate") {
-        const e = t?.url;
-        if (typeof e == "string" && !["back", "forward"].includes(e.toLowerCase())) {
-          let t;
-          try {
-            t = new URL(e).hostname;
-          } catch {
-            try {
-              t = new URL(`https://${e}`).hostname;
-            } catch {}
-          }
-          if (t) {
-            n.setAttribute("nav_destination_domain", t);
-          }
+    return await _(
+      `tool_execution_${e}${c ? "_" + c : ""}`,
+      async (n) => {
+        // 语义锚点：除 tab 编排工具簇外，普通浏览器工具都必须先有一个已解析好的当前 tab 上下文。
+        // indicator/prefix 也不在这里挂载；那要等 wn(...) 先把真实执行 tab 编排出来之后才会发生。
+        // 语义锚点：无 tab 保护要区分“需要真实页面”的工具和 tab-less 工具。
+        // update_plan / turn_answer_start 没有真实页面副作用，允许在尚未建立浏览器上下文时执行。
+        if (
+          !this.context.tabId &&
+          !Xa.includes(e) &&
+          !__cpMcpTablessToolNames.includes(e)
+        ) {
+          throw new Error("No tab available");
         }
-      }
-      if (this.context.tabId) {
-        const e = t?.tabId ?? this.context.tabId;
-        try {
-          const t = await chrome.tabs.get(e);
-          if (t.url) {
-            n.setAttribute("target_domain", new URL(t.url).hostname);
-            const e = fa(t.url);
-            if (e) {
-              n.setAttribute("target_app", e);
+        n.setAttribute("session_id", this.context.sessionId);
+        n.setAttribute("tool_name", e);
+        if (o) {
+          n.setAttribute("permissions", o);
+        }
+        if (c) {
+          n.setAttribute("action", c);
+        }
+        if (e === "navigate") {
+          const e = t?.url;
+          if (
+            typeof e == "string" &&
+            !["back", "forward"].includes(e.toLowerCase())
+          ) {
+            let t;
+            try {
+              t = new URL(e).hostname;
+            } catch {
+              try {
+                t = new URL(`https://${e}`).hostname;
+              } catch {}
+            }
+            if (t) {
+              n.setAttribute("nav_destination_domain", t);
             }
           }
-          n.setAttribute("target_tab_active", t.active);
-          n.setAttribute("target_tab_discarded", t.discarded ?? false);
-          n.setAttribute("target_tab_status", t.status ?? "unknown");
-          if (t.width && t.height) {
-            n.setAttribute("target_viewport_px", t.width * t.height);
+        }
+        if (this.context.tabId) {
+          const e = t?.tabId ?? this.context.tabId;
+          try {
+            const t = await chrome.tabs.get(e);
+            if (t.url) {
+              n.setAttribute("target_domain", new URL(t.url).hostname);
+              const e = fa(t.url);
+              if (e) {
+                n.setAttribute("target_app", e);
+              }
+            }
+            n.setAttribute("target_tab_active", t.active);
+            n.setAttribute("target_tab_discarded", t.discarded ?? false);
+            n.setAttribute("target_tab_status", t.status ?? "unknown");
+            if (t.width && t.height) {
+              n.setAttribute("target_viewport_px", t.width * t.height);
+            }
+          } catch {
+            n.setAttribute("target_tab_gone", true);
           }
-        } catch {
-          n.setAttribute("target_tab_gone", true);
         }
-      }
-      const l = {
-        toolUseId: r,
-        span: n,
-        tabId: this.context.tabId,
-        tabGroupId: this.context.tabGroupId,
-        sessionScope: this.context.sessionScope,
-        model: this.context.model,
-        sessionId: this.context.sessionId,
-        anthropicClient: this.context.anthropicClient,
-        permissionManager: i ?? this.context.permissionManager,
-        createAnthropicMessage: this.createAnthropicMessage()
-      };
-      const d = za.find(t => t.name === e);
-      if (!d) {
-        throw new Error(`Unknown tool: ${e}`);
-      }
-      const u = {
-        name: e,
-        sessionId: this.context.sessionId,
-        permissions: o,
-        quick_mode: false
-      };
-      if (e === "computer" && c) {
-        u.action = c;
-      }
-      if (a) {
-        u.domain = a;
-      }
-      if (s) {
-        const e = fa(s);
-        if (e) {
-          u.app = e;
+        // 语义锚点：tool executor 上下文对象：
+        // toolUseId 是本次工具调用/结果的稳定归属键；tabId/tabGroupId/sessionScope 只负责选择执行环境。
+        const l = {
+          toolUseId: r,
+          span: n,
+          tabId: this.context.tabId,
+          tabGroupId: this.context.tabGroupId,
+          sessionScope: this.context.sessionScope,
+          model: this.context.model,
+          sessionId: this.context.sessionId,
+          anthropicClient: this.context.anthropicClient,
+          permissionManager: i ?? this.context.permissionManager,
+          createAnthropicMessage: this.createAnthropicMessage(),
+        };
+        const d = za.find((t) => t.name === e);
+        if (!d) {
+          throw new Error(`Unknown tool: ${e}`);
         }
-      }
-      try {
-        const r = te(e, t, za);
-        let o;
-        n.addEvent("tool_execute_begin");
+        const u = {
+          name: e,
+          sessionId: this.context.sessionId,
+          permissions: o,
+          quick_mode: false,
+        };
+        if (e === "computer" && c) {
+          u.action = c;
+        }
+        if (a) {
+          u.domain = a;
+        }
+        if (s) {
+          const e = fa(s);
+          if (e) {
+            u.app = e;
+          }
+        }
         try {
-          o = await d.execute(r, l);
-        } finally {
-          n.addEvent("tool_execute_end");
-        }
-        if ("type" in o) {
-          u.success = false;
-          n.setAttribute("success", false);
-          n.setAttribute("failure_reason", "needs_permission");
-        } else {
-          u.success = !o.error;
-          n.setAttribute("success", !o.error);
-          if (o.error) {
-            n.setAttribute("result_error", typeof o.error == "string" ? o.error : JSON.stringify(o.error));
+          const r = te(e, t, za);
+          let o;
+          n.addEvent("tool_execute_begin");
+          try {
+            o = await d.execute(r, l);
+          } finally {
+            n.addEvent("tool_execute_end");
           }
-        }
-        if (!("type" in o) && !o.error && !!l.tabId) {
-          await async function (e, t, r) {
-            try {
-              if (!["computer", "navigate"].includes(e)) {
-                return;
-              }
-              const a = await chrome.tabs.get(r);
-              if (!a) {
-                return;
-              }
-              const n = a.groupId ?? -1;
-              if (!xe.isRecording(n)) {
-                return;
-              }
-              let s;
-              let i;
-              if (e === "computer" && t.action) {
-                const e = t.action;
-                if (e === "screenshot") {
+          if ("type" in o) {
+            // 语义锚点：工具返回带 type 的对象时，当前分支约定它是 permission_required sentinel，而不是最终 tool_result。
+            // 普通工具的 permission_required sentinel 统一形状是 { type, tool, url, toolUseId, actionData? }；
+            // actionData 只回填 permission popup 预览所需的最小字段，不是完整执行上下文。
+            u.success = false;
+            n.setAttribute("success", false);
+            n.setAttribute("failure_reason", "needs_permission");
+          } else {
+            u.success = !o.error;
+            n.setAttribute("success", !o.error);
+            if (o.error) {
+              n.setAttribute(
+                "result_error",
+                typeof o.error == "string" ? o.error : JSON.stringify(o.error),
+              );
+            }
+          }
+          if (!("type" in o) && !o.error && !!l.tabId) {
+            await (async function (e, t, r) {
+              try {
+                if (!["computer", "navigate"].includes(e)) {
                   return;
                 }
-                s = {
-                  type: e,
-                  coordinate: t.coordinate,
-                  start_coordinate: t.start_coordinate,
-                  text: t.text,
-                  timestamp: Date.now()
-                };
-                if (e.includes("click")) {
-                  s.description = "Clicked";
-                } else if (e === "type" && t.text) {
-                  s.description = `Typed: "${t.text}"`;
-                } else if (e === "key" && t.text) {
-                  s.description = `Pressed key: ${t.text}`;
-                } else {
-                  s.description = e === "scroll" ? "Scrolled" : e === "left_click_drag" ? "Dragged" : e;
+                const a = await chrome.tabs.get(r);
+                if (!a) {
+                  return;
                 }
-              } else if (e === "navigate" && t.url) {
-                s = {
-                  type: "navigate",
-                  timestamp: Date.now(),
-                  description: `Navigated to ${t.url}`
-                };
-              }
-              if (s && (s.type.includes("click") || s.type === "left_click_drag")) {
-                const e = xe.getFrames(n);
-                if (e.length > 0) {
-                  const t = e[e.length - 1];
-                  const r = {
-                    base64: t.base64,
-                    action: s,
-                    frameNumber: e.length,
+                const n = a.groupId ?? -1;
+                if (!xe.isRecording(n)) {
+                  return;
+                }
+                let s;
+                let i;
+                if (e === "computer" && t.action) {
+                  const e = t.action;
+                  if (e === "screenshot") {
+                    return;
+                  }
+                  s = {
+                    type: e,
+                    coordinate: t.coordinate,
+                    start_coordinate: t.start_coordinate,
+                    text: t.text,
                     timestamp: Date.now(),
-                    viewportWidth: t.viewportWidth,
-                    viewportHeight: t.viewportHeight,
-                    devicePixelRatio: t.devicePixelRatio
                   };
-                  xe.addFrame(n, r);
+                  if (e.includes("click")) {
+                    s.description = "Clicked";
+                  } else if (e === "type" && t.text) {
+                    s.description = `Typed: "${t.text}"`;
+                  } else if (e === "key" && t.text) {
+                    s.description = `Pressed key: ${t.text}`;
+                  } else {
+                    s.description =
+                      e === "scroll"
+                        ? "Scrolled"
+                        : e === "left_click_drag"
+                          ? "Dragged"
+                          : e;
+                  }
+                } else if (e === "navigate" && t.url) {
+                  s = {
+                    type: "navigate",
+                    timestamp: Date.now(),
+                    description: `Navigated to ${t.url}`,
+                  };
                 }
-              }
-              await new Promise(e => setTimeout(e, 100));
-              try {
-                i = await K.screenshot(r);
-              } catch (o) {
-                return;
-              }
-              let c = 1;
-              try {
-                const e = await x({
-                  target: {
-                    tabId: r
-                  },
-                  injectImmediately: true,
-                  func: () => window.devicePixelRatio
-                });
-                if (e && e[0]?.result) {
-                  c = e[0].result;
+                if (
+                  s &&
+                  (s.type.includes("click") || s.type === "left_click_drag")
+                ) {
+                  const e = xe.getFrames(n);
+                  if (e.length > 0) {
+                    const t = e[e.length - 1];
+                    const r = {
+                      base64: t.base64,
+                      action: s,
+                      frameNumber: e.length,
+                      timestamp: Date.now(),
+                      viewportWidth: t.viewportWidth,
+                      viewportHeight: t.viewportHeight,
+                      devicePixelRatio: t.devicePixelRatio,
+                    };
+                    xe.addFrame(n, r);
+                  }
                 }
+                await new Promise((e) => setTimeout(e, 100));
+                try {
+                  i = await K.screenshot(r);
+                } catch (o) {
+                  return;
+                }
+                let c = 1;
+                try {
+                  const e = await x({
+                    target: {
+                      tabId: r,
+                    },
+                    injectImmediately: true,
+                    func: () => window.devicePixelRatio,
+                  });
+                  if (e && e[0]?.result) {
+                    c = e[0].result;
+                  }
+                } catch (o) {}
+                const l = xe.getFrames(n).length;
+                const d = {
+                  base64: i.base64,
+                  action: s,
+                  frameNumber: l,
+                  timestamp: Date.now(),
+                  viewportWidth: i.viewportWidth || i.width,
+                  viewportHeight: i.viewportHeight || i.height,
+                  devicePixelRatio: c,
+                };
+                xe.addFrame(n, d);
               } catch (o) {}
-              const l = xe.getFrames(n).length;
-              const d = {
-                base64: i.base64,
-                action: s,
-                frameNumber: l,
-                timestamp: Date.now(),
-                viewportWidth: i.viewportWidth || i.width,
-                viewportHeight: i.viewportHeight || i.height,
-                devicePixelRatio: c
-              };
-              xe.addFrame(n, d);
-            } catch (o) {}
-          }(e, r, l.tabId);
+            })(e, r, l.tabId);
+          }
+          this.context.analytics?.track("claude_chrome.chat.tool_called", u);
+          return o;
+        } catch (h) {
+          n.setAttribute("success", false);
+          n.setAttribute(
+            "result_error",
+            h instanceof Error ? h.message : String(h),
+          );
+          this.context.analytics?.track("claude_chrome.chat.tool_called", {
+            ...u,
+            success: false,
+            failureReason: "exception",
+          });
+          throw h;
         }
-        this.context.analytics?.track("claude_chrome.chat.tool_called", u);
-        return o;
-      } catch (h) {
-        n.setAttribute("success", false);
-        n.setAttribute("result_error", h instanceof Error ? h.message : String(h));
-        this.context.analytics?.track("claude_chrome.chat.tool_called", {
-          ...u,
-          success: false,
-          failureReason: "exception"
-        });
-        throw h;
-      }
-    }, n);
+      },
+      n,
+    );
   }
   createAnthropicMessage() {
     if (this.context.anthropicClient || this.context.refreshClient) {
-      return async e => {
+      return async (e) => {
         if (this.context.refreshClient) {
           const e = await this.context.refreshClient();
           if (e) {
@@ -13141,16 +15598,14 @@ class Va {
           }
         }
         if (!this.context.anthropicClient) {
-          throw new Error("Custom provider client not available. Please check your custom provider settings.");
+          throw new Error(
+            "Custom provider client not available. Please check your custom provider settings.",
+          );
         }
-        const {
-          modelClass: t,
-          maxTokens: r,
-          ...o
-        } = e;
-        const {
-          customProviderConfig: n
-        } = await chrome.storage.local.get("customProviderConfig");
+        const { modelClass: t, maxTokens: r, ...o } = e;
+        const { customProviderConfig: n } = await chrome.storage.local.get(
+          "customProviderConfig",
+        );
         const s = __cpRequireBackgroundProviderConfig(n);
         const a = s.defaultModel;
         const i = String(s.fastModel || "").trim();
@@ -13158,16 +15613,18 @@ class Va {
         const l = t === "small_fast" && !!i;
         const d = l && i !== a;
         const p = t === "small_fast";
-        const m = p ? {
-          requestedModelClass: t,
-          attemptedModel: c,
-          defaultModel: a,
-          fastModel: i || null,
-          fastModelConfigured: !!i,
-          usedConfiguredFastModel: l,
-          canRetryWithDefaultModel: d,
-          maxTokens: r
-        } : null;
+        const m = p
+          ? {
+              requestedModelClass: t,
+              attemptedModel: c,
+              defaultModel: a,
+              fastModel: i || null,
+              fastModelConfigured: !!i,
+              usedConfiguredFastModel: l,
+              canRetryWithDefaultModel: d,
+              maxTokens: r,
+            }
+          : null;
         if (t === "small_fast") {
           c = i || a;
         }
@@ -13181,43 +15638,51 @@ class Va {
             ...o,
             max_tokens: r,
             model: c,
-            betas: ["oauth-2025-04-20"]
+            betas: ["oauth-2025-04-20"],
           });
           if (p) {
             await __cpBackgroundDebugLog("sampling_small_fast_success", {
               ...m,
               responseModel: typeof e?.model == "string" ? e.model : null,
               usedFallbackModel: false,
-              durationMs: Date.now() - f
+              durationMs: Date.now() - f,
             });
           }
           return e;
         } catch (u) {
           if (!d) {
             if (p) {
-              await __cpBackgroundDebugLog("sampling_small_fast_failure", {
-                ...m,
-                failedStage: "primary",
-                failedModel: c,
-                durationMs: Date.now() - f,
-                message: u instanceof Error ? u.message : String(u || "")
-              }, "error");
+              await __cpBackgroundDebugLog(
+                "sampling_small_fast_failure",
+                {
+                  ...m,
+                  failedStage: "primary",
+                  failedModel: c,
+                  durationMs: Date.now() - f,
+                  message: u instanceof Error ? u.message : String(u || ""),
+                },
+                "error",
+              );
             }
             throw u;
           }
-          await __cpBackgroundDebugLog("sampling_small_fast_retry", {
-            ...m,
-            failedModel: c,
-            fallbackModel: a,
-            message: u instanceof Error ? u.message : String(u || "")
-          }, "warn");
+          await __cpBackgroundDebugLog(
+            "sampling_small_fast_retry",
+            {
+              ...m,
+              failedModel: c,
+              fallbackModel: a,
+              message: u instanceof Error ? u.message : String(u || ""),
+            },
+            "warn",
+          );
           const h = Date.now();
           try {
             const e = await this.context.anthropicClient.beta.messages.create({
               ...o,
               max_tokens: r,
               model: a,
-              betas: ["oauth-2025-04-20"]
+              betas: ["oauth-2025-04-20"],
             });
             if (p) {
               await __cpBackgroundDebugLog("sampling_small_fast_success", {
@@ -13226,20 +15691,24 @@ class Va {
                 usedFallbackModel: true,
                 fallbackModel: a,
                 durationMs: Date.now() - f,
-                fallbackDurationMs: Date.now() - h
+                fallbackDurationMs: Date.now() - h,
               });
             }
             return e;
           } catch (g) {
             if (p) {
-              await __cpBackgroundDebugLog("sampling_small_fast_failure", {
-                ...m,
-                failedStage: "fallback",
-                failedModel: a,
-                durationMs: Date.now() - f,
-                fallbackDurationMs: Date.now() - h,
-                message: g instanceof Error ? g.message : String(g || "")
-              }, "error");
+              await __cpBackgroundDebugLog(
+                "sampling_small_fast_failure",
+                {
+                  ...m,
+                  failedStage: "fallback",
+                  failedModel: a,
+                  durationMs: Date.now() - f,
+                  fallbackDurationMs: Date.now() - h,
+                  message: g instanceof Error ? g.message : String(g || ""),
+                },
+                "error",
+              );
             }
             throw g;
           }
@@ -13249,7 +15718,7 @@ class Va {
   }
   async processToolResults(e, t) {
     const r = [];
-    const o = e => {
+    const o = (e) => {
       if (e.error) {
         return e.error;
       }
@@ -13257,14 +15726,14 @@ class Va {
       if (e.output) {
         t.push({
           type: "text",
-          text: e.output
+          text: e.output,
         });
       }
       if (e.tabContext) {
-        const r = `\n\nTab Context:${e.tabContext.executedOnTabId ? `\n- Executed on tabId: ${e.tabContext.executedOnTabId}` : ""}\n- Available tabs:\n${e.tabContext.availableTabs.map(e => `  • tabId ${e.id}: "${e.title}" (${e.url})`).join("\n")}`;
+        const r = `\n\nTab Context:${e.tabContext.executedOnTabId ? `\n- Executed on tabId: ${e.tabContext.executedOnTabId}` : ""}\n- Available tabs:\n${e.tabContext.availableTabs.map((e) => `  • tabId ${e.id}: "${e.title}" (${e.url})`).join("\n")}`;
         t.push({
           type: "text",
-          text: r
+          text: r,
         });
       }
       if (e.base64Image) {
@@ -13274,8 +15743,8 @@ class Va {
           source: {
             type: "base64",
             media_type: r,
-            data: e.base64Image
-          }
+            data: e.base64Image,
+          },
         });
       }
       if (t.length > 0) {
@@ -13284,6 +15753,8 @@ class Va {
         return "";
       }
     };
+    // 语义锚点：tool executor 的标准 tool_result 封装器：
+    // tool_use_id 对应外层 tool_call id，错误统一降成 is_error + content，不引入 requestId。
     const a = (e, t) => {
       const r = !!t.error;
       return {
@@ -13291,26 +15762,45 @@ class Va {
         tool_use_id: e,
         content: o(t),
         ...(r && {
-          is_error: true
-        })
+          is_error: true,
+        }),
       };
     };
     for (const s of e) {
       let e = Date.now();
       let o = "first_execute_ms";
-      const i = r => {
+      const i = (r) => {
         t?.onStageTiming?.(r, Date.now() - e);
         o = undefined;
       };
       try {
-        const n = await this.handleToolCall(s.name, s.input, s.id, undefined, undefined, undefined, undefined, t?.permissionManager);
+        const n = await this.handleToolCall(
+          s.name,
+          s.input,
+          s.id,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          t?.permissionManager,
+        );
         i("first_execute_ms");
         if ("type" in n && n.type === "permission_required") {
-          const c = t?.onPermissionRequired ?? this.context.onPermissionRequired;
-          if (!c || !this.context.tabId) {
-            r.push(a(s.id, {
-              error: "Permission required but no handler or tab id available"
-            }));
+          // 语义锚点：handleToolCall 返回的 permission_required 仍是 sentinel；
+          // 是否弹窗、按 toolUseId 写一次性授权、以及拒绝时如何降成 tool_result，统一由 processToolResults 收口。
+          // 语义锚点：tool executor permission_required 重试链：
+          // 先等 permission handler resolve，再按 toolUseId 写一次性授权，最后重跑原始 tool_call。
+          const c =
+            t?.onPermissionRequired ?? this.context.onPermissionRequired;
+          // 语义锚点：计划审批 permission 链可以在无 tab 场景下运行；
+          // 其他真正需要真实页面权限的工具仍必须绑定 tabId。
+          const __cpPermissionPromptCanRunWithoutTab = s.name === "update_plan";
+          if (!c || (!__cpPermissionPromptCanRunWithoutTab && !this.context.tabId)) {
+            r.push(
+              a(s.id, {
+                error: "Permission required but no handler or tab id available",
+              }),
+            );
             continue;
           }
           e = Date.now();
@@ -13318,33 +15808,57 @@ class Va {
           const l = await c(n, this.context.tabId);
           i("permission_wait_ms");
           if (!l) {
-            r.push(a(s.id, {
-              error: s.name === "update_plan" ? "Plan rejected by user. Ask the user how they would like to change the plan." : "Permission denied by user"
-            }));
+            r.push(
+              a(s.id, {
+                error:
+                  s.name === "update_plan"
+                    ? "Plan rejected by user. Ask the user how they would like to change the plan."
+                    : "Permission denied by user",
+              }),
+            );
             continue;
           }
           if (s.name === "update_plan") {
-            r.push(a(s.id, {
-              output: "User has approved your plan. You can now start executing the plan. Start with updating your todo list if applicable."
-            }));
+            // 语义锚点：update_plan 在 permission approve 后直接返回“plan approved”文本，
+            // 它的 permission_required 只作为计划审批闸门，不会像普通工具那样重跑 provider execute。
+            r.push(
+              a(s.id, {
+                output:
+                  "User has approved your plan. You can now start executing the plan. Start with updating your todo list if applicable.",
+              }),
+            );
             continue;
           }
           const d = n;
           if (d.url) {
             try {
-              const {
-                host: e
-              } = new URL(d.url);
+              const e = __cpMcpResolvePermissionNetlocFromUrl(d.url);
+              if (!e) {
+                throw new Error("Unable to derive permission scope from URL");
+              }
               const r = t?.permissionManager ?? this.context.permissionManager;
-              await r.grantPermission({
-                type: "netloc",
-                netloc: e
-              }, I.ONCE, d.toolUseId);
+              await r.grantPermission(
+                {
+                  type: "netloc",
+                  netloc: e,
+                },
+                I.ONCE,
+                d.toolUseId,
+              );
             } catch {}
           }
           e = Date.now();
           o = "retry_execute_ms";
-          const u = await this.handleToolCall(s.name, s.input, s.id, undefined, undefined, undefined, undefined, t?.permissionManager);
+          const u = await this.handleToolCall(
+            s.name,
+            s.input,
+            s.id,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            t?.permissionManager,
+          );
           i("retry_execute_ms");
           if ("type" in u && u.type === "permission_required") {
             throw new Error("Permission still required after granting");
@@ -13357,14 +15871,30 @@ class Va {
         if (o) {
           t?.onStageTiming?.(o, Date.now() - e);
         }
-        r.push(a(s.id, {
-          error: n instanceof Error ? n.message : "Unknown error"
-        }));
+        r.push(
+          a(s.id, {
+            error: n instanceof Error ? n.message : "Unknown error",
+          }),
+        );
       }
     }
     return r;
   }
 }
+const __cpMcpToolCallRuntime = Va;
+const __cpMcpToolCallRuntimeHandleToolCall = Va.prototype.handleToolCall;
+const __cpMcpToolCallRuntimeProcessToolResults =
+  Va.prototype.processToolResults;
+// 语义锚点：tab 编排 helper 的可维护别名集合。
+// tabs_* 工具与普通浏览器工具共享同一套 group/tab 解析逻辑；这里只是把 B 上的方法职责显式命名出来，不改任何运行路径。
+const __cpMcpTabOrchestratorGetExecutionTab = B.prototype.getTabForMcp;
+const __cpMcpTabOrchestratorGetValidTabsWithMetadata =
+  B.prototype.getValidTabsWithMetadata;
+const __cpMcpTabOrchestratorGetEffectiveTabId = B.prototype.getEffectiveTabId;
+const __cpMcpTabOrchestratorGetOrCreateMcpTabContext =
+  B.prototype.getOrCreateMcpTabContext;
+const __cpMcpTabOrchestratorGetOrCreateSessionTabContext =
+  B.prototype.getOrCreateSessionTabContext;
 async function Ya(e, t) {
   const r = t === e;
   await F.initialize();
@@ -13372,7 +15902,7 @@ async function Ya(e, t) {
   return {
     isMainTab: r,
     isSecondaryTab: !!o && o.mainTabId === e && t !== e,
-    group: o
+    group: o,
   };
 }
 function Ja(e) {
@@ -13386,7 +15916,13 @@ function Qa(e) {
   }
 }
 function Za(e, t) {
-  if (!e || (r = e).startsWith("chrome://") || r.startsWith("chrome-extension://") || r.startsWith("about:") || r === "") {
+  if (
+    !e ||
+    (r = e).startsWith("chrome://") ||
+    r.startsWith("chrome-extension://") ||
+    r.startsWith("about:") ||
+    r === ""
+  ) {
     return null;
   }
   var r;
@@ -13395,7 +15931,7 @@ function Za(e, t) {
   if (o && a && o !== a && o !== "newtab") {
     return {
       oldDomain: o,
-      newDomain: a
+      newDomain: a,
     };
   } else {
     return null;
@@ -13409,6 +15945,8 @@ async function en(e, t) {
 function tn(e) {
   return chrome.runtime.getURL(`blocked.html?url=${encodeURIComponent(e)}`);
 }
+// 语义锚点：DOMAIN_TRANSITION 专用 permission_required producer。
+// 它复用普通 permission_required sentinel 形状，但 toolUseId 在这里本地生成，requestId 继续留给 bridge permission 握手。
 function rn(e, t, r, o, a) {
   return {
     type: "permission_required",
@@ -13419,10 +15957,11 @@ function rn(e, t, r, o, a) {
       fromDomain: e,
       toDomain: t,
       sourceTabId: o,
-      isSecondaryTab: a
-    }
+      isSecondaryTab: a,
+    },
   };
 }
+const __cpDomainTransitionPermissionRequiredFactory = rn;
 let on;
 let an;
 let nn;
@@ -13435,24 +15974,33 @@ const un = "__legacy_shared__";
 const hn = new Map();
 function __cpNormalizeBackgroundProviderConfig(e) {
   const t = e && typeof e == "object" ? e : {};
+  const r = String(t.baseUrl || "").trim();
+  const o = String(t.apiKey || "").trim();
+  const a = String(t.defaultModel || "").trim();
   return {
-    enabled: !!t.enabled,
-    baseUrl: String(t.baseUrl || "").trim(),
-    apiKey: String(t.apiKey || "").trim(),
-    defaultModel: String(t.defaultModel || "").trim(),
-    fastModel: String(t.fastModel || t.small_fast_model || "").trim()
+    enabled: !!(r && o && a),
+    baseUrl: r,
+    apiKey: o,
+    defaultModel: a,
+    fastModel: String(t.fastModel || t.small_fast_model || "").trim(),
   };
 }
 function __cpRequireBackgroundProviderConfig(e) {
   const t = __cpNormalizeBackgroundProviderConfig(e);
-  if (!t.enabled || !t.baseUrl) {
-    throw new Error("Custom provider is required. Please enable it in Claw in Chrome.");
+  if (!t.baseUrl) {
+    throw new Error(
+      "Custom provider is required. Please configure your custom provider in Claw in Chrome.",
+    );
   }
   if (!t.apiKey) {
-    throw new Error("Custom provider API key is required. Please update your settings in Claw in Chrome.");
+    throw new Error(
+      "Custom provider API key is required. Please update your settings in Claw in Chrome.",
+    );
   }
   if (!t.defaultModel) {
-    throw new Error("Custom provider default model is required. Please update your settings in Claw in Chrome.");
+    throw new Error(
+      "Custom provider default model is required. Please update your settings in Claw in Chrome.",
+    );
   }
   return t;
 }
@@ -13460,18 +16008,18 @@ function pn(e) {
   return e?.sessionId ?? un;
 }
 async function mn() {
-  const {
-    customProviderConfig: e
-  } = await chrome.storage.local.get("customProviderConfig");
+  const { customProviderConfig: e } = await chrome.storage.local.get(
+    "customProviderConfig",
+  );
   return __cpRequireBackgroundProviderConfig(e).defaultModel;
 }
 async function fn(e, t, r) {
-  const o = function (e, t) {
+  const o = (function (e, t) {
     const r = pn(e);
     if (e?.tabGroupId !== undefined) {
       hn.set(r, {
         tabGroupId: e.tabGroupId,
-        lastActiveAt: Date.now()
+        lastActiveAt: Date.now(),
       });
       return e.tabGroupId;
     }
@@ -13482,11 +16030,11 @@ async function fn(e, t, r) {
     } else {
       hn.set(r, {
         tabGroupId: t,
-        lastActiveAt: Date.now()
+        lastActiveAt: Date.now(),
       });
       return t;
     }
-  }(r, t);
+  })(r, t);
   if (sn) {
     sn.context.tabId = e;
     sn.context.tabGroupId = o;
@@ -13503,14 +16051,14 @@ async function fn(e, t, r) {
     sessionScope: r,
     model: n,
     onPermissionRequired: async (e, t) => await Sn(e, t),
-    refreshClient: gn
+    refreshClient: gn,
   });
   return sn;
 }
 async function gn() {
-  const {
-    customProviderConfig: e
-  } = await chrome.storage.local.get("customProviderConfig");
+  const { customProviderConfig: e } = await chrome.storage.local.get(
+    "customProviderConfig",
+  );
   const t = __cpRequireBackgroundProviderConfig(e);
   const r = t.apiKey;
   const o = t.baseUrl;
@@ -13526,24 +16074,32 @@ async function gn() {
   on = new ua({
     baseURL: o,
     dangerouslyAllowBrowser: true,
-    apiKey: r
+    apiKey: r,
   });
   return on;
 }
-const bn = e => ({
-  content: [{
-    type: "text",
-    text: e
-  }],
-  is_error: true
+const bn = (e) => ({
+  content: [
+    {
+      type: "text",
+      text: e,
+    },
+  ],
+  is_error: true,
 });
+// 语义锚点：MCP tool_call 的标准错误返回结构（tool_result.error 的兼容格式）
+// 语义锚点：这里产出的 error payload 不包含 requestId；bridge/tool 层始终用 toolUseId 关联这次失败结果。
+const __cpMcpToolErrorResultFactory = bn;
 async function wn(e) {
+  // 语义锚点：MCP 工具执行主入口（tab 编排、域名策略、权限提示与结果回传）
   const t = crypto.randomUUID();
+  // 语义锚点：内层 tool_use id 与外层 toolUseId 分工：
+  // `t` 只服务 provider/processToolResults；`e.toolUseId` 继续作为 bridge tool_call/tool_result 的归属键。
   const r = e.clientId;
   const o = Date.now();
   const n = {};
   let s = Date.now();
-  const i = e => {
+  const i = (e) => {
     const t = Date.now();
     n[e] = t - s;
     s = t;
@@ -13554,7 +16110,7 @@ async function wn(e) {
       const t = cn;
       cn = undefined;
       ln = undefined;
-      m("claude_chrome.mcp.tool_called", {
+      const a = {
         tool_name: e.toolName,
         client_id: r,
         model: c,
@@ -13562,8 +16118,10 @@ async function wn(e) {
         error_type: "navigation_blocked",
         duration_ms: Date.now() - o,
         tool_use_id: e.toolUseId,
-        session_id: e.sessionScope?.sessionId
-      });
+        session_id: e.sessionScope?.sessionId,
+      };
+      m("claude_chrome.mcp.tool_called", a);
+      __cpBackgroundDebugTrack("claude_chrome.mcp.tool_called", a, "warn");
       return bn(t);
     }
     cn = undefined;
@@ -13575,14 +16133,21 @@ async function wn(e) {
   let h;
   s = Date.now();
   try {
-    const t = await F.getTabForMcp(e.tabId, e.tabGroupId, e.sessionScope !== undefined);
+    // 语义锚点：tab 编排阶段。
+    // 这里统一决定这次工具实际落到哪个 tab / group / domain / url，再把结果提供给后续权限和执行链。
+    // tabs_context_mcp / tabs_create_mcp / tabs_close_mcp 负责把 group 与 availableTabs 维持成稳定上下文，其他浏览器工具再在这里消费那份上下文。
+    const t = await F.getTabForMcp(
+      e.tabId,
+      e.tabGroupId,
+      e.sessionScope !== undefined,
+    );
     l = t.tabId;
     d = t.domain;
     u = t.url;
     i("tab_orchestration_ms");
   } catch {
     i("tab_orchestration_ms");
-    m("claude_chrome.mcp.tool_called", {
+    const t = {
       tool_name: e.toolName,
       client_id: r,
       model: c,
@@ -13591,15 +16156,17 @@ async function wn(e) {
       duration_ms: Date.now() - o,
       tool_use_id: e.toolUseId,
       session_id: e.sessionScope?.sessionId,
-      ...n
-    });
+      ...n,
+    };
+    m("claude_chrome.mcp.tool_called", t);
+    __cpBackgroundDebugTrack("claude_chrome.mcp.tool_called", t, "warn");
     return bn("No tabs available. Please open a new tab or window in Chrome.");
   }
   if (u) {
     const t = await O.getCategory(u);
     i("blocklist_ms");
     if (Ja(t)) {
-      m("claude_chrome.mcp.tool_called", {
+      const o = {
         tool_name: e.toolName,
         client_id: r,
         model: c,
@@ -13610,10 +16177,16 @@ async function wn(e) {
         session_id: e.sessionScope?.sessionId,
         ...n,
         ...(d && {
-          domain: d
-        })
-      });
-      return bn(t === "category_org_blocked" ? "This site is blocked by your organization's policy." : "This site is blocked.");
+          domain: d,
+        }),
+      };
+      m("claude_chrome.mcp.tool_called", o);
+      __cpBackgroundDebugTrack("claude_chrome.mcp.tool_called", o, "warn");
+      return bn(
+        t === "category_org_blocked"
+          ? "This site is blocked by your organization's policy."
+          : "This site is blocked.",
+      );
     }
   }
   if (l !== undefined && a()) {
@@ -13623,7 +16196,7 @@ async function wn(e) {
       const t = e.frozen;
       if (e.discarded || t) {
         await chrome.tabs.update(l, {
-          active: true
+          active: true,
         });
       }
     } catch (_) {}
@@ -13634,7 +16207,7 @@ async function wn(e) {
     try {
       if (!(await K.isDebuggerAttached(l))) {
         await K.attachDebugger(l);
-        await new Promise(e => setTimeout(e, 500));
+        await new Promise((e) => setTimeout(e, 500));
       }
       i("debugger_attach_ms");
     } catch (v) {
@@ -13647,17 +16220,20 @@ async function wn(e) {
   let g = false;
   try {
     if (l !== undefined) {
-      await async function (e, t, r, o) {
+      // 语义锚点：执行前的 indicator/debugger 挂载链。
+      // 只要工具落到真实 tab，这里就会登记运行态、点亮前缀，并记录 requestId -> tab 的运行中账本。
+      // tabs_context_mcp 首次建组前若还没有真实 tab，上面的 no-tab 例外会先放行，但不会提前点亮 indicator。
+      await (async function (e, t, r, o) {
         yn.set(e, {
           toolName: t,
           requestId: r,
           startTime: Date.now(),
-          errorCallback: o
+          errorCallback: o,
         });
         await F.addTabToIndicatorGroup({
           tabId: e,
           isRunning: true,
-          isMcp: true
+          isMcp: true,
         });
         if (_n.has(e)) {
           const t = _n.get(e);
@@ -13670,19 +16246,20 @@ async function wn(e) {
           F.addLoadingPrefix(e).catch(() => {});
           _n.set(e, null);
         }
-      }(l, e.toolName, t, e => {
+      })(l, e.toolName, t, (e) => {
         cn = e;
         ln = Date.now();
       });
     }
+    // 语义锚点：到这里为止，tabs 工具簇负责“上下文存在且可引用”，wn 才负责“把普通工具接到具体 tab + indicator + tool_result 主链”。
     const r = await fn(l, e.tabGroupId, e.sessionScope);
     const o = {
       onStageTiming: (e, t) => {
         n[e] = t;
-      }
+      },
     };
     if (e.source === "bridge") {
-      const t = function (e, t) {
+      const t = (function (e, t) {
         if (!e || e === "ask") {
           return;
         }
@@ -13692,37 +16269,49 @@ async function wn(e) {
           o.setTurnApprovedDomains(t);
         }
         return o;
-      }(e.permissionMode, e.allowedDomains);
+      })(e.permissionMode, e.allowedDomains);
       if (t) {
         o.permissionManager = t;
       }
       if (e.handlePermissionPrompts && e.toolUseId) {
-        o.onPermissionRequired = async t => function (e, t) {
-          const r = crypto.randomUUID();
-          return new Promise(o => {
-            Ca.set(r, {
-              resolve: o
+        // 语义锚点：bridge 权限请求握手（permission_request -> permission_response）
+        o.onPermissionRequired = async (t) =>
+          (function (e, t) {
+            const r = crypto.randomUUID();
+            return new Promise((o) => {
+              // 语义锚点：requestId 只负责 bridge permission_request/permission_response 对账；
+              // toolUseId 继续挂在外层消息上，用来标识这次权限请求属于哪次 tool_call。
+              // tabId 不进入 websocket 权限账本；真实执行 tab 仍留在本地 tool executor / sidepanel scope。
+              __cpMcpBridgePendingPermissionResponseLedger.set(r, {
+                resolve: o,
+              });
+              La({
+                type: __cpMcpBridgeSocketMessageTypePermissionRequest,
+                [__cpMcpBridgeSocketFieldToolUseId]: e,
+                [__cpMcpBridgeSocketFieldRequestId]: r,
+                [__cpMcpBridgeSocketFieldToolType]: t.tool,
+                [__cpMcpBridgeSocketFieldUrl]: t.url,
+                [__cpMcpBridgeSocketFieldActionData]: t.actionData,
+              });
             });
-            La({
-              type: "permission_request",
-              tool_use_id: e,
-              request_id: r,
-              tool_type: t.tool,
-              url: t.url,
-              action_data: t.actionData
-            });
-          });
-        }(e.toolUseId, t);
+          })(e.toolUseId, t);
       }
     }
     s = Date.now();
     g = true;
-    [h] = await r.processToolResults([{
-      type: "tool_use",
-      id: t,
-      name: e.toolName,
-      input: e.args
-    }], o);
+    // 语义锚点：真正执行工具的 provider 主调用。
+    // 外层把本次 tool 伪装成单条 `tool_use`，再由 processToolResults 返回标准 MCP content / error 结构。
+    [h] = await r.processToolResults(
+      [
+        {
+          type: "tool_use",
+          id: t,
+          name: e.toolName,
+          input: e.args,
+        },
+      ],
+      o,
+    );
     i("tool_execute_ms");
     f = h?.is_error === true;
   } catch (v) {
@@ -13730,23 +16319,31 @@ async function wn(e) {
       i("tool_execute_ms");
     }
     f = true;
-    if (v instanceof Error && (v.message.includes("401") || v.message.includes("authentication") || v.message.includes("invalid x-api-key"))) {
+    if (
+      v instanceof Error &&
+      (v.message.includes("401") ||
+        v.message.includes("authentication") ||
+        v.message.includes("invalid x-api-key"))
+    ) {
       on = undefined;
       an = undefined;
       nn = undefined;
       p = "authentication_failed";
-      h = bn("Authentication failed. Please check your custom provider settings.");
+      h = bn(
+        "Authentication failed. Please check your custom provider settings.",
+      );
     } else {
       p = "execution_error";
       h = bn(v instanceof Error ? v.message : String(v));
     }
   }
   if (l !== undefined) {
+    // 语义锚点：执行结束后的 indicator/completion prefix 收口链。
     In(l, r);
   }
   const b = u ? fa(u) : undefined;
   const w = l !== undefined && K.isScreencastActive(l);
-  m("claude_chrome.mcp.tool_called", {
+  const S = {
     tool_name: e.toolName,
     client_id: r,
     model: c,
@@ -13759,15 +16356,21 @@ async function wn(e) {
     screencast_active: w,
     ...n,
     ...(d && {
-      domain: d
+      domain: d,
     }),
     ...(b && {
-      app: b
+      app: b,
     }),
     ...(p && {
-      error_type: p
-    })
-  });
+      error_type: p,
+    }),
+  };
+  m("claude_chrome.mcp.tool_called", S);
+  __cpBackgroundDebugTrack(
+    "claude_chrome.mcp.tool_called",
+    S,
+    f ? "warn" : "info",
+  );
   return h;
 }
 const yn = new Map();
@@ -13777,6 +16380,8 @@ function In(e, t) {
   if (yn.has(e)) {
     yn.get(e);
     yn.delete(e);
+    // 语义锚点：tab 执行完成后的延迟收尾。
+    // 如果这段时间内没有新的工具继续占用该 tab，就切 completion prefix 并尝试卸载 debugger。
     const t = setTimeout(async () => {
       if (!yn.has(e) && _n.has(e)) {
         F.addCompletionPrefix(e).catch(() => {});
@@ -13794,97 +16399,195 @@ function kn(e) {
   if (t) {
     clearTimeout(t);
   }
+  // 语义锚点：强制移除 indicator/prefix 的兜底清理入口。
   _n.delete(e);
   F.removePrefix(e).catch(() => {});
 }
 async function Tn() {
   try {
     const e = await F.getAllGroups();
+    // 语义锚点：service worker 重启或恢复时，批量清理遗留的运行态前缀。
     for (const t of e) {
       kn(t.mainTabId);
     }
   } catch (e) {}
 }
+// 语义锚点：background 侧 permission popup 串行队列，避免多个权限窗/前缀状态并发互相覆盖。
 let xn = Promise.resolve(true);
 async function Sn(e, t) {
-  const r = xn.then(() => async function (e, t) {
-    const r = crypto.randomUUID();
-    const o = Date.now();
-    const a = _n.get(t);
-    if (a) {
-      clearTimeout(a);
-    }
-    await F.addPermissionPrefix(t);
-    _n.set(t, null);
-    await chrome.storage.local.set({
-      [`mcp_prompt_${r}`]: {
-        prompt: e,
-        tabId: t,
-        timestamp: Date.now()
+  const r = xn.then(() =>
+    (async function (e, t) {
+      const r = crypto.randomUUID();
+      const o = Date.now();
+      // 语义锚点：PLAN_APPROVAL 这类 tab-less 审批允许 tabId 为空；
+      // 前缀与 popup query 会自动退化成 requestId-only，不强依赖真实浏览器 tab。
+      const __cpPermissionTargetTabId =
+        Number.isFinite(Number(t)) && Number(t) > 0
+          ? Math.trunc(Number(t))
+          : null;
+      const n =
+        __cpPermissionTargetTabId === null
+          ? null
+          : _n.get(__cpPermissionTargetTabId);
+      if (n) {
+        clearTimeout(n);
       }
-    });
-    m("claude_chrome.permission.prompted", {
-      permission_type: e.type,
-      tool_type: e.tool,
-      tab_id: t
-    });
-    return new Promise(a => {
-      let n;
-      let s = false;
-      const i = async (i = false) => {
-        if (!s) {
-          s = true;
-          chrome.runtime.onMessage.removeListener(c);
-          m("claude_chrome.permission.responded", {
+      const a = {
+        permission_type: e.type,
+        tool_type: e.tool,
+        tab_id: __cpPermissionTargetTabId,
+      };
+      const { [__cpAutoApproveAllPermissionRequestsStorageKey]: c } =
+        await chrome.storage.local.get(
+          __cpAutoApproveAllPermissionRequestsStorageKey,
+        );
+      if (c === true) {
+        m("claude_chrome.permission.prompted", a);
+        __cpBackgroundDebugTrack("claude_chrome.permission.prompted", {
+          ...a,
+          request_id: r,
+          url: e.url,
+          action_data: e.actionData,
+          tool_use_id: e.toolUseId,
+          auto_approved: true,
+        });
+        m("claude_chrome.permission.responded", {
+          permission_type: e.type,
+          tool_type: e.tool,
+          tab_id: __cpPermissionTargetTabId,
+          allowed: true,
+          response_time_ms: Date.now() - o,
+        });
+        __cpBackgroundDebugTrack(
+          "claude_chrome.permission.responded",
+          {
             permission_type: e.type,
             tool_type: e.tool,
-            tab_id: t,
-            allowed: i,
-            response_time_ms: Date.now() - o
-          });
-          await chrome.storage.local.remove(`mcp_prompt_${r}`);
-          if (n) {
-            chrome.windows.remove(n).catch(() => {});
-          }
-          await F.addLoadingPrefix(t);
-          _n.set(t, null);
-          a(i);
+            tab_id: __cpPermissionTargetTabId,
+            allowed: true,
+            response_time_ms: Date.now() - o,
+            request_id: r,
+            resolution: "auto_approved",
+            popup_window_id: null,
+          },
+          "info",
+        );
+        if (__cpPermissionTargetTabId !== null) {
+          await F.addLoadingPrefix(__cpPermissionTargetTabId);
+          _n.set(__cpPermissionTargetTabId, null);
         }
-      };
-      const c = e => {
-        if (e.type === "MCP_PERMISSION_RESPONSE" && e.requestId === r) {
-          i(e.allowed);
-        }
-      };
-      chrome.runtime.onMessage.addListener(c);
-      chrome.windows.create({
-        url: chrome.runtime.getURL(`sidepanel.html?tabId=${t}&mcpPermissionOnly=true&requestId=${r}`),
-        type: "popup",
-        width: 600,
-        height: 600,
-        focused: true
-      }, e => {
-        if (e) {
-          n = e.id;
-        } else {
-          i(false);
-        }
+        return true;
+      }
+      if (__cpPermissionTargetTabId !== null) {
+        await F.addPermissionPrefix(__cpPermissionTargetTabId);
+        _n.set(__cpPermissionTargetTabId, null);
+      }
+      await chrome.storage.local.set({
+        [__cpMcpPermissionPopupBuildStorageKey(r)]:
+          __cpMcpPermissionPopupCreateStorageEntry(
+            e,
+            __cpPermissionTargetTabId,
+            Date.now(),
+          ),
       });
-      setTimeout(() => {
-        i(false);
-      }, 30000);
-    });
-  }(e, t));
+      // 语义锚点：permission prompt storage payload 里的 tabId/timestamp 主要给 background 账本与清理链使用；sidepanel consumer 实际只读 prompt。
+      m("claude_chrome.permission.prompted", a);
+      __cpBackgroundDebugTrack("claude_chrome.permission.prompted", {
+        ...a,
+        request_id: r,
+        url: e.url,
+        action_data: e.actionData,
+        tool_use_id: e.toolUseId,
+      });
+      return new Promise((a) => {
+        // 语义锚点：这里把 requestId 绑定到 pending permission promise；sidepanel 的 requestId/allowed 回包会 resolve 它。
+        // 语义锚点：popup 权限链的 requestId 是 background <-> sidepanel 的唯一关联键；
+        // toolUseId 留在 bridge/tool 层，tabId 只负责 sidepanel 作用域与前缀恢复，不参与最终 resolve。
+        let n;
+        let s = false;
+        const i = async (i = false, c = i ? "approved" : "rejected") => {
+          if (!s) {
+            s = true;
+            chrome.runtime.onMessage.removeListener(l);
+            m("claude_chrome.permission.responded", {
+              permission_type: e.type,
+              tool_type: e.tool,
+              tab_id: __cpPermissionTargetTabId,
+              allowed: i,
+              response_time_ms: Date.now() - o,
+            });
+            __cpBackgroundDebugTrack(
+              "claude_chrome.permission.responded",
+              {
+                permission_type: e.type,
+                tool_type: e.tool,
+                tab_id: __cpPermissionTargetTabId,
+                allowed: i,
+                response_time_ms: Date.now() - o,
+                request_id: r,
+                resolution: c,
+                popup_window_id: n ?? null,
+              },
+              i ? "info" : "warn",
+            );
+            await chrome.storage.local.remove(
+              __cpMcpPermissionPopupBuildStorageKey(r),
+            );
+            if (n) {
+              // 语义锚点：收到 runtime MCP_PERMISSION_RESPONSE 后，background 会主动关闭 popup；手动关闭则留给 timeout 兜底。
+              chrome.windows.remove(n).catch(() => {});
+            }
+            if (__cpPermissionTargetTabId !== null) {
+              await F.addLoadingPrefix(__cpPermissionTargetTabId);
+              _n.set(__cpPermissionTargetTabId, null);
+            }
+            a(i);
+          }
+        };
+        const l = (e) => {
+          // 语义锚点：permission 链只消费 MCP_PERMISSION_RESPONSE；
+          // pairing_dismissed 属于配对链 no-op，不会触发这里的 pending permission promise。
+          if (
+            e.type === __cpMcpBridgeRuntimeMessageTypeMcpPermissionResponse &&
+            e[__cpMcpBridgeRuntimeMessageFieldRequestId] === r
+          ) {
+            i(e[__cpMcpBridgeRuntimeMessageFieldAllowed], "runtime_response");
+          }
+        };
+        chrome.runtime.onMessage.addListener(l);
+        // 语义锚点：popup URL/window 配置已收口到 helper；这里只负责把 tabId/requestId 注入到 sidepanel permission-only 页面。
+        chrome.windows.create(
+          __cpMcpPermissionPopupCreateWindowOptions(chrome.runtime.getURL, {
+            tabId: __cpPermissionTargetTabId,
+            requestId: r,
+          }),
+          (e) => {
+            if (e) {
+              n = e.id;
+            } else {
+              // 语义锚点：popup 创建失败按拒绝处理，避免 pending promise 长时间悬挂。
+              i(false, "popup_create_failed");
+            }
+          },
+        );
+        setTimeout(() => {
+          // 语义锚点：手动关闭 permission popup 不会立即回包；background 侧最终由 30s timeout 兜底拒绝。
+          i(false, "timeout");
+        }, __cpMcpPermissionPopupResponseTimeoutMs);
+      });
+    })(e, t),
+  );
   xn = r.catch(() => false);
   return r;
 }
+const __cpMcpPopupPermissionPromptHandler = Sn;
 let En = false;
 function Cn() {
   if ("ServiceWorkerGlobalScope" in globalThis) {
     if (!En) {
       En = true;
-      chrome.webNavigation.onCommitted.addListener(async e => {
-        if (e.frameId !== 0 || (t = e.tabId, !yn.has(t))) {
+      chrome.webNavigation.onCommitted.addListener(async (e) => {
+        if (e.frameId !== 0 || ((t = e.tabId), !yn.has(t))) {
           return;
         }
         var t;
@@ -13892,25 +16595,28 @@ function Cn() {
         if (!r) {
           return;
         }
-        const {
-          isMainTab: o,
-          isSecondaryTab: a
-        } = await Ya(e.tabId, e.tabId);
+        const { isMainTab: o, isSecondaryTab: a } = await Ya(e.tabId, e.tabId);
         if (!o && !a) {
           return;
         }
         (await fn(e.tabId)).context.permissionManager;
         try {
           const t = await en(e.tabId, e.url);
-          if (t === "category1" || t === "category2" || t === "category_org_blocked") {
+          if (
+            t === "category1" ||
+            t === "category2" ||
+            t === "category_org_blocked"
+          ) {
             if (t === "category1") {
               const t = tn(e.url);
               await chrome.tabs.update(e.tabId, {
-                url: t
+                url: t,
               });
             }
             if (r?.errorCallback) {
-              r.errorCallback("Cannot access this page. Claw cannot assist with the content on this page.");
+              r.errorCallback(
+                "Cannot access this page. Claw cannot assist with the content on this page.",
+              );
             }
             In(e.tabId);
             return;
@@ -13922,5 +16628,67 @@ function Cn() {
     }
   }
 }
-export { Ua as $, Ze as A, we as B, ua as C, pa as D, Q as E, Fe as F, qe as G, ee as H, fa as I, te as J, K, J as L, Be as M, R as N, Ya as O, en as P, Ja as Q, tn as R, Za as S, rn as T, ce as U, le as V, O as W, oe as X, Tn as Y, bn as Z, wn as _, ve as a, Pa as a0, Fa as a1, Cn as a2, Te as a3, $a as a4, Oa as a5, ie as b, Y as c, se as d, x as e, _e as f, N as g, pe as h, De as i, Ie as j, je as k, Oe as l, $e as m, Le as n, He as o, re as p, ye as q, Pe as r, Z as s, F as t, Ke as u, Re as v, Ae as w, Ue as x, Ee as y, Ne as z };
-
+// 语义锚点：MCP 工具执行入口别名（供后续定位与外提时搜索）
+const __cpMcpToolExecutor = wn;
+export {
+  Ua as $,
+  Ze as A,
+  we as B,
+  ua as C,
+  pa as D,
+  Q as E,
+  Fe as F,
+  qe as G,
+  ee as H,
+  fa as I,
+  te as J,
+  K,
+  J as L,
+  Be as M,
+  R as N,
+  Ya as O,
+  en as P,
+  Ja as Q,
+  tn as R,
+  Za as S,
+  rn as T,
+  ce as U,
+  le as V,
+  O as W,
+  oe as X,
+  Tn as Y,
+  bn as Z,
+  wn as _,
+  ve as a,
+  Pa as a0,
+  Fa as a1,
+  Cn as a2,
+  Te as a3,
+  $a as a4,
+  Oa as a5,
+  ie as b,
+  Y as c,
+  se as d,
+  x as e,
+  _e as f,
+  N as g,
+  pe as h,
+  De as i,
+  Ie as j,
+  je as k,
+  Oe as l,
+  $e as m,
+  Le as n,
+  He as o,
+  re as p,
+  ye as q,
+  Pe as r,
+  Z as s,
+  F as t,
+  Ke as u,
+  Re as v,
+  Ae as w,
+  Ue as x,
+  Ee as y,
+  Ne as z,
+};

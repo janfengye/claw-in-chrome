@@ -1,4 +1,5 @@
 (function () {
+  const contract = globalThis.__CP_CONTRACT__?.customProvider || {};
   const ANTHROPIC_FORMAT = "anthropic";
   const OPENAI_CHAT_FORMAT = "openai_chat";
   const OPENAI_RESPONSES_FORMAT = "openai_responses";
@@ -8,21 +9,40 @@
   const MIN_CONTEXT_WINDOW = 20000;
   const FETCH_TIMEOUT_MS = 15000;
   const REASONING_EFFORT_VALUES = ["none", "low", "medium", "high", "max"];
-  const LEGACY_STORAGE_KEY = "customProviderConfig";
-  const PROFILES_STORAGE_KEY = "customProviderProfiles";
-  const ACTIVE_PROFILE_STORAGE_KEY = "customProviderActiveProfileId";
-  const BACKUP_KEY = "customProviderOriginalApiKey";
-  const ANTHROPIC_API_KEY_STORAGE_KEY = "anthropicApiKey";
-  const FETCHED_MODELS_CACHE_KEY = "customProviderFetchedModelsCache";
-  const SELECTED_MODEL_STORAGE_KEY = "selectedModel";
-  const SELECTED_MODEL_QUICK_MODE_STORAGE_KEY = "selectedModelQuickMode";
-  const MODEL_SELECTION_SYNC_SIGNATURE_KEY = "customProviderSelectedModelSyncSignature";
-  const QUICK_MODEL_SELECTION_SYNC_SIGNATURE_KEY = "customProviderSelectedModelQuickModeSyncSignature";
+  const LEGACY_STORAGE_KEY = contract.STORAGE_KEY || "customProviderConfig";
+  const PROFILES_STORAGE_KEY =
+    contract.PROFILES_STORAGE_KEY || "customProviderProfiles";
+  const ACTIVE_PROFILE_STORAGE_KEY =
+    contract.ACTIVE_PROFILE_STORAGE_KEY || "customProviderActiveProfileId";
+  const BACKUP_KEY = contract.BACKUP_KEY || "customProviderOriginalApiKey";
+  const ANTHROPIC_API_KEY_STORAGE_KEY =
+    contract.ANTHROPIC_API_KEY_STORAGE_KEY || "anthropicApiKey";
+  const FETCHED_MODELS_CACHE_KEY =
+    contract.FETCHED_MODELS_CACHE_KEY || "customProviderFetchedModelsCache";
+  const SELECTED_MODEL_STORAGE_KEY =
+    contract.SELECTED_MODEL_STORAGE_KEY || "selectedModel";
+  const SELECTED_MODEL_QUICK_MODE_STORAGE_KEY =
+    contract.SELECTED_MODEL_QUICK_MODE_STORAGE_KEY || "selectedModelQuickMode";
+  const MODEL_SELECTION_SYNC_SIGNATURE_KEY =
+    contract.MODEL_SELECTION_SYNC_SIGNATURE_KEY ||
+    "customProviderSelectedModelSyncSignature";
+  const QUICK_MODEL_SELECTION_SYNC_SIGNATURE_KEY =
+    contract.QUICK_MODEL_SELECTION_SYNC_SIGNATURE_KEY ||
+    "customProviderSelectedModelQuickModeSyncSignature";
+  const HTTP_PROVIDER_STORAGE_KEY =
+    contract.HTTP_PROVIDER_STORAGE_KEY || "customProviderAllowHttp";
+  const HTTP_PROVIDER_MIGRATED_KEY =
+    contract.HTTP_PROVIDER_MIGRATED_KEY || "customProviderAllowHttpMigrated";
+  const DEFAULT_HTTP_PROVIDER_ENABLED = true;
+  const HTTP_PROVIDER_DISABLED_MESSAGE =
+    "HTTP 协议未启用。请前往 Options 打开“允许 HTTP 协议”后再使用 http:// 地址。";
   const FETCHED_MODELS_CACHE_LIMIT = 24;
   const HEALTH_CHECK_PROMPT = "Reply with OK only.";
   const HEALTH_CHECK_MAX_TOKENS = 64;
   function normalizeFormat(value) {
-    const format = String(value || "").trim().toLowerCase();
+    const format = String(value || "")
+      .trim()
+      .toLowerCase();
     if (!format || format === ANTHROPIC_FORMAT) {
       return ANTHROPIC_FORMAT;
     }
@@ -39,22 +59,36 @@
     if (explicitFormat) {
       return normalizeFormat(explicitFormat);
     }
-    const baseUrl = String(source?.baseUrl || "").trim().toLowerCase();
+    const baseUrl = String(source?.baseUrl || "")
+      .trim()
+      .toLowerCase();
     if (/\/responses$/i.test(baseUrl)) {
       return OPENAI_RESPONSES_FORMAT;
     }
     if (/\/chat\/completions$/i.test(baseUrl)) {
       return OPENAI_CHAT_FORMAT;
     }
-    const name = String(source?.name || "").trim().toLowerCase();
-    const model = String(source?.defaultModel || "").trim().toLowerCase();
-    if (name.includes("openai") || name.includes("gpt") || model.startsWith("gpt-") || model.startsWith("chatgpt") || model.length > 1 && model.startsWith("o") && /\d/.test(model[1])) {
+    const name = String(source?.name || "")
+      .trim()
+      .toLowerCase();
+    const model = String(source?.defaultModel || "")
+      .trim()
+      .toLowerCase();
+    if (
+      name.includes("openai") ||
+      name.includes("gpt") ||
+      model.startsWith("gpt-") ||
+      model.startsWith("chatgpt") ||
+      (model.length > 1 && model.startsWith("o") && /\d/.test(model[1]))
+    ) {
       return OPENAI_CHAT_FORMAT;
     }
     return DEFAULT_FORMAT;
   }
   function normalizeReasoningEffort(value) {
-    const effort = String(value || "").trim().toLowerCase();
+    const effort = String(value || "")
+      .trim()
+      .toLowerCase();
     return REASONING_EFFORT_VALUES.includes(effort) ? effort : "medium";
   }
   function normalizeContextWindow(value) {
@@ -76,15 +110,30 @@
     return {
       name: String(source.name || "").trim(),
       format: inferFormat(source),
-      baseUrl: String(source.baseUrl || "").trim().replace(/\/+$/, ""),
+      baseUrl: String(source.baseUrl || "")
+        .trim()
+        .replace(/\/+$/, ""),
       apiKey: String(source.apiKey || "").trim(),
       defaultModel: String(source.defaultModel || "").trim(),
-      fastModel: String(source.fastModel || source.small_fast_model || "").trim(),
+      fastModel: String(
+        source.fastModel || source.small_fast_model || "",
+      ).trim(),
       reasoningEffort: normalizeReasoningEffort(source.reasoningEffort),
       maxOutputTokens: normalizeMaxOutputTokens(source.maxOutputTokens),
       contextWindow: normalizeContextWindow(source.contextWindow),
-      fetchedModels: normalizeFetchedModels(source.fetchedModels)
+      fetchedModels: normalizeFetchedModels(source.fetchedModels),
     };
+  }
+  function isHttpBaseUrl(value) {
+    const raw = String(value || "").trim();
+    if (!raw) {
+      return false;
+    }
+    try {
+      return String(new URL(raw).protocol || "").toLowerCase() === "http:";
+    } catch {
+      return /^http:\/\//i.test(raw);
+    }
   }
   function createEmptyConfig() {
     return {
@@ -97,14 +146,21 @@
       reasoningEffort: "medium",
       maxOutputTokens: DEFAULT_MAX_OUTPUT_TOKENS,
       contextWindow: DEFAULT_CONTEXT_WINDOW,
-      fetchedModels: []
+      fetchedModels: [],
     };
   }
   function joinUrl(baseUrl, suffix) {
     return `${String(baseUrl || "").replace(/\/+$/, "")}/${String(suffix || "").replace(/^\/+/, "")}`;
   }
+  function stripOpenAIEndpointSuffix(baseUrl) {
+    return String(baseUrl || "")
+      .replace(/\/+$/, "")
+      .replace(/\/(?:chat\/completions|responses)$/i, "");
+  }
   function buildRequestUrl(baseUrl, format) {
-    const normalizedBaseUrl = String(baseUrl || "").trim().replace(/\/+$/, "");
+    const normalizedBaseUrl = String(baseUrl || "")
+      .trim()
+      .replace(/\/+$/, "");
     const normalizedFormat = normalizeFormat(format);
     if (!normalizedBaseUrl) {
       return "";
@@ -113,14 +169,14 @@
       if (/\/chat\/completions$/i.test(normalizedBaseUrl)) {
         return normalizedBaseUrl;
       } else {
-        return normalizedBaseUrl + "/chat/completions";
+        return stripOpenAIEndpointSuffix(normalizedBaseUrl) + "/chat/completions";
       }
     }
     if (normalizedFormat === OPENAI_RESPONSES_FORMAT) {
       if (/\/responses$/i.test(normalizedBaseUrl)) {
         return normalizedBaseUrl;
       } else {
-        return normalizedBaseUrl + "/responses";
+        return stripOpenAIEndpointSuffix(normalizedBaseUrl) + "/responses";
       }
     }
     if (/\/messages$/i.test(normalizedBaseUrl)) {
@@ -136,13 +192,37 @@
     if (!payload || typeof payload !== "object") {
       return fallback;
     }
-    const candidates = [payload.error, payload.message, payload.detail, payload.title, payload.reason, payload.msg, payload.err_msg, payload.error_msg, payload.statusText, payload.responseText, payload.base_resp, payload.baseResp];
+    const candidates = [
+      payload.error,
+      payload.message,
+      payload.detail,
+      payload.title,
+      payload.reason,
+      payload.msg,
+      payload.err_msg,
+      payload.error_msg,
+      payload.statusText,
+      payload.responseText,
+      payload.base_resp,
+      payload.baseResp,
+    ];
     for (const candidate of candidates) {
       if (typeof candidate === "string" && candidate.trim()) {
         return candidate.trim();
       }
       if (candidate && typeof candidate === "object") {
-        const nested = [candidate.message, candidate.error, candidate.detail, candidate.type, candidate.reason, candidate.msg, candidate.err_msg, candidate.error_msg, candidate.status_msg, candidate.statusMessage];
+        const nested = [
+          candidate.message,
+          candidate.error,
+          candidate.detail,
+          candidate.type,
+          candidate.reason,
+          candidate.msg,
+          candidate.err_msg,
+          candidate.error_msg,
+          candidate.status_msg,
+          candidate.statusMessage,
+        ];
         for (const item of nested) {
           if (typeof item === "string" && item.trim()) {
             return item.trim();
@@ -153,10 +233,21 @@
     return fallback;
   }
   function sortModels(models) {
-    const conversationalHints = ["claude", "gpt", "o1", "o3", "o4", "o5", "sonnet", "opus", "haiku", "chat"];
+    const conversationalHints = [
+      "claude",
+      "gpt",
+      "o1",
+      "o3",
+      "o4",
+      "o5",
+      "sonnet",
+      "opus",
+      "haiku",
+      "chat",
+    ];
     function score(model) {
       const value = String(model?.value || "").toLowerCase();
-      if (conversationalHints.some(hint => value.includes(hint))) {
+      if (conversationalHints.some((hint) => value.includes(hint))) {
         return 0;
       } else {
         return 1;
@@ -168,7 +259,10 @@
       if (leftScore !== rightScore) {
         return leftScore - rightScore;
       }
-      return String(left.label || left.value).localeCompare(String(right.label || right.value), "en");
+      return String(left.label || left.value).localeCompare(
+        String(right.label || right.value),
+        "en",
+      );
     });
   }
   function dedupeModels(models) {
@@ -182,7 +276,7 @@
         map.set(value, {
           value,
           label: String(item?.label || value).trim() || value,
-          manual: !!item?.manual
+          manual: !!item?.manual,
         });
       }
     }
@@ -200,7 +294,7 @@
         map.set(value, {
           value,
           label: String(item?.label || item?.name || value).trim() || value,
-          manual: !!item?.manual
+          manual: !!item?.manual,
         });
       } else if (item?.manual) {
         current.manual = true;
@@ -222,7 +316,10 @@
     if (!next.baseUrl || !next.apiKey) {
       return "";
     }
-    return "provider_" + hashProviderCacheKey([next.format, next.baseUrl, next.apiKey].join("\n"));
+    return (
+      "provider_" +
+      hashProviderCacheKey([next.format, next.baseUrl, next.apiKey].join("\n"))
+    );
   }
   function normalizeFetchedModelsCache(raw) {
     const source = raw && typeof raw === "object" ? raw : {};
@@ -237,7 +334,7 @@
       }
       entries[key] = {
         models,
-        updatedAt: Number.isFinite(entry?.updatedAt) ? entry.updatedAt : 0
+        updatedAt: Number.isFinite(entry?.updatedAt) ? entry.updatedAt : 0,
       };
     }
     return entries;
@@ -271,22 +368,29 @@
       return normalizedModels;
     }
     const cache = await readFetchedModelsCache({
-      storageArea: storage
+      storageArea: storage,
     });
     cache[cacheKey] = {
       models: normalizedModels,
-      updatedAt: Date.now()
+      updatedAt: Date.now(),
     };
-    const prunedEntries = Object.entries(cache).sort(function (left, right) {
-      return (right[1]?.updatedAt || 0) - (left[1]?.updatedAt || 0);
-    }).slice(0, FETCHED_MODELS_CACHE_LIMIT);
+    const prunedEntries = Object.entries(cache)
+      .sort(function (left, right) {
+        return (right[1]?.updatedAt || 0) - (left[1]?.updatedAt || 0);
+      })
+      .slice(0, FETCHED_MODELS_CACHE_LIMIT);
     await storage.set({
-      [FETCHED_MODELS_CACHE_KEY]: Object.fromEntries(prunedEntries)
+      [FETCHED_MODELS_CACHE_KEY]: Object.fromEntries(prunedEntries),
     });
     return normalizedModels;
   }
   function createProfileId() {
-    return "provider_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+    return (
+      "provider_" +
+      Date.now().toString(36) +
+      "_" +
+      Math.random().toString(36).slice(2, 8)
+    );
   }
   function normalizeProfile(raw) {
     const config = normalizeConfig(raw);
@@ -301,7 +405,7 @@
       reasoningEffort: config.reasoningEffort,
       maxOutputTokens: config.maxOutputTokens,
       contextWindow: config.contextWindow,
-      fetchedModels: normalizeFetchedModels(raw?.fetchedModels)
+      fetchedModels: normalizeFetchedModels(raw?.fetchedModels),
     };
   }
   function hasUsableConfig(raw) {
@@ -314,7 +418,14 @@
   }
   function hasConfigContent(raw) {
     const config = normalizeConfig(raw);
-    return !!(config.name || config.baseUrl || config.apiKey || config.defaultModel || config.fastModel || normalizeFetchedModels(raw?.fetchedModels).length);
+    return !!(
+      config.name ||
+      config.baseUrl ||
+      config.apiKey ||
+      config.defaultModel ||
+      config.fastModel ||
+      normalizeFetchedModels(raw?.fetchedModels).length
+    );
   }
   function projectProfileToConfig(profile) {
     if (!profile) {
@@ -323,21 +434,99 @@
     return {
       name: String(profile.name || "").trim(),
       format: normalizeFormat(profile.format),
-      baseUrl: String(profile.baseUrl || "").trim().replace(/\/+$/, ""),
+      baseUrl: String(profile.baseUrl || "")
+        .trim()
+        .replace(/\/+$/, ""),
       apiKey: String(profile.apiKey || "").trim(),
       defaultModel: String(profile.defaultModel || "").trim(),
       fastModel: String(profile.fastModel || "").trim(),
       reasoningEffort: normalizeReasoningEffort(profile.reasoningEffort),
       maxOutputTokens: normalizeMaxOutputTokens(profile.maxOutputTokens),
       contextWindow: normalizeContextWindow(profile.contextWindow),
-      fetchedModels: normalizeFetchedModels(profile.fetchedModels)
+      fetchedModels: normalizeFetchedModels(profile.fetchedModels),
     };
+  }
+  function hasLegacyActiveHttpProvider(stored) {
+    const source = stored && typeof stored === "object" ? stored : {};
+    const profiles = Array.isArray(source[PROFILES_STORAGE_KEY])
+      ? source[PROFILES_STORAGE_KEY].map(normalizeProfile)
+      : [];
+    const activeProfileId = resolveActiveProfileId(
+      profiles,
+      source[ACTIVE_PROFILE_STORAGE_KEY],
+    );
+    const activeProfile =
+      profiles.find(function (profile) {
+        return profile.id === activeProfileId;
+      }) || null;
+    if (isHttpBaseUrl(activeProfile?.baseUrl)) {
+      return true;
+    }
+    return isHttpBaseUrl(source[LEGACY_STORAGE_KEY]?.baseUrl);
+  }
+  async function ensureHttpProviderSupportMigration(storage, stored) {
+    if (!storage) {
+      return DEFAULT_HTTP_PROVIDER_ENABLED;
+    }
+    const snapshot =
+      stored && typeof stored === "object"
+        ? stored
+        : await storage.get([
+            HTTP_PROVIDER_STORAGE_KEY,
+            HTTP_PROVIDER_MIGRATED_KEY,
+            LEGACY_STORAGE_KEY,
+            PROFILES_STORAGE_KEY,
+            ACTIVE_PROFILE_STORAGE_KEY,
+          ]);
+    if (typeof snapshot[HTTP_PROVIDER_STORAGE_KEY] === "boolean") {
+      return snapshot[HTTP_PROVIDER_STORAGE_KEY];
+    }
+    const shouldEnable =
+      hasLegacyActiveHttpProvider(snapshot) || DEFAULT_HTTP_PROVIDER_ENABLED;
+    const payload = {
+      [HTTP_PROVIDER_MIGRATED_KEY]: true,
+      [HTTP_PROVIDER_STORAGE_KEY]: shouldEnable,
+    };
+    await storage.set(payload);
+    return shouldEnable;
+  }
+  async function readHttpProviderSupportEnabled(options) {
+    const settings = options && typeof options === "object" ? options : {};
+    if (typeof settings.enabled === "boolean") {
+      return settings.enabled;
+    }
+    const storage = settings.storageArea || globalThis.chrome?.storage?.local;
+    if (!storage) {
+      return DEFAULT_HTTP_PROVIDER_ENABLED;
+    }
+    const stored =
+      settings.storedState && typeof settings.storedState === "object"
+        ? settings.storedState
+        : null;
+    if (stored && typeof stored[HTTP_PROVIDER_STORAGE_KEY] === "boolean") {
+      return stored[HTTP_PROVIDER_STORAGE_KEY];
+    }
+    return ensureHttpProviderSupportMigration(storage, stored);
+  }
+  async function assertHttpProviderAllowed(config, options) {
+    const next = normalizeConfig(config);
+    if (!next.baseUrl || !isHttpBaseUrl(next.baseUrl)) {
+      return next;
+    }
+    const enabled = await readHttpProviderSupportEnabled(options);
+    if (!enabled) {
+      throw new Error(HTTP_PROVIDER_DISABLED_MESSAGE);
+    }
+    return next;
   }
   function resolveActiveProfileId(profiles, requestedId) {
     const normalizedRequestedId = String(requestedId || "").trim();
-    if (normalizedRequestedId && profiles.some(function (profile) {
-      return profile.id === normalizedRequestedId;
-    })) {
+    if (
+      normalizedRequestedId &&
+      profiles.some(function (profile) {
+        return profile.id === normalizedRequestedId;
+      })
+    ) {
       return normalizedRequestedId;
     }
     return profiles[0]?.id || null;
@@ -356,7 +545,9 @@
     return stableSerialize({
       id: String(profile.id || "").trim(),
       format: normalizeFormat(profile.format),
-      baseUrl: String(profile.baseUrl || "").trim().replace(/\/+$/, "")
+      baseUrl: String(profile.baseUrl || "")
+        .trim()
+        .replace(/\/+$/, ""),
     });
   }
   function buildModelSelectionSyncSignature(profile) {
@@ -369,37 +560,61 @@
     }
     return stableSerialize({
       provider: buildProviderSelectionIdentity(profile),
-      model: defaultModel
+      model: defaultModel,
     });
   }
   function buildQuickModelSelectionSyncSignature(profile) {
     if (!profile || typeof profile !== "object") {
       return "";
     }
-    const quickModel = String(profile.fastModel || profile.small_fast_model || profile.defaultModel || "").trim();
+    const quickModel = String(
+      profile.fastModel ||
+        profile.small_fast_model ||
+        profile.defaultModel ||
+        "",
+    ).trim();
     if (!quickModel) {
       return "";
     }
     return stableSerialize({
       provider: buildProviderSelectionIdentity(profile),
-      model: quickModel
+      model: quickModel,
     });
   }
-  function buildModelSelectionSyncPayload(previousActiveProfile, nextActiveProfile) {
+  function buildModelSelectionSyncPayload(
+    previousActiveProfile,
+    nextActiveProfile,
+  ) {
     if (!nextActiveProfile || typeof nextActiveProfile !== "object") {
       return null;
     }
     const payload = {};
-    const previousStandardSignature = buildModelSelectionSyncSignature(previousActiveProfile);
-    const nextStandardSignature = buildModelSelectionSyncSignature(nextActiveProfile);
-    if (nextStandardSignature && previousStandardSignature !== nextStandardSignature) {
-      payload[SELECTED_MODEL_STORAGE_KEY] = String(nextActiveProfile.defaultModel || "").trim();
+    const previousStandardSignature = buildModelSelectionSyncSignature(
+      previousActiveProfile,
+    );
+    const nextStandardSignature =
+      buildModelSelectionSyncSignature(nextActiveProfile);
+    if (
+      nextStandardSignature &&
+      previousStandardSignature !== nextStandardSignature
+    ) {
+      payload[SELECTED_MODEL_STORAGE_KEY] = String(
+        nextActiveProfile.defaultModel || "",
+      ).trim();
       payload[MODEL_SELECTION_SYNC_SIGNATURE_KEY] = nextStandardSignature;
     }
-    const previousQuickSignature = buildQuickModelSelectionSyncSignature(previousActiveProfile);
-    const nextQuickSignature = buildQuickModelSelectionSyncSignature(nextActiveProfile);
+    const previousQuickSignature = buildQuickModelSelectionSyncSignature(
+      previousActiveProfile,
+    );
+    const nextQuickSignature =
+      buildQuickModelSelectionSyncSignature(nextActiveProfile);
     if (nextQuickSignature && previousQuickSignature !== nextQuickSignature) {
-      payload[SELECTED_MODEL_QUICK_MODE_STORAGE_KEY] = String(nextActiveProfile.fastModel || nextActiveProfile.small_fast_model || nextActiveProfile.defaultModel || "").trim();
+      payload[SELECTED_MODEL_QUICK_MODE_STORAGE_KEY] = String(
+        nextActiveProfile.fastModel ||
+          nextActiveProfile.small_fast_model ||
+          nextActiveProfile.defaultModel ||
+          "",
+      ).trim();
       payload[QUICK_MODEL_SELECTION_SYNC_SIGNATURE_KEY] = nextQuickSignature;
     }
     return Object.keys(payload).length ? payload : null;
@@ -410,24 +625,42 @@
     if (!storage) {
       throw new Error("Provider storage is not available.");
     }
-    const profiles = Array.isArray(state.profiles) ? state.profiles.map(normalizeProfile) : [];
-    const activeProfileId = resolveActiveProfileId(profiles, state.activeProfileId);
-    const activeProfile = profiles.find(function (profile) {
-      return profile.id === activeProfileId;
-    }) || null;
+    const profiles = Array.isArray(state.profiles)
+      ? state.profiles.map(normalizeProfile)
+      : [];
+    const activeProfileId = resolveActiveProfileId(
+      profiles,
+      state.activeProfileId,
+    );
+    const activeProfile =
+      profiles.find(function (profile) {
+        return profile.id === activeProfileId;
+      }) || null;
     const legacyConfig = projectProfileToConfig(activeProfile);
-    const modelSelectionSyncPayload = state.modelSelectionSyncPayload && typeof state.modelSelectionSyncPayload === "object" ? state.modelSelectionSyncPayload : null;
-    const writes = [storage.set({
-      [PROFILES_STORAGE_KEY]: profiles,
-      [ACTIVE_PROFILE_STORAGE_KEY]: activeProfileId,
-      [LEGACY_STORAGE_KEY]: legacyConfig,
-      ...(modelSelectionSyncPayload || {})
-    }), storage.remove(ANTHROPIC_API_KEY_STORAGE_KEY)];
+    const modelSelectionSyncPayload =
+      state.modelSelectionSyncPayload &&
+      typeof state.modelSelectionSyncPayload === "object"
+        ? state.modelSelectionSyncPayload
+        : null;
+    const writes = [
+      storage.set({
+        [PROFILES_STORAGE_KEY]: profiles,
+        [ACTIVE_PROFILE_STORAGE_KEY]: activeProfileId,
+        [LEGACY_STORAGE_KEY]: legacyConfig,
+        ...(modelSelectionSyncPayload || {}),
+      }),
+      storage.remove(ANTHROPIC_API_KEY_STORAGE_KEY),
+    ];
     if (state.originalApiKey === undefined) {
-      const nextBackupApiKey = state.currentApiKey && state.currentApiKey !== activeProfile?.apiKey ? state.currentApiKey : null;
-      writes.push(storage.set({
-        [BACKUP_KEY]: nextBackupApiKey
-      }));
+      const nextBackupApiKey =
+        state.currentApiKey && state.currentApiKey !== activeProfile?.apiKey
+          ? state.currentApiKey
+          : null;
+      writes.push(
+        storage.set({
+          [BACKUP_KEY]: nextBackupApiKey,
+        }),
+      );
     }
     await Promise.all(writes);
     return {
@@ -435,9 +668,20 @@
       activeProfileId,
       activeProfile,
       config: legacyConfig,
-      originalApiKey: state.originalApiKey === undefined ? state.currentApiKey && state.currentApiKey !== activeProfile?.apiKey ? state.currentApiKey : null : state.originalApiKey,
+      originalApiKey:
+        state.originalApiKey === undefined
+          ? state.currentApiKey && state.currentApiKey !== activeProfile?.apiKey
+            ? state.currentApiKey
+            : null
+          : state.originalApiKey,
       currentApiKey: "",
-      migrated: !!state.migrated
+      migrated: !!state.migrated,
+      httpEnabled:
+        typeof state.httpEnabled === "boolean"
+          ? state.httpEnabled
+          : await readHttpProviderSupportEnabled({
+              storageArea: storage,
+            }),
     };
   }
   async function readProviderStoreState(options) {
@@ -452,35 +696,67 @@
         config: emptyConfig,
         originalApiKey: undefined,
         currentApiKey: "",
-        migrated: false
+        migrated: false,
+        httpEnabled: DEFAULT_HTTP_PROVIDER_ENABLED,
       };
     }
-    const stored = await storage.get([LEGACY_STORAGE_KEY, PROFILES_STORAGE_KEY, ACTIVE_PROFILE_STORAGE_KEY, BACKUP_KEY, ANTHROPIC_API_KEY_STORAGE_KEY]);
-    let profiles = Array.isArray(stored[PROFILES_STORAGE_KEY]) ? stored[PROFILES_STORAGE_KEY].map(normalizeProfile) : [];
-    let activeProfileId = resolveActiveProfileId(profiles, stored[ACTIVE_PROFILE_STORAGE_KEY]);
+    const stored = await storage.get([
+      LEGACY_STORAGE_KEY,
+      PROFILES_STORAGE_KEY,
+      ACTIVE_PROFILE_STORAGE_KEY,
+      BACKUP_KEY,
+      ANTHROPIC_API_KEY_STORAGE_KEY,
+      HTTP_PROVIDER_STORAGE_KEY,
+      HTTP_PROVIDER_MIGRATED_KEY,
+    ]);
+    let profiles = Array.isArray(stored[PROFILES_STORAGE_KEY])
+      ? stored[PROFILES_STORAGE_KEY].map(normalizeProfile)
+      : [];
+    let activeProfileId = resolveActiveProfileId(
+      profiles,
+      stored[ACTIVE_PROFILE_STORAGE_KEY],
+    );
     let migrated = false;
-    const hasLegacyDeprecatedFields = hasDeprecatedProviderFields(stored[LEGACY_STORAGE_KEY]);
-    const hasProfileDeprecatedFields = Array.isArray(stored[PROFILES_STORAGE_KEY]) && stored[PROFILES_STORAGE_KEY].some(function (profile) {
-      return hasDeprecatedProviderFields(profile);
-    });
+    const hasLegacyDeprecatedFields = hasDeprecatedProviderFields(
+      stored[LEGACY_STORAGE_KEY],
+    );
+    const hasProfileDeprecatedFields =
+      Array.isArray(stored[PROFILES_STORAGE_KEY]) &&
+      stored[PROFILES_STORAGE_KEY].some(function (profile) {
+        return hasDeprecatedProviderFields(profile);
+      });
     if (!profiles.length && hasConfigContent(stored[LEGACY_STORAGE_KEY])) {
       profiles = [normalizeProfile(stored[LEGACY_STORAGE_KEY])];
       activeProfileId = profiles[0].id;
       migrated = true;
     }
-    const activeProfile = profiles.find(function (profile) {
-      return profile.id === activeProfileId;
-    }) || null;
+    const activeProfile =
+      profiles.find(function (profile) {
+        return profile.id === activeProfileId;
+      }) || null;
     const legacyConfig = projectProfileToConfig(activeProfile);
-    const needsSync = migrated || hasLegacyDeprecatedFields || hasProfileDeprecatedFields || stableSerialize(legacyConfig) !== stableSerialize(normalizeConfig(stored[LEGACY_STORAGE_KEY])) || stored[ACTIVE_PROFILE_STORAGE_KEY] !== activeProfileId;
+    const httpEnabled = await readHttpProviderSupportEnabled({
+      storageArea: storage,
+      storedState: stored,
+    });
+    const needsSync =
+      migrated ||
+      hasLegacyDeprecatedFields ||
+      hasProfileDeprecatedFields ||
+      stableSerialize(legacyConfig) !==
+        stableSerialize(normalizeConfig(stored[LEGACY_STORAGE_KEY])) ||
+      stored[ACTIVE_PROFILE_STORAGE_KEY] !== activeProfileId;
     if (needsSync && settings.persist !== false) {
       return persistProviderStoreState({
         storageArea: storage,
         profiles,
         activeProfileId,
-        originalApiKey: Object.prototype.hasOwnProperty.call(stored, BACKUP_KEY) ? stored[BACKUP_KEY] : undefined,
+        originalApiKey: Object.prototype.hasOwnProperty.call(stored, BACKUP_KEY)
+          ? stored[BACKUP_KEY]
+          : undefined,
         currentApiKey: stored[ANTHROPIC_API_KEY_STORAGE_KEY] || "",
-        migrated
+        migrated,
+        httpEnabled,
       });
     }
     return {
@@ -488,20 +764,33 @@
       activeProfileId,
       activeProfile,
       config: legacyConfig,
-      originalApiKey: Object.prototype.hasOwnProperty.call(stored, BACKUP_KEY) ? stored[BACKUP_KEY] : undefined,
+      originalApiKey: Object.prototype.hasOwnProperty.call(stored, BACKUP_KEY)
+        ? stored[BACKUP_KEY]
+        : undefined,
       currentApiKey: stored[ANTHROPIC_API_KEY_STORAGE_KEY] || "",
-      migrated
+      migrated,
+      httpEnabled,
     };
   }
   async function saveProviderProfile(profileInput, options) {
     const settings = options && typeof options === "object" ? options : {};
-    const currentState = settings.state || await readProviderStoreState({
-      storageArea: settings.storageArea
-    });
-    const incoming = profileInput && typeof profileInput === "object" ? profileInput : {};
+    const currentState =
+      settings.state ||
+      (await readProviderStoreState({
+        storageArea: settings.storageArea,
+      }));
+    const incoming =
+      profileInput && typeof profileInput === "object" ? profileInput : {};
     const nextProfile = normalizeProfile({
       ...incoming,
-      id: settings.profileId || incoming.id || ""
+      id: settings.profileId || incoming.id || "",
+    });
+    await assertHttpProviderAllowed(nextProfile, {
+      storageArea: settings.storageArea,
+      enabled:
+        typeof currentState.httpEnabled === "boolean"
+          ? currentState.httpEnabled
+          : undefined,
     });
     const profiles = currentState.profiles.slice();
     const existingIndex = profiles.findIndex(function (profile) {
@@ -513,59 +802,95 @@
       profiles.push(nextProfile);
     }
     const shouldActivate = settings.activateOnSave !== false;
-    const nextActiveProfile = profiles.find(function (profile) {
-      return profile.id === (shouldActivate ? nextProfile.id : currentState.activeProfileId);
-    }) || null;
+    const nextActiveProfile =
+      profiles.find(function (profile) {
+        return (
+          profile.id ===
+          (shouldActivate ? nextProfile.id : currentState.activeProfileId)
+        );
+      }) || null;
     return persistProviderStoreState({
       storageArea: settings.storageArea,
       profiles,
-      activeProfileId: shouldActivate ? nextProfile.id : currentState.activeProfileId,
-      modelSelectionSyncPayload: buildModelSelectionSyncPayload(currentState.activeProfile, nextActiveProfile),
+      activeProfileId: shouldActivate
+        ? nextProfile.id
+        : currentState.activeProfileId,
+      modelSelectionSyncPayload: buildModelSelectionSyncPayload(
+        currentState.activeProfile,
+        nextActiveProfile,
+      ),
       originalApiKey: currentState.originalApiKey,
-      currentApiKey: currentState.currentApiKey
+      currentApiKey: currentState.currentApiKey,
+      httpEnabled: currentState.httpEnabled,
     });
   }
   async function setActiveProviderProfile(profileId, options) {
     const settings = options && typeof options === "object" ? options : {};
-    const currentState = settings.state || await readProviderStoreState({
-      storageArea: settings.storageArea
-    });
-    if (!currentState.profiles.some(function (profile) {
-      return profile.id === profileId;
-    })) {
+    const currentState =
+      settings.state ||
+      (await readProviderStoreState({
+        storageArea: settings.storageArea,
+      }));
+    if (
+      !currentState.profiles.some(function (profile) {
+        return profile.id === profileId;
+      })
+    ) {
       throw new Error("Provider profile not found.");
     }
-    const nextActiveProfile = currentState.profiles.find(function (profile) {
-      return profile.id === profileId;
-    }) || null;
+    const nextActiveProfile =
+      currentState.profiles.find(function (profile) {
+        return profile.id === profileId;
+      }) || null;
+    await assertHttpProviderAllowed(nextActiveProfile, {
+      storageArea: settings.storageArea,
+      enabled:
+        typeof currentState.httpEnabled === "boolean"
+          ? currentState.httpEnabled
+          : undefined,
+    });
     return persistProviderStoreState({
       storageArea: settings.storageArea,
       profiles: currentState.profiles,
       activeProfileId: profileId,
-      modelSelectionSyncPayload: buildModelSelectionSyncPayload(currentState.activeProfile, nextActiveProfile),
+      modelSelectionSyncPayload: buildModelSelectionSyncPayload(
+        currentState.activeProfile,
+        nextActiveProfile,
+      ),
       originalApiKey: currentState.originalApiKey,
-      currentApiKey: currentState.currentApiKey
+      currentApiKey: currentState.currentApiKey,
+      httpEnabled: currentState.httpEnabled,
     });
   }
   async function deleteProviderProfile(profileId, options) {
     const settings = options && typeof options === "object" ? options : {};
-    const currentState = settings.state || await readProviderStoreState({
-      storageArea: settings.storageArea
-    });
+    const currentState =
+      settings.state ||
+      (await readProviderStoreState({
+        storageArea: settings.storageArea,
+      }));
     const profiles = currentState.profiles.filter(function (profile) {
       return profile.id !== profileId;
     });
-    const activeProfileId = currentState.activeProfileId === profileId ? profiles[0]?.id || null : resolveActiveProfileId(profiles, currentState.activeProfileId);
-    const nextActiveProfile = profiles.find(function (profile) {
-      return profile.id === activeProfileId;
-    }) || null;
+    const activeProfileId =
+      currentState.activeProfileId === profileId
+        ? profiles[0]?.id || null
+        : resolveActiveProfileId(profiles, currentState.activeProfileId);
+    const nextActiveProfile =
+      profiles.find(function (profile) {
+        return profile.id === activeProfileId;
+      }) || null;
     return persistProviderStoreState({
       storageArea: settings.storageArea,
       profiles,
       activeProfileId,
-      modelSelectionSyncPayload: buildModelSelectionSyncPayload(currentState.activeProfile, nextActiveProfile),
+      modelSelectionSyncPayload: buildModelSelectionSyncPayload(
+        currentState.activeProfile,
+        nextActiveProfile,
+      ),
       originalApiKey: currentState.originalApiKey,
-      currentApiKey: currentState.currentApiKey
+      currentApiKey: currentState.currentApiKey,
+      httpEnabled: currentState.httpEnabled,
     });
   }
   async function reconcileActiveProviderModelSelection(options) {
@@ -574,27 +899,49 @@
     if (!storage) {
       return false;
     }
-    const currentState = settings.state || await readProviderStoreState({
-      storageArea: storage
-    });
+    const currentState =
+      settings.state ||
+      (await readProviderStoreState({
+        storageArea: storage,
+      }));
     const activeProfile = currentState.activeProfile;
     if (!activeProfile) {
       return false;
     }
-    const expectedStandardSignature = buildModelSelectionSyncSignature(activeProfile);
-    const expectedQuickSignature = buildQuickModelSelectionSyncSignature(activeProfile);
+    const expectedStandardSignature =
+      buildModelSelectionSyncSignature(activeProfile);
+    const expectedQuickSignature =
+      buildQuickModelSelectionSyncSignature(activeProfile);
     if (!expectedStandardSignature && !expectedQuickSignature) {
       return false;
     }
-    const stored = await storage.get([MODEL_SELECTION_SYNC_SIGNATURE_KEY, QUICK_MODEL_SELECTION_SYNC_SIGNATURE_KEY]);
+    const stored = await storage.get([
+      MODEL_SELECTION_SYNC_SIGNATURE_KEY,
+      QUICK_MODEL_SELECTION_SYNC_SIGNATURE_KEY,
+    ]);
     const payload = {};
-    if (expectedStandardSignature && stored[MODEL_SELECTION_SYNC_SIGNATURE_KEY] !== expectedStandardSignature) {
-      payload[SELECTED_MODEL_STORAGE_KEY] = String(activeProfile.defaultModel || "").trim();
+    if (
+      expectedStandardSignature &&
+      stored[MODEL_SELECTION_SYNC_SIGNATURE_KEY] !== expectedStandardSignature
+    ) {
+      payload[SELECTED_MODEL_STORAGE_KEY] = String(
+        activeProfile.defaultModel || "",
+      ).trim();
       payload[MODEL_SELECTION_SYNC_SIGNATURE_KEY] = expectedStandardSignature;
     }
-    if (expectedQuickSignature && stored[QUICK_MODEL_SELECTION_SYNC_SIGNATURE_KEY] !== expectedQuickSignature) {
-      payload[SELECTED_MODEL_QUICK_MODE_STORAGE_KEY] = String(activeProfile.fastModel || activeProfile.small_fast_model || activeProfile.defaultModel || "").trim();
-      payload[QUICK_MODEL_SELECTION_SYNC_SIGNATURE_KEY] = expectedQuickSignature;
+    if (
+      expectedQuickSignature &&
+      stored[QUICK_MODEL_SELECTION_SYNC_SIGNATURE_KEY] !==
+        expectedQuickSignature
+    ) {
+      payload[SELECTED_MODEL_QUICK_MODE_STORAGE_KEY] = String(
+        activeProfile.fastModel ||
+          activeProfile.small_fast_model ||
+          activeProfile.defaultModel ||
+          "",
+      ).trim();
+      payload[QUICK_MODEL_SELECTION_SYNC_SIGNATURE_KEY] =
+        expectedQuickSignature;
     }
     if (!Object.keys(payload).length) {
       return false;
@@ -611,40 +958,109 @@
       return JSON.parse(text);
     } catch {
       return {
-        message: text
+        message: text,
       };
     }
   }
   function buildProviderHeaders(config, format, includeContentType) {
     const normalizedFormat = normalizeFormat(format);
-    const headers = normalizedFormat === ANTHROPIC_FORMAT ? {
-      "x-api-key": config.apiKey,
-      "anthropic-version": "2023-06-01",
-      Accept: "application/json"
-    } : {
-      Authorization: `Bearer ${config.apiKey}`,
-      Accept: "application/json"
-    };
+    const headers =
+      normalizedFormat === ANTHROPIC_FORMAT
+        ? {
+            "x-api-key": config.apiKey,
+            "anthropic-version": "2023-06-01",
+            Accept: "application/json",
+          }
+        : {
+            Authorization: `Bearer ${config.apiKey}`,
+            Accept: "application/json",
+          };
     if (includeContentType) {
       headers["content-type"] = "application/json";
     }
     return headers;
   }
   function isLikelyChatLikeModel(value) {
-    const model = String(value || "").trim().toLowerCase();
-    return model.startsWith("gpt-") || model.startsWith("chatgpt") || model.length > 1 && model.startsWith("o") && /\d/.test(model[1]);
+    const model = String(value || "")
+      .trim()
+      .toLowerCase();
+    return (
+      model.startsWith("gpt-") ||
+      model.startsWith("chatgpt") ||
+      (model.length > 1 && model.startsWith("o") && /\d/.test(model[1]))
+    );
+  }
+  function isGeminiOpenAICompatibleProvider(config) {
+    const baseUrl = String(config?.baseUrl || "")
+      .trim()
+      .toLowerCase();
+    const model = String(config?.defaultModel || "")
+      .trim()
+      .toLowerCase();
+    const name = String(config?.name || "")
+      .trim()
+      .toLowerCase();
+    // Gemini 的 OpenAI 兼容层主要支持 chat/completions；健康检测不要先打 /responses。
+    return (
+      model.startsWith("gemini") ||
+      name.includes("gemini") ||
+      baseUrl.includes("generativelanguage.googleapis.com") ||
+      (baseUrl.includes("googleapis.com") && baseUrl.includes("/openai"))
+    );
   }
   function buildHealthCheckCandidates(config) {
     const requestedFormat = normalizeFormat(config?.format);
+    if (
+      requestedFormat === OPENAI_RESPONSES_FORMAT &&
+      isGeminiOpenAICompatibleProvider(config)
+    ) {
+      return [OPENAI_CHAT_FORMAT];
+    }
     const candidates = [requestedFormat];
-    const baseUrl = String(config?.baseUrl || "").trim().toLowerCase();
-    const model = String(config?.defaultModel || "").trim().toLowerCase();
-    const name = String(config?.name || "").trim().toLowerCase();
-    const looksChatLike = isLikelyChatLikeModel(model) || name.includes("openai") || name.includes("gpt");
-    if (requestedFormat === OPENAI_RESPONSES_FORMAT && looksChatLike && !/\/responses$/i.test(baseUrl)) {
+    const baseUrl = String(config?.baseUrl || "")
+      .trim()
+      .toLowerCase();
+    const model = String(config?.defaultModel || "")
+      .trim()
+      .toLowerCase();
+    const name = String(config?.name || "")
+      .trim()
+      .toLowerCase();
+    const looksChatLike =
+      isLikelyChatLikeModel(model) ||
+      name.includes("openai") ||
+      name.includes("gpt");
+    if (
+      requestedFormat === OPENAI_RESPONSES_FORMAT &&
+      looksChatLike &&
+      !/\/responses$/i.test(baseUrl)
+    ) {
       candidates.push(OPENAI_CHAT_FORMAT);
     }
     return candidates;
+  }
+  function shouldTryNextHealthCheckCandidate(error) {
+    const status = Number(error?.status || 0);
+    if (!status) {
+      return true;
+    }
+    const text = String(error?.message || "")
+      .trim()
+      .toLowerCase();
+    if (status === 404 || status === 405 || status === 501) {
+      return true;
+    }
+    if (!(status === 400 || status === 422)) {
+      return false;
+    }
+    return (
+      /\b(endpoint|route|path|url|format|responses?|chat completions?)\b/.test(
+        text,
+      ) &&
+      /\b(unsupported|not supported|not found|unknown|invalid|unrecognized)\b/.test(
+        text,
+      )
+    );
   }
   function buildHealthCheckBody(config, format) {
     const model = String(config?.defaultModel || "").trim();
@@ -654,10 +1070,12 @@
         model,
         max_tokens: HEALTH_CHECK_MAX_TOKENS,
         stream: false,
-        messages: [{
-          role: "user",
-          content: HEALTH_CHECK_PROMPT
-        }]
+        messages: [
+          {
+            role: "user",
+            content: HEALTH_CHECK_PROMPT,
+          },
+        ],
       };
     }
     if (normalizedFormat === OPENAI_CHAT_FORMAT) {
@@ -666,17 +1084,19 @@
         max_tokens: HEALTH_CHECK_MAX_TOKENS,
         temperature: 0,
         stream: false,
-        messages: [{
-          role: "user",
-          content: HEALTH_CHECK_PROMPT
-        }]
+        messages: [
+          {
+            role: "user",
+            content: HEALTH_CHECK_PROMPT,
+          },
+        ],
       };
     }
     return {
       model,
       max_output_tokens: HEALTH_CHECK_MAX_TOKENS,
       input: HEALTH_CHECK_PROMPT,
-      stream: false
+      stream: false,
     };
   }
   function extractReadableTextFromPart(part, options) {
@@ -688,14 +1108,20 @@
     if (!part || typeof part !== "object") {
       return "";
     }
-    const type = String(part.type || "").trim().toLowerCase();
+    const type = String(part.type || "")
+      .trim()
+      .toLowerCase();
     if (type === "tool_use" || type === "tool_result") {
       return "";
     }
     if (type === "text" && typeof part.text === "string") {
       return part.text.trim();
     }
-    if (allowReasoning && type === "thinking" && typeof part.thinking === "string") {
+    if (
+      allowReasoning &&
+      type === "thinking" &&
+      typeof part.thinking === "string"
+    ) {
       return part.thinking.trim();
     }
     if (allowReasoning && type === "reasoning") {
@@ -706,7 +1132,12 @@
         return part.reasoning.trim();
       }
     }
-    const directCandidates = [part.output_text, part.content_text, part.response_text, part.text];
+    const directCandidates = [
+      part.output_text,
+      part.content_text,
+      part.response_text,
+      part.text,
+    ];
     if (allowReasoning) {
       directCandidates.push(part.reasoning, part.thinking);
     }
@@ -718,7 +1149,13 @@
     if (typeof part.content === "string" && part.content.trim()) {
       return part.content.trim();
     }
-    const nestedCollections = [part.content, part.message?.content, part.output, part.reasoning_details, part.delta];
+    const nestedCollections = [
+      part.content,
+      part.message?.content,
+      part.output,
+      part.reasoning_details,
+      part.delta,
+    ];
     for (const nested of nestedCollections) {
       const text = extractTextFromContentParts(nested, options);
       if (text) {
@@ -737,9 +1174,13 @@
     if (!Array.isArray(parts)) {
       return "";
     }
-    return parts.map(function (part) {
-      return extractReadableTextFromPart(part, options);
-    }).filter(Boolean).join(" ").trim();
+    return parts
+      .map(function (part) {
+        return extractReadableTextFromPart(part, options);
+      })
+      .filter(Boolean)
+      .join(" ")
+      .trim();
   }
   function hasProbeResponseSignalInParts(parts) {
     if (typeof parts === "string") {
@@ -752,7 +1193,9 @@
       if (typeof parts !== "object") {
         return false;
       }
-      const type = String(parts.type || "").trim().toLowerCase();
+      const type = String(parts.type || "")
+        .trim()
+        .toLowerCase();
       if (type === "tool_use" || type === "tool_result") {
         return false;
       }
@@ -768,7 +1211,13 @@
       if (typeof parts.content === "string" && parts.content.trim()) {
         return true;
       }
-      return hasProbeResponseSignalInParts(parts.content) || hasProbeResponseSignalInParts(parts.message?.content) || hasProbeResponseSignalInParts(parts.output) || hasProbeResponseSignalInParts(parts.reasoning_details) || hasProbeResponseSignalInParts(parts.delta);
+      return (
+        hasProbeResponseSignalInParts(parts.content) ||
+        hasProbeResponseSignalInParts(parts.message?.content) ||
+        hasProbeResponseSignalInParts(parts.output) ||
+        hasProbeResponseSignalInParts(parts.reasoning_details) ||
+        hasProbeResponseSignalInParts(parts.delta)
+      );
     }
     return parts.some(function (part) {
       return hasProbeResponseSignalInParts(part);
@@ -783,26 +1232,38 @@
     }
     const textFirstCandidates = [
       extractTextFromContentParts(payload.content, {
-        allowReasoning: false
+        allowReasoning: false,
       }),
       extractTextFromContentParts(payload.message?.content, {
-        allowReasoning: false
+        allowReasoning: false,
       }),
-      Array.isArray(payload.output) ? payload.output.map(function (item) {
-        return extractTextFromContentParts(item?.content, {
-          allowReasoning: false
-        });
-      }).filter(Boolean).join(" ").trim() : "",
-      Array.isArray(payload.choices) ? payload.choices.map(function (choice) {
-        if (typeof choice?.message?.content === "string") {
-          return choice.message.content.trim();
-        }
-        return extractTextFromContentParts(choice?.message?.content, {
-          allowReasoning: false
-        });
-      }).filter(Boolean).join(" ").trim() : "",
+      Array.isArray(payload.output)
+        ? payload.output
+            .map(function (item) {
+              return extractTextFromContentParts(item?.content, {
+                allowReasoning: false,
+              });
+            })
+            .filter(Boolean)
+            .join(" ")
+            .trim()
+        : "",
+      Array.isArray(payload.choices)
+        ? payload.choices
+            .map(function (choice) {
+              if (typeof choice?.message?.content === "string") {
+                return choice.message.content.trim();
+              }
+              return extractTextFromContentParts(choice?.message?.content, {
+                allowReasoning: false,
+              });
+            })
+            .filter(Boolean)
+            .join(" ")
+            .trim()
+        : "",
       typeof payload.message === "string" ? payload.message.trim() : "",
-      typeof payload.content === "string" ? payload.content.trim() : ""
+      typeof payload.content === "string" ? payload.content.trim() : "",
     ];
     for (const candidate of textFirstCandidates) {
       if (candidate) {
@@ -830,9 +1291,17 @@
     if (typeof payload.reasoning === "string" && payload.reasoning.trim()) {
       return true;
     }
-    return hasProbeResponseSignalInParts(payload.content) || hasProbeResponseSignalInParts(payload.message?.content) || hasProbeResponseSignalInParts(payload.output) || hasProbeResponseSignalInParts(payload.choices?.map(function (choice) {
-      return choice?.message?.content;
-    })) || hasProbeResponseSignalInParts(payload.reasoning_details);
+    return (
+      hasProbeResponseSignalInParts(payload.content) ||
+      hasProbeResponseSignalInParts(payload.message?.content) ||
+      hasProbeResponseSignalInParts(payload.output) ||
+      hasProbeResponseSignalInParts(
+        payload.choices?.map(function (choice) {
+          return choice?.message?.content;
+        }),
+      ) ||
+      hasProbeResponseSignalInParts(payload.reasoning_details)
+    );
   }
   // 统一向兼容供应商请求 /models，并把返回值整理成下拉可选项。
   async function fetchProviderModels(config, options) {
@@ -840,6 +1309,7 @@
     if (!next.baseUrl) {
       throw new Error("请先填写 Base URL。");
     }
+    await assertHttpProviderAllowed(next, options);
     if (!next.apiKey) {
       throw new Error("请先填写 API Key。");
     }
@@ -849,23 +1319,30 @@
     }, FETCH_TIMEOUT_MS);
     try {
       const headers = buildProviderHeaders(next, next.format, false);
-      const response = await (options?.fetchImpl || globalThis.fetch)(joinUrl(next.baseUrl, "models"), {
-        method: "GET",
-        headers,
-        signal: controller.signal
-      });
+      const response = await (options?.fetchImpl || globalThis.fetch)(
+        joinUrl(next.baseUrl, "models"),
+        {
+          method: "GET",
+          headers,
+          signal: controller.signal,
+        },
+      );
       const payload = await parseJsonSafe(response);
       if (!response.ok) {
-        throw new Error(extractErrorMessage(payload, `获取模型失败（${response.status}）`));
+        throw new Error(
+          extractErrorMessage(payload, `获取模型失败（${response.status}）`),
+        );
       }
       const list = Array.isArray(payload?.data) ? payload.data : [];
-      const models = dedupeModels(list.map(function (item) {
-        const id = String(item?.id || "").trim();
-        return {
-          value: id,
-          label: String(item?.display_name || id).trim() || id
-        };
-      }));
+      const models = dedupeModels(
+        list.map(function (item) {
+          const id = String(item?.id || "").trim();
+          return {
+            value: id,
+            label: String(item?.display_name || id).trim() || id,
+          };
+        }),
+      );
       if (!models.length) {
         throw new Error("接口已响应，但没有返回可选模型。");
       }
@@ -884,6 +1361,7 @@
     if (!next.baseUrl) {
       throw new Error("请先填写 Base URL。");
     }
+    await assertHttpProviderAllowed(next, options);
     if (!next.apiKey) {
       throw new Error("请先填写 API Key。");
     }
@@ -905,11 +1383,18 @@
             method: "POST",
             headers: buildProviderHeaders(next, format, true),
             body: JSON.stringify(buildHealthCheckBody(next, format)),
-            signal: controller.signal
+            signal: controller.signal,
           });
           const payload = await parseJsonSafe(response);
           if (!response.ok) {
-            throw new Error(extractErrorMessage(payload, `健康检测失败（${response.status}）`));
+            const error = new Error(
+              extractErrorMessage(
+                payload,
+                `健康检测失败（${response.status}）`,
+              ),
+            );
+            error.status = response.status;
+            throw error;
           }
           const replyText = extractProbeReply(payload);
           const responseDetected = hasProbeResponseSignal(payload);
@@ -921,10 +1406,13 @@
             format,
             requestUrl,
             replyText,
-            responseDetected
+            responseDetected,
           };
         } catch (error) {
           lastError = error;
+          if (!shouldTryNextHealthCheckCandidate(error)) {
+            throw error;
+          }
         }
       }
       throw lastError || new Error("健康检测失败。");
@@ -944,16 +1432,21 @@
     select.innerHTML = "";
     const placeholder = document.createElement("option");
     placeholder.value = "";
-    placeholder.textContent = models.length ? "选择一个已获取的模型" : "点击“获取模型”后可直接选择";
+    placeholder.textContent = models.length
+      ? "选择一个已获取的模型"
+      : "点击“获取模型”后可直接选择";
     select.appendChild(placeholder);
     for (const model of models) {
       const option = document.createElement("option");
       option.value = model.value;
-      option.textContent = model.label && model.label !== model.value ? `${model.label} (${model.value})` : model.value;
+      option.textContent = model.label || model.value;
       select.appendChild(option);
     }
     select.disabled = models.length === 0;
-    if (selectedValue && models.some(model => model.value === selectedValue)) {
+    if (
+      selectedValue &&
+      models.some((model) => model.value === selectedValue)
+    ) {
       select.value = selectedValue;
     } else {
       select.value = "";
@@ -972,6 +1465,9 @@
     BACKUP_KEY,
     ANTHROPIC_API_KEY_STORAGE_KEY,
     FETCHED_MODELS_CACHE_KEY,
+    HTTP_PROVIDER_STORAGE_KEY,
+    HTTP_PROVIDER_MIGRATED_KEY,
+    HTTP_PROVIDER_DISABLED_MESSAGE,
     extractErrorMessage,
     normalizeFormat,
     normalizeReasoningEffort,
@@ -980,6 +1476,9 @@
     normalizeConfig,
     normalizeProfile,
     createEmptyConfig,
+    isHttpBaseUrl,
+    readHttpProviderSupportEnabled,
+    assertHttpProviderAllowed,
     hasUsableConfig,
     projectProfileToConfig,
     readProviderStoreState,
@@ -992,7 +1491,7 @@
     buildRequestUrl,
     fetchProviderModels,
     probeProviderModel,
-    syncModelOptions
+    syncModelOptions,
   };
   reconcileActiveProviderModelSelection().catch(function () {});
 })();
